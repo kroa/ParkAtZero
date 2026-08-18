@@ -1,0 +1,134 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# 같은 브랜치에 새 커밋이 들어오면 진행 중인 실행은 취소한다(러너 시간 절약).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  # 광고 스크립트와 원격 API 는 CI 에서 항상 꺼 둔다 — 외부 상태에 테스트가 흔들리면 안 된다.
+  VITE_ADS_ENABLED: 'false'
+  VITE_PARKING_API_PROXY: ''
+
+jobs:
+  # ── 1. 타입 · 린트 · 프로덕션 빌드 ────────────────────────────
+  quality:
+    name: 타입체크 · 린트 · 빌드
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: 타입체크
+        run: npm run typecheck
+
+      - name: 린트
+        run: npm run lint
+
+      - name: 프로덕션 빌드
+        run: npm run build:only
+
+      - name: 번들 크기 요약
+        run: |
+          echo "### 번들 크기" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          du -h -d 1 dist/assets | sort -h >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 빌드 산출물 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
+
+  # ── 2. Playwright E2E (데스크톱 / 모바일 병렬) ────────────────
+  e2e:
+    name: E2E (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: quality
+
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chromium, mobile-chrome]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: 의존성 설치
+        run: npm ci
+
+      # 브라우저 바이너리는 Playwright 버전 단위로 캐시한다.
+      - name: Playwright 버전 확인
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: 브라우저 캐시 복원
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: 브라우저 설치
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: 시스템 의존성만 설치 (캐시 적중 시)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # playwright.config.ts 의 webServer 가 build:only → preview 를 직접 수행한다.
+      - name: E2E 실행
+        run: npx playwright test --project=${{ matrix.project }}
+        env:
+          CI: 'true'
+
+      - name: 리포트 업로드
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  # ── 3. 결과 요약 (브랜치 보호 규칙에서 이 잡 하나만 필수로 지정하면 된다) ──
+  ci-passed:
+    name: CI 통과
+    runs-on: ubuntu-latest
+    needs: [quality, e2e]
+    if: always()
+    steps:
+      - name: 실패한 잡이 있으면 종료
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "선행 잡이 실패했습니다."
+            exit 1
+          fi
+          echo "모든 검사를 통과했습니다."

@@ -1,0 +1,13 @@
+{
+  "name": "ParkAtZero · 0원 주차",
+  "short_name": "ParkAtZero",
+  "description": "선택한 방문 시간에 무료인 주차장을 찾아주는 Local-First 웹앱",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0f14",
+  "theme_color": "#0b0f14",
+  "lang": "ko",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

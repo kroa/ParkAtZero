@@ -1,0 +1,15 @@
+# Cloudflare Pages — 보안 헤더 & 캐시 정책
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(self), camera=(), microphone=(), interest-cohort=()
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/data/*
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate

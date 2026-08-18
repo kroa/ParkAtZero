@@ -1,0 +1,267 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* 라이트: 종이처럼 아주 살짝 푸른 회백색. 순백은 지도 위에서 눈이 부시다. */
+    --pz-ink: 15 23 42;
+    --pz-ink-soft: 71 85 105;
+    --pz-ink-mute: 148 163 184;
+    --pz-surface: 255 255 255;
+    --pz-surface-raised: 255 255 255;
+    --pz-surface-sunken: 241 245 249;
+    --pz-hairline: 226 232 240;
+
+    --pz-glass-bg: 255 255 255 / 0.72;
+    --pz-glass-border: 255 255 255 / 0.7;
+    --pz-glass-shine: 255 255 255 / 0.55;
+    --pz-page: 246 248 251;
+  }
+
+  .dark {
+    /* 다크: 검정이 아니라 짙은 청록빛 슬레이트. 지도 다크 타일과 톤을 맞춘다. */
+    --pz-ink: 241 245 249;
+    --pz-ink-soft: 148 163 184;
+    --pz-ink-mute: 100 116 139;
+    --pz-surface: 17 24 33;
+    --pz-surface-raised: 24 32 44;
+    --pz-surface-sunken: 11 15 20;
+    --pz-hairline: 39 51 66;
+
+    --pz-glass-bg: 17 24 33 / 0.72;
+    --pz-glass-border: 255 255 255 / 0.09;
+    --pz-glass-shine: 255 255 255 / 0.06;
+    --pz-page: 11 15 20;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-[rgb(var(--pz-page))] font-sans text-ink antialiased;
+    font-feature-settings: 'ss01' 1, 'tnum' 0;
+    overscroll-behavior-y: none;
+  }
+
+  /* 숫자는 항상 등폭으로 — 요금/거리/시간이 흔들리지 않게 */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  ::selection {
+    @apply bg-brand-500/25;
+  }
+
+  :focus-visible {
+    outline: none;
+    @apply ring-2 ring-brand-500/70 ring-offset-1 ring-offset-[rgb(var(--pz-page))];
+  }
+
+  /* 스크롤바 — 목록이 길어져도 UI 를 해치지 않도록 얇게 */
+  .pz-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--pz-ink-mute) / 0.4) transparent;
+  }
+  .pz-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .pz-scroll::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-ink-mute/35;
+  }
+  .pz-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* ── 글래스모피즘 기본형 ──────────────────────────────
+   * 지도 위에 떠 있는 모든 판(검색바/카드리스트/시트)의 공통 재질.
+   * backdrop-filter 미지원 브라우저에서는 불투명 배경으로 자연 폴백된다.
+   * ---------------------------------------------------- */
+  .glass {
+    background-color: rgb(var(--pz-glass-bg));
+    border: 1px solid rgb(var(--pz-glass-border));
+    @apply shadow-glass dark:shadow-glass-dark;
+  }
+
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .glass {
+      -webkit-backdrop-filter: saturate(180%) blur(24px);
+      backdrop-filter: saturate(180%) blur(24px);
+    }
+  }
+
+  .glass-strong {
+    background-color: rgb(var(--pz-surface) / 0.94);
+    border: 1px solid rgb(var(--pz-glass-border));
+    @apply shadow-glass dark:shadow-glass-dark;
+  }
+
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .glass-strong {
+      -webkit-backdrop-filter: saturate(180%) blur(32px);
+      backdrop-filter: saturate(180%) blur(32px);
+    }
+  }
+
+  /* 유리 상단의 미세한 하이라이트 — 실제 유리판처럼 보이게 하는 핵심 디테일 */
+  .glass-shine::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgb(var(--pz-glass-shine)), transparent);
+    pointer-events: none;
+  }
+
+  .pz-skeleton {
+    @apply rounded-lg bg-ink-mute/15;
+    background-image: linear-gradient(
+      90deg,
+      rgb(var(--pz-ink-mute) / 0.08) 25%,
+      rgb(var(--pz-ink-mute) / 0.2) 50%,
+      rgb(var(--pz-ink-mute) / 0.08) 75%
+    );
+    background-size: 200% 100%;
+    @apply animate-shimmer;
+  }
+
+  .pz-chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none;
+  }
+
+  /* 터치 타깃 최소 44px 보장 */
+  .tap {
+    @apply relative touch-manipulation select-none;
+  }
+  .tap::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* ── MapLibre 기본 UI 를 앱 톤에 맞게 재도색 ─────────────── */
+.maplibregl-ctrl-attrib {
+  font-size: 10px !important;
+  border-radius: 9999px !important;
+  background: rgb(var(--pz-surface) / 0.72) !important;
+  color: rgb(var(--pz-ink-soft)) !important;
+  backdrop-filter: blur(8px);
+}
+
+.maplibregl-ctrl-attrib a {
+  color: rgb(var(--pz-ink-soft)) !important;
+}
+
+.maplibregl-ctrl-bottom-right,
+.maplibregl-ctrl-bottom-left {
+  z-index: 5 !important;
+}
+
+.maplibregl-canvas:focus {
+  outline: none;
+}
+
+/* ── 지도 마커 ─────────────────────────────────────────────
+ * MapLibre 마커와 폴백 지도가 같은 마크업을 공유하므로 스타일도 한 벌만 둔다.
+ * ---------------------------------------------------------- */
+.pz-marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+  transition: filter 0.2s ease;
+}
+
+.pz-marker:hover {
+  filter: brightness(1.06);
+  z-index: 20;
+}
+
+.pz-marker-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 9999px;
+  transition: opacity 0.25s ease;
+  animation: pulse-ring 2s cubic-bezier(0.24, 0.6, 0.36, 1) infinite;
+  pointer-events: none;
+}
+
+.pz-marker-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.22s ease;
+}
+
+.pz-marker-tip {
+  width: 0;
+  height: 0;
+  margin-top: -1px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid currentColor;
+  filter: drop-shadow(0 2px 2px rgb(15 23 42 / 0.25));
+}
+
+.pz-marker[data-selected='true'] {
+  z-index: 20;
+}

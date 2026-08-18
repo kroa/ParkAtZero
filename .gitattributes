@@ -1,0 +1,15 @@
+# 저장소에는 항상 LF 로 보관한다. CI(ubuntu)와 로컬(Windows)의 줄바꿈 차이로
+# 린트/디프가 통째로 뒤집히는 일을 막는다.
+* text=auto eol=lf
+
+# 바이너리로 취급 — diff/줄바꿈 변환 대상에서 제외
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+
+# GitHub 언어 통계에서 제외
+public/data/*.json linguist-generated=true
+package-lock.json linguist-generated=true

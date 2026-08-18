@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
+
+    <title>ParkAtZero · 0원 주차 — 지금 무료로 댈 수 있는 주차장</title>
+    <meta
+      name="description"
+      content="방문할 날짜와 시간을 고르면 그 시간에 '0원'으로 주차할 수 있는 주차장만 골라 보여줍니다. 회원가입 없이 1초 만에."
+    />
+    <meta name="theme-color" content="#f6f8fb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0f14" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="canonical" href="https://parkatzero.pages.dev/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ParkAtZero" />
+    <meta property="og:title" content="ParkAtZero · 0원 주차" />
+    <meta property="og:description" content="선택한 방문 시간에 무료인 주차장만 초록으로 보여줍니다." />
+    <meta property="og:url" content="https://parkatzero.pages.dev/" />
+    <meta property="og:image" content="https://parkatzero.pages.dev/og.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- Pretendard: 한글 가독성이 가장 좋은 모던 산세리프. 실패해도 시스템 폰트로 자연스럽게 폴백된다. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link
+      rel="stylesheet"
+      as="style"
+      crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    />
+
+    <script>
+      // FOUC 방지: 첫 페인트 전에 테마 클래스를 확정한다.
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('pz.theme')
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          var dark = stored ? stored === 'dark' : prefersDark
+          document.documentElement.classList.toggle('dark', dark)
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+        } catch (e) {
+          /* private mode 등에서 localStorage 접근 실패 — 기본값 유지 */
+        }
+      })()
+    </script>
+  </head>
+  <body class="h-full">
+    <div id="root" class="h-full"></div>
+    <noscript>
+      <div style="padding: 24px; font-family: system-ui">
+        ParkAtZero 는 JavaScript 가 필요합니다. 브라우저 설정에서 JavaScript 를 켜주세요.
+      </div>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

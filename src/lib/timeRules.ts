@@ -1,0 +1,331 @@
+import type { DayType, FreeRule, OperRange, Parking } from '@/types/parking'
+import { isPublicHoliday } from './holidays'
+
+export const DAY_MINUTES = 1440
+
+/** "0900" | "09:00" | "9" | "2400" → 00:00 기준 경과 분. 파싱 실패 시 null. */
+export function parseHhmm(raw: unknown): number | null {
+  if (raw === null || raw === undefined) return null
+  const s = String(raw).trim()
+  if (!s || /^(미운영|없음|-|해당없음|N\/?A)$/i.test(s)) return null
+
+  const colon = s.match(/^(\d{1,2})\s*:\s*(\d{1,2})$/)
+  if (colon) {
+    const h = Number(colon[1])
+    const m = Number(colon[2])
+    if (h > 24 || m > 59) return null
+    return h * 60 + m
+  }
+
+  const digits = s.replace(/[^0-9]/g, '')
+  if (!digits) return null
+  if (digits.length <= 2) {
+    const h = Number(digits)
+    return h <= 24 ? h * 60 : null
+  }
+  const padded = digits.padStart(4, '0').slice(0, 4)
+  const h = Number(padded.slice(0, 2))
+  const m = Number(padded.slice(2, 4))
+  if (h > 24 || m > 59) return null
+  return h * 60 + m
+}
+
+/**
+ * 운영 시작/종료 분으로 OperRange 를 만든다.
+ * - 0000-2400, 0900-0900 → 24시간 개방
+ * - close <= open → 자정을 넘기는 운영(예: 20:00~익일 02:00)
+ * - 둘 다 비어 있으면 null (= 정보 없음. 운영요일과 함께 판단해야 한다)
+ */
+export function buildRange(openMin: number | null, closeMin: number | null): OperRange | null {
+  if (openMin === null && closeMin === null) return null
+  const open = openMin ?? 0
+  let close = closeMin ?? DAY_MINUTES
+
+  if (open === close) {
+    // 0000-0000 / 0900-0900 처럼 동일값이면 표준데이터 관례상 24시간 개방으로 본다.
+    return { open: 0, close: DAY_MINUTES, allDay: true }
+  }
+  if (close < open) close += DAY_MINUTES
+
+  const allDay = close - open >= DAY_MINUTES - 1
+  return { open, close, allDay }
+}
+
+export function getDayType(d: Date): DayType {
+  if (isPublicHoliday(d) || d.getDay() === 0) return 'holiday'
+  if (d.getDay() === 6) return 'saturday'
+  return 'weekday'
+}
+
+export function minutesOfDay(d: Date): number {
+  return d.getHours() * 60 + d.getMinutes()
+}
+
+/** 방문 시작 시각의 자정(00:00)을 기준점으로 삼는다. 모든 분 계산은 이 기준의 오프셋. */
+export function startOfDay(d: Date): Date {
+  const out = new Date(d)
+  out.setHours(0, 0, 0, 0)
+  return out
+}
+
+export function minutesToDate(base: Date, minutes: number): Date {
+  return new Date(startOfDay(base).getTime() + minutes * 60_000)
+}
+
+export function formatMinuteOfDay(minutes: number): string {
+  const norm = ((minutes % DAY_MINUTES) + DAY_MINUTES) % DAY_MINUTES
+  const h = Math.floor(norm / 60)
+  const m = norm % 60
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0')
+}
+
+export function formatDurationShort(minutes: number): string {
+  if (minutes < 60) return minutes + '분'
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return m === 0 ? h + '시간' : h + '시간 ' + m + '분'
+}
+
+/**
+ * 운영요일 문자열("평일+토요일+공휴일", "매일" 등)로 해당 요일 구분에 문을 여는지 판단한다.
+ * 운영시간 컬럼이 비어 있을 때 '24시간 개방'과 '그날은 미운영'을 가르는 유일한 단서다.
+ */
+export function operatesOn(operDay: string | undefined, dayType: DayType): boolean {
+  if (!operDay) return true
+  const s = operDay.replace(/\s/g, '')
+  if (/매일|연중|상시|전일/.test(s)) return true
+
+  // 한국어에는 단어 경계가 없어 한 글자 패턴('일', '토')은 '평일'·'토요일' 안에서 오탐한다.
+  // 반드시 완전한 낱말만 매칭해야 "평일+토요일" 이 공휴일 운영으로 잘못 읽히지 않는다.
+  switch (dayType) {
+    case 'weekday':
+      return /평일|주중|월~금|[월화수목금]요일/.test(s)
+    case 'saturday':
+      return /토요일|주말/.test(s)
+    default:
+      return /공휴일|일요일|휴일|주말/.test(s)
+  }
+}
+
+function toMinutes(value: number, unit: string): number {
+  return /시간/.test(unit) ? value * 60 : value
+}
+
+/**
+ * 이미 해석한 구간은 제어문자(U+0001)로 덮는다.
+ * 공백으로 덮으면 뒤따르는 정규식의 `\s*` 가 마스킹 구간을 가로질러 엉뚱한 매칭을 만든다
+ * (예: "평일 19시 이후 무료 개방" → 19시 규칙 처리 후 "평일 … 개방" 이 '평일 전일 무료'로 잘못 잡힘).
+ */
+const MASK = '\u0001'
+
+function mask(text: string, index: number, length: number): string {
+  return text.slice(0, index) + MASK.repeat(length) + text.slice(index + length)
+}
+
+/** 정규식을 반복 적용하며 매칭 구간을 마스킹한다. 무한 루프 방지를 위해 상한을 둔다. */
+function scan(text: string, re: RegExp, onMatch: (m: RegExpExecArray) => void): string {
+  let working = text
+  for (let guard = 0; guard < 12; guard++) {
+    re.lastIndex = 0
+    const m = re.exec(working)
+    if (!m) break
+    onMatch(m)
+    working = mask(working, m.index, m[0].length)
+  }
+  return working
+}
+
+/** 무료 표현 뒤에 흔히 붙는 군더더기까지 함께 먹어 치워 잔여 텍스트를 깨끗하게 만든다. */
+const TAIL = '(?:\\s*(?:개방|운영|가능|적용))?'
+
+const DAYTYPE_WORD: Record<string, DayType[]> = {
+  평일: ['weekday'],
+  토요일: ['saturday'],
+  주말: ['saturday', 'holiday'],
+  일요일: ['holiday'],
+  법정공휴일: ['holiday'],
+  공휴일: ['holiday'],
+  휴일: ['holiday'],
+}
+
+const TARGET_WORDS = [
+  '경차',
+  '장애인',
+  '국가유공자',
+  '유공자',
+  '저공해',
+  '친환경',
+  '전기차',
+  '다자녀',
+  '임산부',
+  '고엽제',
+  '보훈',
+]
+
+/**
+ * 요금 필드와 특기사항(spcmnt) 에서 '무료 규칙'을 추출한다.
+ *
+ * 공공데이터의 특기사항은 자유 서술이라 100% 정형화가 불가능하다.
+ * 확실한 표현만 규칙으로 승격하고, 추론이 섞인 항목에는 inferred 플래그를 달아
+ * UI 가 '추정' 배지를 붙일 수 있게 한다.
+ *
+ * 해석 순서가 중요하다: 좁은 표현(시간대 → 최초 N분 → 대상)부터 먹어 치운 뒤
+ * 마지막에 남은 문장으로 요일 규칙을 판단해야 "평일 19시 이후 무료" 같은 문장이
+ * "평일 전일 무료"로 잘못 확장되지 않는다.
+ */
+export function extractFreeRules(p: Parking): FreeRule[] {
+  const rules: FreeRule[] = []
+
+  if (p.chargeType === '무료') {
+    rules.push({ kind: 'always', label: '무료 주차장' })
+  }
+
+  const { basicTime, basicCharge, addTime, addCharge } = p.fee
+  if (p.chargeType !== '무료' && basicCharge === 0 && addCharge === 0 && (basicTime > 0 || addTime > 0)) {
+    rules.push({ kind: 'always', label: '요금 0원' })
+  } else if (basicCharge === 0 && basicTime > 0 && addCharge > 0) {
+    // 요금표 자체가 '최초 N분 0원' 구조인 경우. 요금 계산에서 이미 반영되므로
+    // freeCalc 는 이 규칙을 표시용으로만 쓴다(중복 차감 방지).
+    rules.push({
+      kind: 'grace',
+      minutes: basicTime,
+      label: '최초 ' + formatDurationShort(basicTime) + ' 무료',
+    })
+  }
+
+  let text = (p.note ?? '').replace(/\s+/g, ' ')
+  if (!text) return dedupeRules(rules)
+
+  // 1) "20시~08시 무료", "20:00 ~ 익일 08:00 무료"
+  text = scan(
+    text,
+    new RegExp(
+      '(\\d{1,2})(?::(\\d{2}))?\\s*시?\\s*(?:~|-|–|부터)\\s*(?:익일\\s*|다음날\\s*)?(\\d{1,2})(?::(\\d{2}))?\\s*시?\\s*(?:까지)?\\s*(?:무료|개방|면제)' +
+        TAIL,
+      'g',
+    ),
+    (m) => {
+      const from = Number(m[1]) * 60 + Number(m[2] ?? 0)
+      const to = Number(m[3]) * 60 + Number(m[4] ?? 0)
+      rules.push({
+        kind: 'window',
+        from,
+        to,
+        label: formatMinuteOfDay(from) + '~' + formatMinuteOfDay(to) + ' 무료',
+      })
+    },
+  )
+
+  // 2) "19시 이후 무료", "18:30부터 무료"
+  text = scan(
+    text,
+    new RegExp('(\\d{1,2})(?::(\\d{2}))?\\s*시?\\s*(?:이후|부터)\\s*(?:는\\s*)?(?:무료|개방|면제)' + TAIL, 'g'),
+    (m) => {
+      const from = Number(m[1]) * 60 + Number(m[2] ?? 0)
+      rules.push({
+        kind: 'window',
+        from,
+        to: DAY_MINUTES,
+        label: formatMinuteOfDay(from) + ' 이후 무료',
+      })
+    },
+  )
+
+  // 3) "08시 이전 무료"
+  text = scan(
+    text,
+    new RegExp('(\\d{1,2})(?::(\\d{2}))?\\s*시\\s*(?:이전|까지)\\s*(?:는\\s*)?(?:무료|개방|면제)' + TAIL, 'g'),
+    (m) => {
+      const to = Number(m[1]) * 60 + Number(m[2] ?? 0)
+      rules.push({
+        kind: 'window',
+        from: 0,
+        to,
+        label: formatMinuteOfDay(to) + ' 이전 무료',
+      })
+    },
+  )
+
+  // 4) "야간 무료" / "심야 무료" — 시각이 명시되지 않아 추정값(20:00~08:00)을 쓴다.
+  text = scan(text, new RegExp('(?:야간|심야)\\s*(?:에는|시간대?)?\\s*(?:무료|개방)' + TAIL, 'g'), () => {
+    rules.push({
+      kind: 'window',
+      from: 20 * 60,
+      to: 8 * 60,
+      inferred: true,
+      label: '야간 무료(20:00~08:00 추정)',
+    })
+  })
+
+  // 5) "최초 30분 무료", "1시간 무료"
+  text = scan(
+    text,
+    new RegExp('(?:최초|처음|기본)?\\s*(\\d{1,3})\\s*(분|시간)\\s*(?:까지|이내|동안)?\\s*(?:무료|면제)' + TAIL, 'g'),
+    (m) => {
+      const minutes = toMinutes(Number(m[1]), m[2] as string)
+      if (minutes > 0 && minutes <= DAY_MINUTES) {
+        rules.push({ kind: 'grace', minutes, label: '최초 ' + formatDurationShort(minutes) + ' 무료' })
+      }
+    },
+  )
+
+  // 6~7) 남은 문장을 절(clause) 단위로 훑는다.
+  //
+  //  정규식 한 방으로 잡지 않는 이유: "경차 및 저공해차량 무료" 처럼 한 절에 대상이 여러 개면
+  //  앞선 매칭이 뒤 단어까지 삼켜 버려 하나만 남는다. 절 안에 '무료/면제'가 있는지만 확인하고
+  //  해당 절에 등장하는 사전 단어를 전부 거두는 편이 정확하다.
+  for (const clause of text.split(/[,.;\u00b7]/)) {
+    if (!/(무료|개방|면제|100%)/.test(clause)) continue
+
+    // 6) 대상 한정 무료 — 모든 방문자에게 적용되지 않으므로 별도 분류
+    const targets = pickWords(clause, TARGET_WORDS)
+    for (const t of targets) rules.push({ kind: 'targeted', target: t, label: t + ' 무료' })
+
+    // 7) 요일 규칙. 대상 한정 문구가 섞인 절은 '누구나 무료'가 아니므로 건너뛴다.
+    if (targets.length > 0) continue
+
+    const words = pickWords(clause, Object.keys(DAYTYPE_WORD))
+    const days = new Set<DayType>()
+    for (const word of words) for (const d of DAYTYPE_WORD[word] as DayType[]) days.add(d)
+    if (days.size > 0) {
+      rules.push({ kind: 'dayType', days: [...days], label: words.join('\u00b7') + ' 무료' })
+    }
+  }
+
+
+  // 8) 별도 조건 없이 "무료" 만 적힌 경우 (예: "전면 무료 개방")
+  if (rules.length === 0 && /(전면|전일|상시|24시간)\s*무료/.test(text)) {
+    rules.push({ kind: 'always', label: '상시 무료' })
+  }
+
+  return dedupeRules(rules)
+}
+
+/**
+ * 절 안에 등장하는 사전 단어를 등장 순서대로 거둔다.
+ * 긴 단어에 포함되는 짧은 단어('공휴일' ⊂ '법정공휴일')는 중복으로 세지 않는다.
+ */
+function pickWords(clause: string, dictionary: string[]): string[] {
+  const found = dictionary
+    .filter((w) => clause.includes(w))
+    .sort((a, b) => clause.indexOf(a) - clause.indexOf(b) || b.length - a.length)
+
+  const out: string[] = []
+  for (const word of found) {
+    if (out.some((w) => w.includes(word) || word.includes(w))) continue
+    out.push(word)
+  }
+  return out
+}
+
+function dedupeRules(rules: FreeRule[]): FreeRule[] {
+  const seen = new Set<string>()
+  const out: FreeRule[] = []
+  for (const r of rules) {
+    const key = JSON.stringify(r)
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(r)
+  }
+  return out
+}

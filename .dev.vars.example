@@ -1,0 +1,8 @@
+# Cloudflare Pages Functions 로컬 개발용 시크릿 (wrangler pages dev 가 읽는다)
+# 이 파일을 .dev.vars 로 복사한 뒤 실제 키를 넣으세요. .dev.vars 는 커밋되지 않습니다.
+
+# 공공데이터포털에서 발급받은 '일반 인증키(Decoding)'
+PARKING_API_KEY=여기에_인증키
+
+# 호출할 데이터셋 엔드포인트 (전국주차장표준데이터)
+PARKING_API_BASE=https://api.odcloud.kr/api/15012890/v1/uddi:00000000-0000-0000-0000-000000000000
