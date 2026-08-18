@@ -36,7 +36,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  // 지도 테스트가 워커마다 WebGL(swiftshader) 컨텍스트를 잡아 CPU 를 많이 먹는다.
+  // 기본값(코어 수의 절반)으로 돌리면 빌드·배포 같은 다른 작업과 겹칠 때 로딩 타임아웃으로 무너진다.
+  workers: process.env.CI ? 2 : 4,
 
   reporter: process.env.CI
     ? [['github'], ['html', { open: 'never' }], ['list']]

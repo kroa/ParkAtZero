@@ -196,6 +196,9 @@ export function extractFreeRules(p: Parking): FreeRule[] {
   let text = (p.note ?? '').replace(/\s+/g, ' ')
   if (!text) return dedupeRules(rules)
 
+  // 요일 한정어 존재 여부는 마스킹 전에 한 번만 본다(마스킹 후에는 판단이 흔들린다).
+  const hasDayWord = Object.keys(DAYTYPE_WORD).some((w) => text.includes(w))
+
   // 1) "20시~08시 무료", "20:00 ~ 익일 08:00 무료"
   text = scan(
     text,
@@ -263,8 +266,14 @@ export function extractFreeRules(p: Parking): FreeRule[] {
     new RegExp('(?:최초|처음|기본)?\\s*(\\d{1,3})\\s*(분|시간)\\s*(?:까지|이내|동안)?\\s*(?:무료|면제)' + TAIL, 'g'),
     (m) => {
       const minutes = toMinutes(Number(m[1]), m[2] as string)
-      if (minutes > 0 && minutes <= DAY_MINUTES) {
+      if (minutes > 0 && minutes < DAY_MINUTES) {
         rules.push({ kind: 'grace', minutes, label: '최초 ' + formatDurationShort(minutes) + ' 무료' })
+      } else if (minutes >= DAY_MINUTES && !hasDayWord) {
+        // "24시간 무료"는 '최초 24시간만 무료'가 아니라 '상시 무료'라는 뜻이다.
+        // 다만 "일요일 24시간 무료"처럼 요일이 붙으면 상시로 승격하면 안 되므로,
+        // 요일 표현이 하나라도 있는 특기사항에서는 아무 규칙도 만들지 않는다
+        // (무료를 놓치는 쪽이 유료를 무료로 잘못 표시하는 쪽보다 안전하다).
+        rules.push({ kind: 'always', label: '상시 무료' })
       }
     },
   )

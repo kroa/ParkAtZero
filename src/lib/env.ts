@@ -11,12 +11,28 @@ function flag(value: unknown, fallback = false): boolean {
   return String(value).toLowerCase() === 'true'
 }
 
+/**
+ * URL/경로로 쓸 수 없는 값이면 기본값으로 되돌린다.
+ *
+ * Git Bash(MSYS)에서 `VITE_X=/data/foo.json vite build` 로 빌드하면 값이
+ * `C:/Program Files/Git/data/foo.json` 으로 자동 변환돼 번들에 박힌다.
+ * 그대로 두면 배포 후에야 file:// fetch 실패로 드러나므로 여기서 잘라낸다.
+ * (빌드 시점 해결책: MSYS_NO_PATHCONV=1 또는 값 앞에 슬래시를 하나 더)
+ */
+function urlPath(value: unknown, fallback: string): string {
+  const s = typeof value === 'string' ? value.trim() : ''
+  if (!s) return fallback
+  if (s.startsWith('/') || s.startsWith('http://') || s.startsWith('https://')) return s
+  console.warn('[ParkAtZero] 잘못된 경로 설정을 무시합니다:', s, '→', fallback)
+  return fallback
+}
+
 export const CONFIG = {
   /** 정적 시드 데이터 경로 — 네트워크 없이도 즉시 뜨는 Local-First 의 기반 */
-  seedUrl: (env.VITE_PARKING_SEED_URL as string) || '/data/parkings.sample.json',
+  seedUrl: urlPath(env.VITE_PARKING_SEED_URL, '/data/parkings.sample.json'),
 
   /** 서버리스 프록시 경로(권장). 비어 있으면 원격 갱신을 건너뛴다. */
-  apiProxyPath: (env.VITE_PARKING_API_PROXY as string) || '',
+  apiProxyPath: urlPath(env.VITE_PARKING_API_PROXY, ''),
 
   /** 프록시 없이 직접 호출할 때만 사용 (개발용). */
   apiBase: (env.VITE_PARKING_API_BASE as string) || '',

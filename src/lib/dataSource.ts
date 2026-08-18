@@ -50,9 +50,19 @@ export function clearCache(): void {
   }
 }
 
+/** 프록시가 아직 설정되지 않았을 때 Pages Function 이 돌려주는 상태 코드. */
+const NOT_CONFIGURED = 501
+
+class HttpError extends Error {
+  constructor(readonly status: number, url: string) {
+    super('HTTP ' + status + ' — ' + url)
+    this.name = 'HttpError'
+  }
+}
+
 async function fetchJson(url: string, signal?: AbortSignal): Promise<unknown> {
   const res = await fetch(url, { signal, headers: { Accept: 'application/json' } })
-  if (!res.ok) throw new Error('HTTP ' + res.status + ' — ' + url)
+  if (!res.ok) throw new HttpError(res.status, url)
   return res.json()
 }
 
@@ -111,7 +121,9 @@ export async function loadParkings(
     }
   } catch (err) {
     if ((err as Error).name === 'AbortError') return
-    // 원격 실패는 무시한다. 사용자는 이미 캐시/시드 데이터를 보고 있다.
+    // 인증키를 아직 안 넣은 상태(501)는 정상적인 운영 형태다 — 시끄럽게 굴 필요 없다.
+    if (err instanceof HttpError && err.status === NOT_CONFIGURED) return
+    // 그 밖의 원격 실패도 치명적이지 않다. 사용자는 이미 캐시/시드 데이터를 보고 있다.
     console.warn('[ParkAtZero] 원격 데이터 갱신 실패 — 로컬 데이터로 계속합니다.', err)
   }
 }
