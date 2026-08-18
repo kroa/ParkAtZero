@@ -2,7 +2,7 @@ import type { Parking } from '@/types/parking'
 import { buildRange, parseHhmm } from './timeRules'
 
 /**
- * 공공데이터포털 '전국주차장표준데이터' 레코드를 앱 내부 모델로 정규화한다.
+ * 공공데이터포털 '전국주차장정보표준데이터' 레코드를 앱 내부 모델로 정규화한다.
  *
  * 같은 데이터셋이라도 배포 경로(odcloud REST / 파일 다운로드 CSV→JSON / 지자체 개별 API)에 따라
  * 컬럼명이 영문 카멜케이스와 한글 헤더를 오간다. 그래서 필드마다 별칭 목록을 두고 첫 번째로

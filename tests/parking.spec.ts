@@ -33,6 +33,21 @@ test.describe('초기 로딩 · Local-First', () => {
     await expect(page.getByTestId('parking-card').first()).toBeVisible()
   })
 
+  test('예시 데이터로 동작할 때는 그 사실이 화면에 드러난다', async ({ page }) => {
+    // 시연용으로 지어낸 요금을 공공데이터인 것처럼 보여주면 사용자가 그대로 믿고 차를 몬다.
+    await gotoApp(page)
+
+    await expect(page.getByTestId('sample-notice')).toBeVisible()
+    await expect(page.getByTestId('sample-notice')).toContainText('예시 데이터')
+
+    await page.getByTestId('parking-card').first().click()
+    const panel = page.getByTestId('detail-panel')
+    await expect(panel).toBeVisible()
+    await expect(panel).toContainText('예시 데이터입니다')
+    // 예시 데이터에 공공데이터포털 출처를 달면 안 된다.
+    await expect(panel).not.toContainText('데이터 기준일')
+  })
+
   test('주차장마다 상태 뱃지가 하나씩 붙는다', async ({ page }) => {
     await gotoApp(page)
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * 전국주차장표준데이터 전체를 내려받아 public/data/parkings.full.json 으로 저장한다.
+ * 전국주차장정보표준데이터 전체를 내려받아 public/data/parkings.full.json 으로 저장한다.
  *
  *   npm run data:fetch
  *
  * 필요한 환경변수 (.env.local 또는 셸 환경):
  *   PARKING_API_KEY   공공데이터포털 일반 인증키(Decoding)
  *   PARKING_API_BASE  데이터셋 엔드포인트
- *                     예) https://api.odcloud.kr/api/15012890/v1/uddi:xxxx-xxxx
+ *                     예) https://api.odcloud.kr/api/15012896/v1/uddi:xxxx-xxxx
  *
  * 만들어진 파일은 .gitignore 에 걸려 있다(수십 MB). 배포에 포함하려면
  * VITE_PARKING_SEED_URL=/data/parkings.full.json 로 바꾸고 저장소 정책에 맞게 커밋하거나,

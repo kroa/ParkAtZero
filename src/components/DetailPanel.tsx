@@ -6,6 +6,7 @@ import {
   MapPin,
   Phone,
   Receipt,
+  TriangleAlert,
   Wallet,
   X,
 } from 'lucide-react'
@@ -21,6 +22,8 @@ import { NaviButtons } from './NaviButtons'
 
 interface Props {
   item: ResultItem
+  /** 예시 데이터로 동작 중인지 — 출처 표기를 가르는 값 */
+  isSample: boolean
   onClose: () => void
   className?: string
 }
@@ -31,7 +34,7 @@ function rangeLabel(range: OperRange | null): string {
   return formatMinuteOfDay(range.open) + ' ~ ' + formatMinuteOfDay(range.close)
 }
 
-export function DetailPanel({ item, onClose, className }: Props) {
+export function DetailPanel({ item, isSample, onClose, className }: Props) {
   const { parking, evaluation, distanceKm } = item
   const style = statusStyle(evaluation.status)
 
@@ -180,8 +183,18 @@ export function DetailPanel({ item, onClose, className }: Props) {
           />
         )}
 
-        {parking.updatedAt && (
-          <p className="pt-1 text-[11px] text-ink-mute">데이터 기준일 {parking.updatedAt} · 공공데이터포털</p>
+        {isSample ? (
+          <p className="flex items-start gap-1.5 rounded-lg bg-conditional-500/10 px-2.5 py-2 text-[11.5px] leading-snug text-conditional-700 dark:text-conditional-300">
+            <TriangleAlert className="mt-[1px] h-3.5 w-3.5 shrink-0" strokeWidth={2.4} />
+            <span>
+              <b>예시 데이터입니다.</b> 요금·운영시간은 기능 시연용으로 가공한 값이며 실제와 다릅니다.
+              공공데이터포털 인증키를 연결하면 실제 데이터로 바뀝니다.
+            </span>
+          </p>
+        ) : (
+          parking.updatedAt && (
+            <p className="pt-1 text-[11px] text-ink-mute">데이터 기준일 {parking.updatedAt} · 공공데이터포털</p>
+          )
         )}
       </div>
     </motion.section>

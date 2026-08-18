@@ -4,9 +4,19 @@ import { normalizeAll } from './normalize'
 
 const CACHE_KEY = 'pz.parkings.v1'
 
+/**
+ * 데이터의 출처.
+ *  - 'sample' : 저장소에 동봉된 예시 데이터. 실제 공공데이터가 아니며 요금/운영시간이 가공값이다.
+ *  - 'remote' : 공공데이터포털에서 받아온 실제 데이터.
+ *
+ * UI 는 이 값을 보고 출처를 정직하게 표기해야 한다. 예시 데이터를 정부 데이터처럼
+ * 보여주면 사용자가 실제로 그 요금을 믿고 차를 몰고 간다.
+ */
+export type DataSource = 'sample' | 'remote'
+
 interface CacheEnvelope {
   savedAt: number
-  source: string
+  source: DataSource
   parkings: Parking[]
 }
 
@@ -14,6 +24,7 @@ export type LoadStage = 'cache' | 'seed' | 'remote'
 
 export interface LoadEvent {
   stage: LoadStage
+  source: DataSource
   parkings: Parking[]
   savedAt?: number
 }
@@ -32,7 +43,7 @@ function readCache(): CacheEnvelope | null {
   }
 }
 
-function writeCache(parkings: Parking[], source: string): void {
+function writeCache(parkings: Parking[], source: DataSource): void {
   if (typeof localStorage === 'undefined') return
   try {
     const envelope: CacheEnvelope = { savedAt: Date.now(), source, parkings }
@@ -96,16 +107,18 @@ export async function loadParkings(
   const cacheFresh = cached !== null && Date.now() - cached.savedAt < CONFIG.cacheTtlMs
 
   if (cached) {
-    onEvent({ stage: 'cache', parkings: cached.parkings, savedAt: cached.savedAt })
+    // 예전 버전이 남긴 캐시에는 source 가 없을 수 있다. 확실치 않으면 예시로 간주한다(보수적).
+    const source: DataSource = cached.source === 'remote' ? 'remote' : 'sample'
+    onEvent({ stage: 'cache', source, parkings: cached.parkings, savedAt: cached.savedAt })
   } else {
     try {
       const payload = await fetchJson(CONFIG.seedUrl, signal)
       const parkings = normalizeAll(payload)
-      onEvent({ stage: 'seed', parkings })
-      writeCache(parkings, 'seed')
+      onEvent({ stage: 'seed', source: 'sample', parkings })
+      writeCache(parkings, 'sample')
     } catch (err) {
       if ((err as Error).name === 'AbortError') return
-      onEvent({ stage: 'seed', parkings: [] })
+      onEvent({ stage: 'seed', source: 'sample', parkings: [] })
     }
   }
 
@@ -116,7 +129,7 @@ export async function loadParkings(
     const payload = await fetchJson(remoteUrl, signal)
     const parkings = normalizeAll(payload)
     if (parkings.length > 0) {
-      onEvent({ stage: 'remote', parkings, savedAt: Date.now() })
+      onEvent({ stage: 'remote', source: 'remote', parkings, savedAt: Date.now() })
       writeCache(parkings, 'remote')
     }
   } catch (err) {

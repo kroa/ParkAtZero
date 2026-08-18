@@ -10,6 +10,7 @@ import { AdSlot } from './AdSlot'
 
 interface Props {
   items: ResultItem[]
+  isSample: boolean
   loading: boolean
   selectedId: string | null
   onSelect: (id: string) => void
@@ -20,7 +21,7 @@ interface Props {
 /** 광고를 목록 몇 번째 뒤에 끼울지. 첫 화면에서 바로 광고를 만나지 않도록 3번째 뒤에 둔다. */
 const AD_AFTER_INDEX = 2
 
-export function ParkingList({ items, loading, selectedId, onSelect, onResetFilters, className }: Props) {
+export function ParkingList({ items, isSample, loading, selectedId, onSelect, onResetFilters, className }: Props) {
   if (loading) {
     return (
       <div className={cn('px-3 pb-4', className)}>
@@ -83,9 +84,11 @@ export function ParkingList({ items, loading, selectedId, onSelect, onResetFilte
         ))}
       </AnimatePresence>
 
-      <p className="flex items-center justify-center gap-1.5 pt-2 text-[11px] text-ink-mute">
-        <MapPinOff className="h-3 w-3" strokeWidth={2.4} />
-        요금·운영시간은 공공데이터 기준이며 현장과 다를 수 있어요
+      <p className="flex items-center justify-center gap-1.5 pt-2 text-center text-[11px] leading-relaxed text-ink-mute">
+        <MapPinOff className="h-3 w-3 shrink-0" strokeWidth={2.4} />
+        {isSample
+          ? '기능 시연용 예시 데이터입니다. 실제 요금·운영시간이 아닙니다'
+          : '요금·운영시간은 공공데이터 기준이며 현장과 다를 수 있어요'}
       </p>
     </div>
   )

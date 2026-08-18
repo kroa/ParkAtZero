@@ -99,10 +99,14 @@ git push -u origin main
 
 ## 4. 공공데이터포털 인증키 발급 (선택)
 
-1. [공공데이터포털](https://www.data.go.kr) 로그인
-2. **「전국주차장표준데이터」** 검색 → **활용신청** (자동 승인)
-3. 마이페이지 → 오픈API → 개발계정 → **일반 인증키(Decoding)** 복사
-4. 데이터셋 상세의 **오픈API 상세 URL** 에서 `.../api/<ID>/v1/uddi:<UUID>` 부분을 `PARKING_API_BASE` 로 사용
+1. [전국주차장정보표준데이터 페이지](https://www.data.go.kr/data/15012896/standard.do) 접속 → 로그인
+2. **오픈 API** 탭 → **활용신청** (자동 승인, 즉시 발급)
+3. 마이페이지 → 오픈API → 개발계정 → **일반 인증키(Decoding)** 복사 → `PARKING_API_KEY`
+4. 같은 화면의 **오픈API 상세 URL** (`https://api.odcloud.kr/api/15012896/v1/uddi:<UUID>`) → `PARKING_API_BASE`
+
+> 250개 기관이 올리는 데이터라 건수가 많습니다. 포털의 그리드 다운로드는 5만 건으로
+> 제한되므로 전체가 필요하면 파일 다운로드나 API 를 쓰라고 안내되어 있습니다.
+> 이 앱은 API(프록시) 경로를 기본으로 씁니다.
 
 로컬에서 테스트하려면:
 

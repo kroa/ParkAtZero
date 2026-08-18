@@ -5,4 +5,4 @@
 PARKING_API_KEY=여기에_인증키
 
 # 호출할 데이터셋 엔드포인트 (전국주차장표준데이터)
-PARKING_API_BASE=https://api.odcloud.kr/api/15012890/v1/uddi:00000000-0000-0000-0000-000000000000
+PARKING_API_BASE=https://api.odcloud.kr/api/15012896/v1/uddi:00000000-0000-0000-0000-000000000000

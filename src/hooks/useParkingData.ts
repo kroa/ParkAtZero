@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Parking } from '@/types/parking'
-import { loadParkings, type LoadStage } from '@/lib/dataSource'
+import { loadParkings, type DataSource, type LoadStage } from '@/lib/dataSource'
 
 export interface ParkingDataState {
   parkings: Parking[]
@@ -9,6 +9,8 @@ export interface ParkingDataState {
   /** 백그라운드로 원격 갱신 중 */
   refreshing: boolean
   stage: LoadStage | null
+  /** 지금 보고 있는 데이터가 예시인지 실제 공공데이터인지 */
+  source: DataSource
   updatedAt: number | null
   error: string | null
 }
@@ -18,6 +20,7 @@ const INITIAL: ParkingDataState = {
   loading: true,
   refreshing: false,
   stage: null,
+  source: 'sample',
   updatedAt: null,
   error: null,
 }
@@ -47,6 +50,7 @@ export function useParkingData(): ParkingDataState {
         loading: false,
         refreshing: event.stage !== 'remote',
         stage: event.stage,
+        source: event.source,
         updatedAt: event.savedAt ?? prev.updatedAt,
         error:
           event.parkings.length === 0 && event.stage === 'seed'

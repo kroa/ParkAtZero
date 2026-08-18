@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronDown, RefreshCw, SlidersHorizontal } from 'lucide-react'
+import { ChevronDown, RefreshCw, SlidersHorizontal, TriangleAlert } from 'lucide-react'
 import { SearchBar, type SearchTarget } from '@/components/SearchBar'
 import { VisitTimePicker } from '@/components/VisitTimePicker'
 import { FilterBar } from '@/components/FilterBar'
@@ -41,7 +41,8 @@ const DETAIL_WIDTH = 392
 export default function App() {
   const { isDark, toggle } = useTheme()
   const isDesktop = useIsDesktop()
-  const { parkings, loading, refreshing, updatedAt } = useParkingData()
+  const { parkings, loading, refreshing, updatedAt, source } = useParkingData()
+  const isSample = source !== 'remote'
   const geo = useGeolocation()
 
   const [keyword, setKeyword] = useState('')
@@ -207,10 +208,23 @@ export default function App() {
     />
   )
 
+  const sampleNotice = isSample ? (
+    <div
+      data-testid="sample-notice"
+      className="flex items-start gap-2 rounded-xl bg-conditional-500/10 px-3 py-2 text-[11.5px] font-semibold leading-snug text-conditional-700 dark:text-conditional-300"
+    >
+      <TriangleAlert className="mt-[1px] h-3.5 w-3.5 shrink-0" strokeWidth={2.4} />
+      <span>
+        예시 데이터 {parkings.length}건으로 동작 중입니다 — 실제 공공데이터가 아닙니다.
+      </span>
+    </div>
+  ) : null
+
   const list = (
     <div ref={listRef}>
       <ParkingList
         items={results}
+        isSample={isSample}
         loading={loading}
         selectedId={selectedId}
         onSelect={handleSelect}
@@ -266,6 +280,7 @@ export default function App() {
 
             <div className="px-4 pb-2 pt-3">{filterBar}</div>
             <div className="px-4 pb-2">{summaryLine}</div>
+            {sampleNotice && <div className="px-4 pb-2">{sampleNotice}</div>}
 
             <div className="pz-scroll min-h-0 flex-1 overflow-y-auto">{list}</div>
 
@@ -284,7 +299,7 @@ export default function App() {
                 transition={{ type: 'spring', stiffness: 340, damping: 34 }}
                 className="pz-scroll absolute inset-y-4 left-[428px] z-20 w-[380px] overflow-y-auto"
               >
-                <DetailPanel item={selectedItem} onClose={() => setSelectedId(null)} />
+                <DetailPanel item={selectedItem} isSample={isSample} onClose={() => setSelectedId(null)} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -350,6 +365,7 @@ export default function App() {
           </div>
 
           <BottomSheet snap={snap} onSnapChange={setSnap} header={summaryLine} subHeader={filterBar}>
+            {sampleNotice && <div className="px-3 pb-2">{sampleNotice}</div>}
             {list}
             <div className="px-3 pb-4">
               <AdSlot placeholderId={CONFIG.ezoicIds.bottom} minHeight={100} />
@@ -381,7 +397,7 @@ export default function App() {
                   }}
                   className="pz-scroll safe-bottom absolute inset-x-0 bottom-0 z-40 max-h-[88%] overflow-y-auto px-2 pb-2"
                 >
-                  <DetailPanel item={selectedItem} onClose={() => setSelectedId(null)} />
+                  <DetailPanel item={selectedItem} isSample={isSample} onClose={() => setSelectedId(null)} />
                 </motion.div>
               </>
             )}
