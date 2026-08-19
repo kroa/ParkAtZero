@@ -52,25 +52,42 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
 
       - run: npm ci
 
+      # 출력을 파일로도 남긴다. 실패하면 아래 단계가 그 내용을 실행 요약 화면에 붙여
+      # 단계를 하나씩 펼쳐 보지 않아도 원인이 바로 보이게 한다.
       - name: 데이터 수집
         env:
           PARKING_API_KEY: ${{ secrets.PARKING_API_KEY }}
           PARKING_API_BASE: ${{ secrets.PARKING_API_BASE }}
-        run: npm run data:fetch
+        run: |
+          set -o pipefail
+          npm run data:fetch 2>&1 | tee /tmp/step.log
 
       # 스냅샷이 실제로 앱에서 동작하는지 확인한 뒤에만 커밋한다.
       # 원본 스키마가 바뀌었는데 그대로 밀어 넣으면 서비스가 빈 목록이 된다.
       - name: 스냅샷 검증
-        run: node scripts/verify-snapshot.mjs public/data/parkings.full.json
+        run: |
+          set -o pipefail
+          node scripts/verify-snapshot.mjs public/data/parkings.full.json 2>&1 | tee /tmp/step.log
+
+      - name: 실패 원인 요약
+        if: failure()
+        run: |
+          {
+            echo "### ❌ 실패"
+            echo ""
+            echo '```'
+            tail -n 40 /tmp/step.log 2>/dev/null || echo "(수집 단계 이전에 멈췄습니다)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # 먼저 스테이징해야 '아직 추적되지 않는 새 파일'도 변경으로 잡힌다.
       # git diff 만으로는 untracked 파일이 보이지 않아 최초 실행이 조용히 아무것도 안 한다.
