@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { SearchX } from 'lucide-react'
-import type { ResultItem } from '@/lib/query'
+import type { ResultItem, StatusFilter } from '@/lib/query'
 import { cn } from '@/lib/cn'
 import { CONFIG } from '@/lib/env'
 import { ParkingCard } from './ParkingCard'
@@ -12,6 +12,11 @@ import { AttributionNotice } from './AttributionNotice'
 interface Props {
   items: ResultItem[]
   isSample: boolean
+  /** 지금 켜져 있는 상태 필터 */
+  statusFilter: StatusFilter
+  /** 필터를 풀면 더 볼 것이 있는지 */
+  hasOtherStatuses: boolean
+  onRelaxStatus: () => void
   /** 스냅샷 전체 건수 (반경 필터 적용 전) */
   totalCount: number
   /** 원본 데이터 기준일 */
@@ -39,6 +44,9 @@ const VISIBLE_STEP = 20
 export function ParkingList({
   items,
   isSample,
+  statusFilter,
+  hasOtherStatuses,
+  onRelaxStatus,
   totalCount,
   referenceDate,
   loading,
@@ -85,18 +93,40 @@ export function ParkingList({
         >
           <SearchX className="h-6 w-6" strokeWidth={2.2} />
         </motion.div>
-        <h3 className="mt-4 text-[15px] font-bold text-ink">조건에 맞는 주차장이 없어요</h3>
-        <p className="mx-auto mt-1.5 max-w-[280px] text-[13px] leading-relaxed text-ink-soft">
-          반경을 넓히거나 방문 시간을 바꿔 보세요. 저녁·주말에는 무료로 풀리는 곳이 많아요.
-        </p>
-        <button
-          type="button"
-          data-testid="reset-filters"
-          onClick={onResetFilters}
-          className="tap mt-4 rounded-full bg-brand-500 px-4 py-2 text-[13px] font-bold text-white shadow-[0_8px_20px_-8px_rgba(50,139,255,0.9)] transition-transform active:scale-95"
-        >
-          필터 초기화
-        </button>
+        {statusFilter !== 'all' && hasOtherStatuses ? (
+          <>
+            <h3 className="mt-4 text-[15px] font-bold text-ink">
+              이 조건에 맞는 곳은 없지만 다른 주차장은 있어요
+            </h3>
+            <p className="mx-auto mt-1.5 max-w-[300px] text-[13px] leading-relaxed text-ink-soft">
+              도심에는 승용차가 댈 수 있는 무료 주차장이 드뭅니다.
+              조건부 무료나 유료까지 함께 보시겠어요?
+            </p>
+            <button
+              type="button"
+              data-testid="relax-status"
+              onClick={onRelaxStatus}
+              className="tap mt-4 rounded-full bg-brand-500 px-4 py-2 text-[13px] font-bold text-white shadow-[0_8px_20px_-8px_rgba(50,139,255,0.9)] transition-transform active:scale-95"
+            >
+              전체 보기
+            </button>
+          </>
+        ) : (
+          <>
+            <h3 className="mt-4 text-[15px] font-bold text-ink">조건에 맞는 주차장이 없어요</h3>
+            <p className="mx-auto mt-1.5 max-w-[280px] text-[13px] leading-relaxed text-ink-soft">
+              반경을 넓히거나 방문 시간을 바꿔 보세요. 저녁·주말에는 무료로 풀리는 곳이 많아요.
+            </p>
+            <button
+              type="button"
+              data-testid="reset-filters"
+              onClick={onResetFilters}
+              className="tap mt-4 rounded-full bg-brand-500 px-4 py-2 text-[13px] font-bold text-white shadow-[0_8px_20px_-8px_rgba(50,139,255,0.9)] transition-transform active:scale-95"
+            >
+              필터 초기화
+            </button>
+          </>
+        )}
       </div>
     )
   }

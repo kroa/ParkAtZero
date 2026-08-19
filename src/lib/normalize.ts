@@ -1,5 +1,6 @@
 import type { Parking } from '@/types/parking'
-import { buildRange, parseHhmm } from './timeRules'
+import { buildRange, extractRestriction, parseHhmm } from './timeRules'
+import { findCorrection } from '@/data/corrections'
 
 /**
  * 공공데이터포털 '전국주차장정보표준데이터' 레코드를 앱 내부 모델로 정규화한다.
@@ -90,6 +91,11 @@ export function normalizeParking(row: Raw, index: number): Parking | null {
 
   const dayTicket = num(pick(row, FIELD.dayTicket))
   const monthTicket = num(pick(row, FIELD.monthTicket))
+  const note = str(pick(row, FIELD.note)) || undefined
+  const managedBy = str(pick(row, FIELD.managedBy)) || undefined
+
+  // 특기사항에 적혀 있으면 그것을 쓰고, 비어 있으면 확인된 보정표로 채운다.
+  const restriction = extractRestriction(note) ?? findCorrection(name, managedBy)?.restriction
 
   return {
     id: str(pick(row, FIELD.id), 'pz-' + index),
@@ -112,10 +118,11 @@ export function normalizeParking(row: Raw, index: number): Parking | null {
       dayTicket: dayTicket || undefined,
       monthTicket: monthTicket || undefined,
     },
-    note: str(pick(row, FIELD.note)) || undefined,
+    note,
+    restriction,
     tel: str(pick(row, FIELD.tel)) || undefined,
     payment: str(pick(row, FIELD.payment)) || undefined,
-    managedBy: str(pick(row, FIELD.managedBy)) || undefined,
+    managedBy,
     updatedAt: str(pick(row, FIELD.updatedAt)) || undefined,
   }
 }

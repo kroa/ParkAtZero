@@ -10,11 +10,11 @@ import {
 import {
   DAY_MINUTES,
   extractFreeRules,
+  extractRestriction,
   formatDurationShort,
   formatMinuteOfDay,
   getDayType,
   minutesOfDay,
-  extractRestriction,
   minutesToDate,
   operatesOn,
   startOfDay,
@@ -283,7 +283,9 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
    * 요금이 0원이어도 관광버스 전용 2면짜리 구간은 승용차 운전자의 답이 아니다.
    * 초록(완전 무료)에서 빼고 제한 내용을 그대로 뱃지에 띄워, '0원만' 필터에도 걸리지 않게 한다.
    */
-  const restriction = extractRestriction(parking.note)
+  // 보통은 정규화 단계에서 채워진다. 다만 normalize 를 거치지 않고 만든 레코드도
+  // 같은 판정을 받아야 하므로 특기사항에서 직접 읽는 경로를 남겨 둔다.
+  const restriction = parking.restriction ?? extractRestriction(parking.note)
   if (restriction && (status === 'free' || status === 'conditional')) {
     status = 'conditional'
     headline = restriction + ' — 일반 차량은 이용할 수 없어요'

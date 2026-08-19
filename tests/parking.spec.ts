@@ -156,6 +156,16 @@ test.describe('검색', () => {
     await expect(page.getByTestId('parking-card').first()).toBeVisible()
   })
 
+  test('지역을 고르면 검색어가 비워진다', async ({ page }) => {
+    // 지역 이동은 '거기로 가 보자'는 뜻이지 '이름에 그 글자가 든 곳만 보자'가 아니다.
+    // 검색어가 남으면 그 동네에 주차장이 없는 것처럼 보인다.
+    await page.getByTestId('search-input').fill('홍대')
+    await page.getByTestId('suggestion-item').filter({ hasText: '홍대입구역' }).first().click()
+
+    await expect(page.getByTestId('search-input')).toHaveValue('')
+    await expect(page.getByTestId('parking-card').first()).toBeVisible()
+  })
+
   test('주차장 이름으로 목록이 좁혀진다', async ({ page }) => {
     await widenRadius(page)
     await page.getByTestId('search-input').fill('여의도')
@@ -647,6 +657,43 @@ test.describe('시간 판별 로직', () => {
     expect(byNote['야간 무료 개방']).toEqual(['window|야간 무료(20:00~08:00 추정)'])
     // "24시간 무료"를 '최초 24시간 무료'(grace)로 읽으면 상세에 엉뚱한 근거가 붙는다.
     expect(byNote['24시간 무료 개방 구간']).toEqual(['always|상시 무료'])
+  })
+
+  test('원본에 차종 제한이 비어 있어도 보정표가 채운다', async ({ page }) => {
+    /*
+     * 남산공원 '소월로'는 특기사항에 '관광버스 전용'이 적혀 있는데 바로 옆 '소파로'는
+     * 비어 있다. 둘 다 관광버스 전용인데도 그렇다(서울시설공단 직영 목록에서 확인).
+     * 원본만 믿으면 21면짜리 무료 주차장으로 보여 승용차 운전자를 헛걸음시킨다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const rows = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const base = {
+        prkplceSe: '공영',
+        prkplceType: '노상',
+        rdnmadr: '서울특별시 중구',
+        parkingchrgeInfo: '무료',
+        latitude: '37.55',
+        longitude: '126.99',
+      }
+      const cases = [
+        { label: '보정 대상', prkplceNm: '남산공원 소파로', institutionNm: '서울시설공단', spcmnt: '' },
+        { label: '관리기관 다름', prkplceNm: '남산공원 소파로', institutionNm: '다른기관', spcmnt: '' },
+        { label: '보정 없음', prkplceNm: '성수동 서울숲2길 노상주차장', institutionNm: '서울시설공단', spcmnt: '' },
+      ]
+      return cases.map((c, i) => ({
+        label: c.label,
+        restriction: bridge.normalize({ ...base, ...c }, i)?.restriction ?? null,
+      }))
+    })
+
+    const by = Object.fromEntries(rows.map((r) => [r.label, r.restriction]))
+    expect(by['보정 대상']).toBe('관광버스 전용')
+    // 이름만 같고 관리기관이 다르면 덮지 않는다 — 동명이인을 잘못 덮으면 더 나쁘다.
+    expect(by['관리기관 다름']).toBeNull()
+    expect(by['보정 없음']).toBeNull()
   })
 
   test('공공데이터 원본 필드를 그대로 정규화한다', async ({ page }) => {

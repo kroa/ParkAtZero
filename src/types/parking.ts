@@ -62,6 +62,11 @@ export interface Parking {
   fee: ParkingFee
   /** 특기사항 — '최초 30분 무료', '19시 이후 무료' 같은 조건부 무료 정보의 주 출처 */
   note?: string
+  /**
+   * 일반 차량이 댈 수 없는 이유 (예: '관광버스 전용').
+   * 특기사항에서 읽거나, 원본이 비어 있으면 보정표(data/corrections.ts)에서 채운다.
+   */
+  restriction?: string
   tel?: string
   payment?: string
   managedBy?: string

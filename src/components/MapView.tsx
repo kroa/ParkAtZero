@@ -19,6 +19,8 @@ interface Props {
   selectedId: string | null
   onSelect: (id: string) => void
   onBackgroundClick?: () => void
+  /** 사용자가 지도를 움직였을 때 현재 중심을 알린다(마커를 화면 기준으로 고르기 위함). */
+  onViewChange?: (center: LatLng) => void
   center: LatLng
   zoom: number
   /** 값이 바뀔 때마다 center/zoom 으로 부드럽게 이동한다(같은 좌표 재선택도 동작하게 하는 토큰) */
@@ -87,6 +89,7 @@ export function MapView({
   selectedId,
   onSelect,
   onBackgroundClick,
+  onViewChange,
   center,
   zoom,
   flyToken,
@@ -101,9 +104,11 @@ export function MapView({
   const markerCtorRef = useRef<typeof MapLibreMarker | null>(null)
   const userMarkerRef = useRef<MapLibreMarker | null>(null)
   const selectRef = useRef(onSelect)
+  const viewChangeRef = useRef(onViewChange)
   const [mode, setMode] = useState<'probing' | 'gl' | 'fallback'>('probing')
 
   selectRef.current = onSelect
+  viewChangeRef.current = onViewChange
 
   // ── 지도 초기화 (한 번만) ─────────────────────────────
   useEffect(() => {
@@ -140,6 +145,11 @@ export function MapView({
         map.touchZoomRotate.disableRotation()
         map.addControl(new NavigationControl({ showCompass: false, visualizePitch: false }), 'bottom-right')
         map.on('click', () => onBackgroundClick?.())
+        // 팬·줌이 끝날 때만 알린다. 이동 중 매 프레임 알리면 목록까지 다시 계산된다.
+        map.on('moveend', () => {
+          const c = map.getCenter()
+          viewChangeRef.current?.({ lat: c.lat, lng: c.lng })
+        })
 
         mapRef.current = map
         markerCtorRef.current = Marker

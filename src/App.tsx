@@ -26,14 +26,14 @@ import {
   type SortKey,
   type StatusFilter,
 } from '@/lib/query'
-import { SEOUL_CITY_HALL, type LatLng } from '@/lib/geo'
+import { haversineKm, SEOUL_CITY_HALL, type LatLng } from '@/lib/geo'
 import { formatVisitLabel, snapToFiveMinutes } from '@/lib/format'
 import { formatDurationShort } from '@/lib/timeRules'
 import { CONFIG } from '@/lib/env'
 import { cn } from '@/lib/cn'
 
 /** 지도에 한 번에 올리는 마커 상한 — 그 이상은 시각적으로도 의미가 없고 프레임만 잡아먹는다. */
-const MAX_MARKERS = 150
+const MAX_MARKERS = 200
 
 /** 데스크톱 사이드바 / 상세 패널 폭 — 지도 여백 계산에 쓴다. */
 const SIDEBAR_WIDTH = 428
@@ -61,6 +61,8 @@ export default function App() {
    */
   const [origin, setOrigin] = useState<LatLng>(SEOUL_CITY_HALL)
   const [mapView, setMapView] = useState({ center: SEOUL_CITY_HALL, zoom: 14, token: 0 })
+  /** 사용자가 실제로 보고 있는 지도 중심. 팬·줌으로도 바뀌며 마커 선택 기준이 된다. */
+  const [viewCenter, setViewCenter] = useState<LatLng>(SEOUL_CITY_HALL)
 
   const [status, setStatus] = useState<StatusFilter>('all')
   const [ownership, setOwnership] = useState<OwnershipFilter>('all')
@@ -97,18 +99,30 @@ export default function App() {
   const summary = useMemo(() => summarize(scored), [scored])
   const results = useMemo(() => filterByStatus(scored, status), [scored, status])
 
-  const markers: MarkerModel[] = useMemo(
-    () =>
-      results.slice(0, MAX_MARKERS).map((item) => ({
-        id: item.parking.id,
-        name: item.parking.name,
-        status: item.evaluation.status,
-        label: markerLabel(item.evaluation.status, item.evaluation.cost),
-        lat: item.parking.lat,
-        lng: item.parking.lng,
-      })),
-    [results],
-  )
+  /*
+   * 마커는 '지금 보고 있는 화면' 기준으로 고른다.
+   *
+   * 결과 순서(무료 우선 → 원점에서 가까운 순)의 앞에서부터 잘라내면, 지도를 다른 동네로
+   * 옮겼을 때 그 일대 마커가 통째로 없다. 목록에는 384곳이라 떠 있는데 지도는 텅 비어
+   * 마치 그 지역에 주차장이 없는 것처럼 보인다.
+   */
+  const markers: MarkerModel[] = useMemo(() => {
+    const nearView =
+      results.length <= MAX_MARKERS
+        ? results
+        : [...results]
+            .sort((a, b) => haversineKm(viewCenter, a.parking) - haversineKm(viewCenter, b.parking))
+            .slice(0, MAX_MARKERS)
+
+    return nearView.map((item) => ({
+      id: item.parking.id,
+      name: item.parking.name,
+      status: item.evaluation.status,
+      label: markerLabel(item.evaluation.status, item.evaluation.cost),
+      lat: item.parking.lat,
+      lng: item.parking.lng,
+    }))
+  }, [results, viewCenter])
 
   /** 출처 표시에 쓸 스냅샷 요약 — 반경 필터와 무관한 전체 건수와 원본 기준일. */
   const dataInfo = useMemo(() => {
@@ -143,6 +157,7 @@ export default function App() {
 
   const moveMap = useCallback((center: LatLng, zoom?: number) => {
     setMapView((prev) => ({ center, zoom: zoom ?? prev.zoom, token: prev.token + 1 }))
+    setViewCenter(center)
   }, [])
 
   const handleSelect = useCallback(
@@ -173,6 +188,12 @@ export default function App() {
         // 지역을 고른 것 — 여기서부터 거리를 다시 잰다.
         setOrigin(target.center)
         setSelectedId(null)
+        /*
+         * 검색어를 비운다. 지역 이동은 '거기로 가 보자'는 뜻이지 '이름에 그 글자가 든 곳만
+         * 보자'는 뜻이 아니다. 남겨 두면 "연신내"를 눌렀을 때 이름에 연신내가 든 주차장만
+         * 남아 그 동네에 주차장이 없는 것처럼 보인다.
+         */
+        setKeyword('')
       }
       if (!isDesktop) setSnap('half')
     },
@@ -242,6 +263,9 @@ export default function App() {
       <ParkingList
         items={results}
         isSample={isSample}
+        statusFilter={status}
+        hasOtherStatuses={summary.total > results.length}
+        onRelaxStatus={() => setStatus('all')}
         totalCount={dataInfo.count}
         referenceDate={dataInfo.referenceDate}
         loading={loading}
@@ -259,6 +283,7 @@ export default function App() {
         selectedId={selectedId}
         onSelect={handleSelect}
         onBackgroundClick={() => setSelectedId(null)}
+        onViewChange={setViewCenter}
         center={mapView.center}
         zoom={mapView.zoom}
         flyToken={mapView.token}
