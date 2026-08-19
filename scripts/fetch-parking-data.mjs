@@ -148,7 +148,7 @@ async function fetchPage(base, key, page, flavor, keyMode, perPage) {
   let lastError
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const res = await fetch(url, { headers: { Accept: 'application/json' } })
+      const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(45000) })
       const text = await res.text()
 
       if (!res.ok) {
@@ -156,7 +156,7 @@ async function fetchPage(base, key, page, flavor, keyMode, perPage) {
         if (res.status === 401 || res.status === 403) {
           throw Object.assign(new Error('인증 실패(HTTP ' + res.status + ') ' + text.slice(0, 160)), { fatal: true })
         }
-        throw new Error('HTTP ' + res.status + ' ' + res.statusText + ' — ' + text.slice(0, 200))
+          throw new Error('HTTP ' + res.status + ' ' + res.statusText + ' — ' + text.slice(0, 200))
       }
 
       let payload
@@ -178,7 +178,7 @@ async function fetchPage(base, key, page, flavor, keyMode, perPage) {
       if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 1500))
     }
   }
-  throw new Error('page ' + page + ' 실패: ' + lastError.message)
+  throw new Error('page ' + page + ' 실패: ' + describeError(lastError))
 }
 
 /** 주차장 레코드로 보이는 객체인지 — 깊이 탐색이 엉뚱한 배열을 잡지 않게 하는 최소 판별. */
@@ -197,6 +197,22 @@ function looksLikeRecord(v) {
  * 알려진 경로를 먼저 보고, 그래도 못 찾으면 응답 전체를 훑어 '주차장 레코드처럼 생긴
  * 객체들의 배열' 중 가장 큰 것을 고른다. 구조를 하나씩 추가하며 왕복하는 것보다 확실하다.
  */
+/**
+ * Node 의 fetch 는 네트워크 오류를 전부 'fetch failed' 한 마디로 감싸고,
+ * 진짜 사유(ENOTFOUND / ECONNREFUSED / ETIMEDOUT / 인증서 오류)는 cause 에 넣는다.
+ * 그 사슬을 펼쳐야 원인을 알 수 있다.
+ */
+function describeError(err) {
+  const parts = [err.message]
+  let cause = err.cause
+  for (let depth = 0; cause && depth < 4; depth++) {
+    const code = cause.code ? cause.code + ' ' : ''
+    parts.push(code + (cause.message ?? String(cause)))
+    cause = cause.cause
+  }
+  return parts.join(' ← ')
+}
+
 function rowsOf(payload) {
   const known = [
     payload?.data,
@@ -270,6 +286,18 @@ async function main() {
 
   console.log('주소:', new URL(base).origin + new URL(base).pathname)
 
+  // 인증 이전에 연결 자체가 되는지부터 가른다. 여기서 막히면 키 문제가 아니다.
+  try {
+    const probe = await fetch(new URL(base).origin, { method: 'GET', signal: AbortSignal.timeout(15000) })
+    console.log('호스트 연결: OK (HTTP ' + probe.status + ')')
+  } catch (err) {
+    console.error('✗ 호스트에 연결하지 못했습니다:', describeError(err))
+    console.error('  인증키 문제가 아니라 네트워크/주소 문제입니다.')
+    console.error('  - 엔드포인트 호스트명이 정확한지 확인하세요.')
+    console.error('  - 포털 점검 중이거나 일시적 장애일 수 있습니다. 잠시 뒤 재실행하세요.')
+    process.exit(1)
+  }
+
   /*
    * 주소 형태(계열)와 인증키 형태(Encoding/Decoding)는 데이터셋마다 다르고,
    * 사용자가 어느 쪽을 받았는지 알기 어렵다. 그래서 1페이지로 네 조합을 훑어
@@ -301,7 +329,7 @@ async function main() {
           // 인증은 통과했는데 목록을 못 찾은 경우다. 응답 구조를 그대로 남겨야 원인이 보인다.
           if (!emptySample) emptySample = { combo: label, body: JSON.stringify(payload).slice(0, 1200) }
         } catch (err) {
-          attempts.push(label + ' → ' + err.message)
+          attempts.push(label + ' → ' + describeError(err))
           // 인증 실패는 페이지 크기와 무관하므로 같은 조합의 다른 크기는 건너뛴다.
           if (err.fatal) break
         }
