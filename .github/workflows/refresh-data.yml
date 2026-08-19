@@ -21,6 +21,10 @@ on:
     - cron: '0 18 1 * *'
   workflow_dispatch:
 
+# 워크플로우 수준 기본 권한. 재사용 워크플로우를 호출하는 deploy 잡도 이 범위 안에서 움직인다.
+permissions:
+  contents: write
+
 concurrency:
   group: refresh-data
   cancel-in-progress: false

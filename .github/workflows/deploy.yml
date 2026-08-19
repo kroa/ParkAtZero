@@ -22,9 +22,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
 
+    # 소스를 읽어 빌드하는 것 외에는 아무 권한도 필요 없다.
+    # 재사용 워크플로우는 호출자보다 큰 권한을 가질 수 없으므로 최소로 유지한다.
     permissions:
       contents: read
-      deployments: write
 
     steps:
       # 자격증명이 없으면 실패가 아니라 건너뛴다.
