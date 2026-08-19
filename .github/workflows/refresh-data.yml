@@ -20,11 +20,6 @@ on:
     # 매월 1일 03:00 KST (UTC 18:00 전날). 갱신주기가 반기라 월 1회로 충분하다.
     - cron: '0 18 1 * *'
   workflow_dispatch:
-    inputs:
-      force_commit:
-        description: '내용이 같아도 커밋할지'
-        type: boolean
-        default: false
 
 concurrency:
   group: refresh-data
@@ -38,6 +33,9 @@ jobs:
 
     permissions:
       contents: write
+
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
 
     steps:
       - name: 인증키 확인
@@ -70,28 +68,31 @@ jobs:
       - name: 스냅샷 검증
         run: node scripts/verify-snapshot.mjs public/data/parkings.full.json
 
+      # 먼저 스테이징해야 '아직 추적되지 않는 새 파일'도 변경으로 잡힌다.
+      # git diff 만으로는 untracked 파일이 보이지 않아 최초 실행이 조용히 아무것도 안 한다.
       - name: 변경 여부 판단
         id: diff
         run: |
-          if git diff --quiet -- public/data/parkings.full.json; then
+          git add public/data/parkings.full.json
+          if git diff --cached --quiet -- public/data/parkings.full.json; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "원본에 변화가 없습니다. 커밋을 건너뜁니다."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            git diff --stat -- public/data/parkings.full.json
+            git diff --cached --stat -- public/data/parkings.full.json
           fi
 
       - name: 커밋 & 푸시
-        if: steps.diff.outputs.changed == 'true' || inputs.force_commit
+        if: steps.diff.outputs.changed == 'true'
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           COUNT=$(node -p "require('./public/data/parkings.full.json').totalCount")
-          git add public/data/parkings.full.json
           git commit -m "chore(data): 주차장 스냅샷 갱신 (${COUNT}건)" \
                      -m "출처: 공공데이터포털 전국주차장정보표준데이터 (공공누리 제1유형)" \
                      -m "refresh-data 워크플로우가 자동 생성한 커밋입니다."
           git push
+
 
       - name: 요약
         run: |
@@ -102,3 +103,12 @@ jobs:
             echo "- 크기: $(du -h public/data/parkings.full.json | cut -f1)"
             echo "- 변경: ${{ steps.diff.outputs.changed }}"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # GITHUB_TOKEN 으로 만든 push 는 다른 워크플로우를 트리거하지 않는다(무한루프 방지 규칙).
+  # 그래서 갱신 커밋이 배포로 이어지려면 여기서 배포 워크플로우를 직접 불러야 한다.
+  deploy:
+    name: 배포
+    needs: refresh
+    if: needs.refresh.outputs.changed == 'true'
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
