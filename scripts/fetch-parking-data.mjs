@@ -110,7 +110,12 @@ function buildUrl(base, key, page, flavor, keyMode) {
   } else {
     url.searchParams.set('pageNo', String(page))
     url.searchParams.set('numOfRows', String(PER_PAGE))
+    // 구형 계열은 JSON 을 요구하는 파라미터 이름이 API 마다 다르다(type/dataType/resultType).
+    // 모르는 파라미터는 대개 무시되므로 넷을 함께 보내 어느 쪽이든 걸리게 한다.
     url.searchParams.set('type', 'json')
+    url.searchParams.set('dataType', 'JSON')
+    url.searchParams.set('resultType', 'json')
+    url.searchParams.set('returnType', 'JSON')
   }
 
   // searchParams 로 넣으면 항상 인코딩되므로, raw 모드는 문자열로 직접 붙인다.
