@@ -92,7 +92,13 @@ function apiFlavor(base) {
   return new URL(base).hostname.includes('odcloud.kr') ? 'odcloud' : 'classic'
 }
 
-function buildUrl(base, key, page, flavor) {
+/**
+ * 인증키는 Encoding / Decoding 두 형태로 발급되는데, API 마다 한쪽만 받는 경우가 흔하다.
+ *  - 'encoded' : 원문 키를 우리가 URL 인코딩해서 보낸다 (Decoding 키를 받았을 때 맞는 형태)
+ *  - 'raw'     : 받은 문자열을 그대로 붙인다 (이미 %2B 등이 섞인 Encoding 키일 때 맞는 형태)
+ * 어느 쪽인지 사용자가 알기 어려우므로 둘 다 시도한다.
+ */
+function buildUrl(base, key, page, flavor, keyMode) {
   const url = new URL(base)
   // 사용자가 ?serviceKey=... 까지 통째로 붙여 넣는 경우가 흔하다. 우리가 다시 세팅하므로 지운다.
   url.searchParams.delete('serviceKey')
@@ -106,8 +112,11 @@ function buildUrl(base, key, page, flavor) {
     url.searchParams.set('numOfRows', String(PER_PAGE))
     url.searchParams.set('type', 'json')
   }
-  url.searchParams.set('serviceKey', key)
-  return url
+
+  // searchParams 로 넣으면 항상 인코딩되므로, raw 모드는 문자열로 직접 붙인다.
+  const sep = url.search ? '&' : '?'
+  const value = keyMode === 'raw' ? key : encodeURIComponent(key)
+  return url.toString() + sep + 'serviceKey=' + value
 }
 
 /** 구형 API 는 HTTP 200 에 에러를 실어 보낸다. 그 메시지를 그대로 드러내야 원인을 알 수 있다. */
@@ -127,8 +136,8 @@ function assertNoApiError(payload, text) {
   }
 }
 
-async function fetchPage(base, key, page, flavor) {
-  const url = buildUrl(base, key, page, flavor)
+async function fetchPage(base, key, page, flavor, keyMode) {
+  const url = buildUrl(base, key, page, flavor, keyMode)
 
   // 공공 API 는 간헐적으로 5xx 를 뱉는다. 몇 번은 조용히 다시 시도한다.
   let lastError
@@ -140,7 +149,7 @@ async function fetchPage(base, key, page, flavor) {
       if (!res.ok) {
         // 인증키 문제는 재시도해도 소용없다. 바로 세워서 원인을 보여준다.
         if (res.status === 401 || res.status === 403) {
-          throw Object.assign(new Error('인증 실패(HTTP ' + res.status + '). 인증키가 맞는지, Decoding 값인지 확인하세요.'), { fatal: true })
+          throw Object.assign(new Error('인증 실패(HTTP ' + res.status + ') ' + text.slice(0, 160)), { fatal: true })
         }
         throw new Error('HTTP ' + res.status + ' ' + res.statusText + ' — ' + text.slice(0, 200))
       }
@@ -216,38 +225,56 @@ async function main() {
   console.log('주소:', new URL(base).origin + new URL(base).pathname)
 
   /*
-   * 호스트명만으로 계열을 단정하지 않는다.
-   * 데이터셋마다 발급되는 주소 형태가 제각각이라, 추정한 계열로 1페이지를 던져 보고
-   * 0건이면 반대 계열로 한 번 더 시도한다. 파라미터 이름이 틀리면 대부분 빈 목록이 온다.
+   * 주소 형태(계열)와 인증키 형태(Encoding/Decoding)는 데이터셋마다 다르고,
+   * 사용자가 어느 쪽을 받았는지 알기 어렵다. 그래서 1페이지로 네 조합을 훑어
+   * 실제로 데이터가 오는 조합을 찾아낸다. 이후 페이지는 그 조합으로만 부른다.
    */
-  let flavor = apiFlavor(base)
-  let first = await fetchPage(base, key, 1, flavor)
+  const guessed = apiFlavor(base)
+  const flavors = [guessed, guessed === 'odcloud' ? 'classic' : 'odcloud']
+  const attempts = []
+  let flavor = null
+  let keyMode = null
+  let first = null
 
-  if (rowsOf(first).length === 0) {
-    const other = flavor === 'odcloud' ? 'classic' : 'odcloud'
-    console.log('  ' + flavor + ' 파라미터로 0건 — ' + other + ' 계열로 다시 시도합니다.')
-    const retry = await fetchPage(base, key, 1, other).catch(() => null)
-    if (retry && rowsOf(retry).length > 0) {
-      flavor = other
-      first = retry
+  outer: for (const f of flavors) {
+    for (const km of ['encoded', 'raw']) {
+      try {
+        const payload = await fetchPage(base, key, 1, f, km)
+        if (rowsOf(payload).length > 0) {
+          flavor = f
+          keyMode = km
+          first = payload
+          break outer
+        }
+        attempts.push(f + ' + ' + km + ' 키 → 0건')
+      } catch (err) {
+        attempts.push(f + ' + ' + km + ' 키 → ' + err.message)
+      }
     }
   }
 
-  const firstRows = rowsOf(first)
-  if (firstRows.length === 0) {
-    console.error('✗ 첫 페이지가 0건입니다. 두 계열 모두 실패했습니다. 응답 구조를 확인하세요:')
-    console.error(JSON.stringify(first).slice(0, 600))
+  if (!first) {
+    console.error('✗ 어떤 조합으로도 데이터를 받지 못했습니다. 시도한 내역:')
+    for (const line of attempts) console.error('  - ' + line)
+    console.error('')
+    console.error('  확인해 볼 것')
+    console.error('  1) 활용신청 직후라면 인증키 반영에 시간이 걸립니다(보통 수십 분). 잠시 뒤 재실행하세요.')
+    console.error('  2) PARKING_API_BASE 가 데이터셋 웹페이지 주소가 아니라 API 엔드포인트인지 확인하세요.')
+    console.error('     (마이페이지 → 오픈API → 개발계정 → 해당 API → 상세보기의 요청 주소)')
     process.exit(1)
   }
 
+  const firstRows = rowsOf(first)
   console.log('엔드포인트 계열:', flavor === 'odcloud' ? 'odcloud (page/perPage)' : 'classic (pageNo/numOfRows)')
+  console.log('인증키 형태:', keyMode === 'raw' ? '받은 문자열 그대로(Encoding 키)' : 'URL 인코딩(Decoding 키)')
+  if (attempts.length > 0) console.log('  (앞선 시도: ' + attempts.length + '회 실패 후 성공)')
   console.log('첫 레코드 컬럼:', Object.keys(firstRows[0]).slice(0, 10).join(', '))
 
   const collected = []
   let dropped = 0
 
   for (let page = 1; page <= MAX_PAGES; page++) {
-    const payload = page === 1 ? first : await fetchPage(base, key, page, flavor)
+    const payload = page === 1 ? first : await fetchPage(base, key, page, flavor, keyMode)
     const rows = rowsOf(payload)
 
     for (const row of rows) {
