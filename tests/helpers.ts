@@ -64,9 +64,24 @@ export async function setVisit(
   await expect(page.getByTestId('result-count')).toBeVisible()
 }
 
-/** 이름으로 카드 하나를 집는다. */
-export function cardByName(page: Page, name: string) {
-  return page.getByTestId('parking-card').filter({ hasText: name }).first()
+/**
+ * 이름으로 카드 하나를 집는다.
+ *
+ * 목록은 20장씩 점진적으로 그려지므로 뒤쪽 주차장은 DOM 에 없다.
+ * 검색으로 먼저 좁혀 확실히 화면에 올린 뒤 집는다(사용자가 하는 동작과도 같다).
+ */
+export async function cardByName(page: Page, name: string) {
+  const input = page.getByTestId('search-input')
+  if ((await input.inputValue()) !== name) {
+    await input.fill(name)
+    // 자동완성 드롭다운을 닫는다. 모바일에서는 이게 열린 채로 남아 시간 토글 버튼을 가린다.
+    await input.press('Escape')
+    await expect(page.getByTestId('search-suggestions')).toBeHidden()
+  }
+
+  const card = page.getByTestId('parking-card').filter({ hasText: name }).first()
+  await expect(card).toBeVisible()
+  return card
 }
 
 /** 목록에 그 이름의 카드가 나올 때까지 필터를 넓힌다(반경 20km). */
@@ -75,7 +90,6 @@ export async function widenRadius(page: Page): Promise<void> {
 }
 
 export async function statusOf(page: Page, name: string): Promise<string | null> {
-  const card = cardByName(page, name)
-  await expect(card).toBeVisible()
+  const card = await cardByName(page, name)
   return card.getAttribute('data-status')
 }

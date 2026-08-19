@@ -90,6 +90,10 @@ export default defineConfig({
           VITE_E2E: 'true',
           VITE_ADS_ENABLED: 'false',
           VITE_PARKING_API_PROXY: '',
+          // 테스트는 예시 데이터 32건만 쓴다.
+          // 전국 스냅샷은 갱신될 때마다 내용이 바뀌므로 '마포구청은 평일 20시에 무료'
+          // 같은 단언이 성립하지 않는다. 스냅샷 자체의 건전성은 verify-snapshot.mjs 가 본다.
+          VITE_PARKING_DATA_URL: '',
         },
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,

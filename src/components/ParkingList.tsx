@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { MapPinOff, SearchX } from 'lucide-react'
 import type { ResultItem } from '@/lib/query'
@@ -21,7 +21,36 @@ interface Props {
 /** 광고를 목록 몇 번째 뒤에 끼울지. 첫 화면에서 바로 광고를 만나지 않도록 3번째 뒤에 둔다. */
 const AD_AFTER_INDEX = 2
 
+/**
+ * 한 번에 그리는 카드 수.
+ *
+ * 전국 데이터가 들어오면 반경 10km 안에도 수백 곳이 잡힌다. 그걸 전부 DOM 에 올리면
+ * 저사양 단말에서 첫 화면이 십수 초까지 밀린다(실측). 사용자는 어차피 상위 몇 개만 보므로
+ * 처음엔 조금만 그리고 스크롤이 바닥에 닿을 때 이어서 늘린다.
+ */
+const INITIAL_VISIBLE = 20
+const VISIBLE_STEP = 20
+
 export function ParkingList({ items, isSample, loading, selectedId, onSelect, onResetFilters, className }: Props) {
+  const [visible, setVisible] = useState(INITIAL_VISIBLE)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+
+  // 필터·시간이 바뀌어 목록이 갈리면 다시 위에서부터 조금만 그린다.
+  useEffect(() => setVisible(INITIAL_VISIBLE), [items])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) setVisible((v) => v + VISIBLE_STEP)
+      },
+      { rootMargin: '400px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [items, visible])
+
   if (loading) {
     return (
       <div className={cn('px-3 pb-4', className)}>
@@ -60,7 +89,7 @@ export function ParkingList({ items, isSample, loading, selectedId, onSelect, on
   return (
     <div className={cn('space-y-2.5 px-3 pb-6', className)} data-testid="parking-list">
       <AnimatePresence initial={false} mode="popLayout">
-        {items.map((item, i) => (
+        {items.slice(0, visible).map((item, i) => (
           <Fragment key={item.parking.id}>
             <ParkingCard
               item={item}
@@ -83,6 +112,15 @@ export function ParkingList({ items, isSample, loading, selectedId, onSelect, on
           </Fragment>
         ))}
       </AnimatePresence>
+
+      {/* 스크롤이 여기 닿으면 다음 묶음을 그린다 */}
+      <div ref={sentinelRef} aria-hidden className="h-px" />
+
+      {visible < items.length && (
+        <p data-testid="list-more" className="tnum py-2 text-center text-[11.5px] font-semibold text-ink-mute">
+          {items.length - visible}곳 더 있음 · 스크롤하면 이어집니다
+        </p>
+      )}
 
       <p className="flex items-center justify-center gap-1.5 pt-2 text-center text-[11px] leading-relaxed text-ink-mute">
         <MapPinOff className="h-3 w-3 shrink-0" strokeWidth={2.4} />

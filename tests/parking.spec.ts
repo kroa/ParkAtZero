@@ -71,31 +71,31 @@ test.describe('시간대별 무료 판별', () => {
 
   test('평일 낮에는 유료, 저녁 19시 이후에는 무료로 바뀐다 (마포구청)', async ({ page }) => {
     await setVisit(page, DATES.weekday, '14:00', 120)
-    await expect(cardByName(page, '마포구청')).toHaveAttribute('data-status', 'paid')
+    await expect(await cardByName(page, '마포구청')).toHaveAttribute('data-status', 'paid')
 
     await setVisit(page, DATES.weekday, '20:00', 120)
-    await expect(cardByName(page, '마포구청')).toHaveAttribute('data-status', 'free')
+    await expect(await cardByName(page, '마포구청')).toHaveAttribute('data-status', 'free')
   })
 
   test('공휴일 무료 주차장은 추석 당일에 초록으로 바뀐다 (강남구청)', async ({ page }) => {
     await setVisit(page, DATES.weekday, '14:00', 120)
-    await expect(cardByName(page, '강남구청')).toHaveAttribute('data-status', 'paid')
+    await expect(await cardByName(page, '강남구청')).toHaveAttribute('data-status', 'paid')
 
     await setVisit(page, DATES.holiday, '14:00', 120)
-    await expect(cardByName(page, '강남구청')).toHaveAttribute('data-status', 'free')
+    await expect(await cardByName(page, '강남구청')).toHaveAttribute('data-status', 'free')
   })
 
   test('주말 무료 주차장은 토요일에만 초록이다 (이태원)', async ({ page }) => {
     await setVisit(page, DATES.weekday, '14:00', 120)
-    await expect(cardByName(page, '이태원')).toHaveAttribute('data-status', 'paid')
+    await expect(await cardByName(page, '이태원')).toHaveAttribute('data-status', 'paid')
 
     await setVisit(page, DATES.saturday, '14:00', 120)
-    await expect(cardByName(page, '이태원')).toHaveAttribute('data-status', 'free')
+    await expect(await cardByName(page, '이태원')).toHaveAttribute('data-status', 'free')
   })
 
   test('주차 시간을 늘리면 무료가 조건부로 내려간다 (여의도한강공원)', async ({ page }) => {
     await setVisit(page, DATES.weekday, '14:00', 30)
-    const card = cardByName(page, '여의도한강공원')
+    const card = await cardByName(page, '여의도한강공원')
     await expect(card).toHaveAttribute('data-status', 'conditional')
     await expect(card.getByTestId('card-cost')).toHaveText('0원')
 
@@ -106,7 +106,7 @@ test.describe('시간대별 무료 판별', () => {
 
   test('운영시간 밖이면 회색 "운영 종료"로 표시된다 (강남구청 평일 23시)', async ({ page }) => {
     await setVisit(page, DATES.weekday, '23:00', 120)
-    await expect(cardByName(page, '강남구청')).toHaveAttribute('data-status', 'closed')
+    await expect(await cardByName(page, '강남구청')).toHaveAttribute('data-status', 'closed')
   })
 
   test('방문 시각을 바꾸면 무료 개수 요약이 함께 갱신된다', async ({ page }) => {
@@ -210,11 +210,17 @@ test.describe('필터', () => {
   })
 
   test('반경을 좁히면 결과 수가 줄어든다', async ({ page }) => {
-    const wide = await page.getByTestId('parking-card').count()
+    // 목록은 스크롤에 따라 점진적으로 그려지므로 DOM 카드 수로 세면 안 된다.
+    // 요약 줄의 총 개수를 본다.
+    const total = async () => {
+      const text = await page.getByTestId('result-count').innerText()
+      return Number(text.match(/\/\s*(\d+)\s*곳/)?.[1] ?? -1)
+    }
+    const wide = await total()
+    expect(wide).toBeGreaterThan(0)
+
     await page.getByTestId('filter-radius').selectOption('1')
-    await expect
-      .poll(async () => page.getByTestId('parking-card').count())
-      .toBeLessThan(wide)
+    await expect.poll(total).toBeLessThan(wide)
   })
 
   test('요금순 정렬은 가장 싼 곳을 맨 위에 둔다', async ({ page }) => {
@@ -247,7 +253,7 @@ test.describe('상세 패널과 길안내', () => {
   })
 
   test('상세 패널에 4개 길안내 앱 링크가 모두 있고 좌표가 정확하다', async ({ page }) => {
-    await cardByName(page, '서울광장').click()
+    await (await cardByName(page, '서울광장')).click()
     const panel = page.getByTestId('detail-panel')
     await expect(panel).toBeVisible()
 
@@ -290,7 +296,7 @@ test.describe('상세 패널과 길안내', () => {
   })
 
   test('운영시간·요금 체계가 상세에 표기된다', async ({ page }) => {
-    await cardByName(page, '서울광장').click()
+    await (await cardByName(page, '서울광장')).click()
     const panel = page.getByTestId('detail-panel')
 
     await expect(panel).toContainText('운영시간')

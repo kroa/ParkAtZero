@@ -20,8 +20,11 @@ function flag(value: unknown, fallback = false): boolean {
  * (빌드 시점 해결책: MSYS_NO_PATHCONV=1 또는 값 앞에 슬래시를 하나 더)
  */
 function urlPath(value: unknown, fallback: string): string {
+  // 값을 아예 주지 않은 것과 '빈 값으로 껐다'는 것은 다르다.
+  // 빈 문자열까지 기본값으로 되돌리면 테스트에서 스냅샷을 끌 방법이 없어진다.
+  if (value === undefined || value === null) return fallback
   const s = typeof value === 'string' ? value.trim() : ''
-  if (!s) return fallback
+  if (!s) return ''
   if (s.startsWith('/') || s.startsWith('http://') || s.startsWith('https://')) return s
   console.warn('[ParkAtZero] 잘못된 경로 설정을 무시합니다:', s, '→', fallback)
   return fallback

@@ -90,6 +90,16 @@ function buildRemoteUrl(): string | null {
   return url.toString()
 }
 
+/** 브라우저가 한가해질 때까지 기다린다(지원하지 않으면 다음 프레임 뒤). */
+function whenIdle(timeout = 1200): Promise<void> {
+  return new Promise((resolve) => {
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number })
+      .requestIdleCallback
+    if (typeof ric === 'function') ric(() => resolve(), { timeout })
+    else window.setTimeout(resolve, 150)
+  })
+}
+
 /** 실패를 예외가 아니라 null 로 돌려주는 정적 파일 로더. */
 async function tryLoad(url: string, signal?: AbortSignal): Promise<Parking[] | null> {
   if (!url) return null
@@ -132,8 +142,6 @@ export async function loadParkings(
    * 실제 데이터로 조용히 올라선다. 자동 갱신이 스냅샷을 커밋하는 순간
    * 환경변수도 코드도 건드리지 않고 앱이 알아서 승격된다.
    */
-  const snapshotPromise = tryLoad(CONFIG.dataUrl, signal)
-
   if (!cached) {
     const sample = await tryLoad(CONFIG.seedUrl, signal)
     if (signal?.aborted) return
@@ -145,7 +153,10 @@ export async function loadParkings(
     }
   }
 
-  const snapshot = await snapshotPromise
+  // 전국 스냅샷은 10MB 급이라 JSON.parse 만으로도 메인 스레드를 1초 가까이 잡는다.
+  // 첫 화면이 그려질 틈을 준 뒤에 손대야 저사양 단말에서 초기 로딩이 밀리지 않는다.
+  await whenIdle()
+  const snapshot = await tryLoad(CONFIG.dataUrl, signal)
   if (signal?.aborted) return
   if (snapshot) {
     onEvent({ stage: 'remote', source: 'remote', parkings: snapshot, savedAt: Date.now() })
