@@ -1,16 +1,21 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { MapPinOff, SearchX } from 'lucide-react'
+import { SearchX } from 'lucide-react'
 import type { ResultItem } from '@/lib/query'
 import { cn } from '@/lib/cn'
 import { CONFIG } from '@/lib/env'
 import { ParkingCard } from './ParkingCard'
 import { SkeletonList } from './SkeletonCard'
 import { AdSlot } from './AdSlot'
+import { AttributionNotice } from './AttributionNotice'
 
 interface Props {
   items: ResultItem[]
   isSample: boolean
+  /** 스냅샷 전체 건수 (반경 필터 적용 전) */
+  totalCount: number
+  /** 원본 데이터 기준일 */
+  referenceDate?: string
   loading: boolean
   selectedId: string | null
   onSelect: (id: string) => void
@@ -31,7 +36,17 @@ const AD_AFTER_INDEX = 2
 const INITIAL_VISIBLE = 20
 const VISIBLE_STEP = 20
 
-export function ParkingList({ items, isSample, loading, selectedId, onSelect, onResetFilters, className }: Props) {
+export function ParkingList({
+  items,
+  isSample,
+  totalCount,
+  referenceDate,
+  loading,
+  selectedId,
+  onSelect,
+  onResetFilters,
+  className,
+}: Props) {
   const [visible, setVisible] = useState(INITIAL_VISIBLE)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
@@ -122,12 +137,12 @@ export function ParkingList({ items, isSample, loading, selectedId, onSelect, on
         </p>
       )}
 
-      <p className="flex items-center justify-center gap-1.5 pt-2 text-center text-[11px] leading-relaxed text-ink-mute">
-        <MapPinOff className="h-3 w-3 shrink-0" strokeWidth={2.4} />
-        {isSample
-          ? '기능 시연용 예시 데이터입니다. 실제 요금·운영시간이 아닙니다'
-          : '요금·운영시간은 공공데이터 기준이며 현장과 다를 수 있어요'}
-      </p>
+      <AttributionNotice
+        isSample={isSample}
+        count={totalCount}
+        referenceDate={referenceDate}
+        className="mt-2"
+      />
     </div>
   )
 }

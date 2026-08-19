@@ -48,6 +48,15 @@ test.describe('초기 로딩 · Local-First', () => {
     await expect(panel).not.toContainText('데이터 기준일')
   })
 
+  test('출처 표시가 목록 하단에 붙는다', async ({ page }) => {
+    // 공공누리 제1유형(출처표시)은 출처 명시가 의무다. 실수로 지워지면 라이선스 위반이 된다.
+    await gotoApp(page)
+    const attribution = page.getByTestId('attribution')
+    await expect(attribution).toBeVisible()
+    // 테스트는 예시 데이터로 도니 공공데이터 출처가 아니라 예시 고지가 떠야 한다.
+    await expect(attribution).toContainText('예시 데이터')
+  })
+
   test('주차장마다 상태 뱃지가 하나씩 붙는다', async ({ page }) => {
     await gotoApp(page)
 

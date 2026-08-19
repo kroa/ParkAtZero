@@ -102,6 +102,15 @@ export default function App() {
     [results],
   )
 
+  /** 출처 표시에 쓸 스냅샷 요약 — 반경 필터와 무관한 전체 건수와 원본 기준일. */
+  const dataInfo = useMemo(() => {
+    let referenceDate: string | undefined
+    for (const p of parkings) {
+      if (p.updatedAt && (!referenceDate || p.updatedAt > referenceDate)) referenceDate = p.updatedAt
+    }
+    return { count: parkings.length, referenceDate }
+  }, [parkings])
+
   const selectedItem = useMemo(
     () => results.find((r) => r.parking.id === selectedId) ?? null,
     [results, selectedId],
@@ -225,6 +234,8 @@ export default function App() {
       <ParkingList
         items={results}
         isSample={isSample}
+        totalCount={dataInfo.count}
+        referenceDate={dataInfo.referenceDate}
         loading={loading}
         selectedId={selectedId}
         onSelect={handleSelect}

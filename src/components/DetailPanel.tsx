@@ -192,9 +192,10 @@ export function DetailPanel({ item, isSample, onClose, className }: Props) {
             </span>
           </p>
         ) : (
-          parking.updatedAt && (
-            <p className="pt-1 text-[11px] text-ink-mute">데이터 기준일 {parking.updatedAt} · 공공데이터포털</p>
-          )
+          <p className="pt-1 text-[11px] leading-relaxed text-ink-mute">
+            {parking.updatedAt ? '데이터 기준일 ' + parking.updatedAt + ' · ' : ''}
+            출처: 행정안전부 전국주차장정보표준데이터 (공공누리 제1유형)
+          </p>
         )}
       </div>
     </motion.section>
