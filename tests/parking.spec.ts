@@ -497,6 +497,52 @@ test.describe('시간 판별 로직', () => {
     }
   })
 
+  test('유료인데 금액이 비어 있으면 무료가 아니라 "정보 부족"이다', async ({ page }) => {
+    /*
+     * 표준데이터에는 요금정보를 '유료'로 등록해 놓고 금액 칸은 비워 둔 레코드가 많다
+     * (전국 621곳). 그걸 0원으로 읽으면 돈 내야 하는 곳이 초록 '완전 무료'로 표시된다.
+     * 실제로 홍제·홍은 일대가 통째로 무료로 보이는 사고가 났던 지점이라 못 박아 둔다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const results = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const base = {
+        id: 'x',
+        name: '테스트',
+        type: '노외',
+        ownership: '공영',
+        address: 'x',
+        lat: 37.5,
+        lng: 127,
+        capacity: 10,
+        hours: { weekday: null, saturday: null, holiday: null },
+      }
+      const cases = [
+        { label: '유료 + 금액 전부 빈값', chargeType: '유료' as const, fee: { basicTime: 0, basicCharge: 0, addTime: 0, addCharge: 0 } },
+        { label: '유료 + 기본시간만 있음', chargeType: '유료' as const, fee: { basicTime: 5, basicCharge: 0, addTime: 0, addCharge: 0 } },
+        { label: '혼합 + 금액 빈값', chargeType: '혼합' as const, fee: { basicTime: 0, basicCharge: 0, addTime: 0, addCharge: 0 } },
+        { label: '무료로 명시', chargeType: '무료' as const, fee: { basicTime: 0, basicCharge: 0, addTime: 0, addCharge: 0 } },
+        { label: '유료 + 금액 있음', chargeType: '유료' as const, fee: { basicTime: 30, basicCharge: 1000, addTime: 10, addCharge: 300 } },
+      ]
+      return cases.map((c) => {
+        const r = bridge.evaluate({ ...base, chargeType: c.chargeType, fee: c.fee }, '2026-09-15T14:00:00', 120) as {
+          status: string
+          cost: number | null
+        }
+        return { label: c.label, status: r.status, cost: r.cost }
+      })
+    })
+
+    const by = Object.fromEntries(results.map((r) => [r.label, r]))
+    expect(by['유료 + 금액 전부 빈값']).toMatchObject({ status: 'unknown', cost: null })
+    expect(by['유료 + 기본시간만 있음']).toMatchObject({ status: 'unknown', cost: null })
+    expect(by['혼합 + 금액 빈값']).toMatchObject({ status: 'unknown', cost: null })
+    expect(by['무료로 명시']).toMatchObject({ status: 'free', cost: 0 })
+    expect(by['유료 + 금액 있음']).toMatchObject({ status: 'paid' })
+  })
+
   test('특기사항에서 무료 규칙을 정확히 뽑아낸다', async ({ page }) => {
     await gotoApp(page)
     await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)

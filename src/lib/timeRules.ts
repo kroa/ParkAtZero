@@ -180,10 +180,10 @@ export function extractFreeRules(p: Parking): FreeRule[] {
     rules.push({ kind: 'always', label: '무료 주차장' })
   }
 
-  const { basicTime, basicCharge, addTime, addCharge } = p.fee
-  if (p.chargeType !== '무료' && basicCharge === 0 && addCharge === 0 && (basicTime > 0 || addTime > 0)) {
-    rules.push({ kind: 'always', label: '요금 0원' })
-  } else if (basicCharge === 0 && basicTime > 0 && addCharge > 0) {
+  const { basicTime, basicCharge, addCharge } = p.fee
+  // 유료로 등록됐는데 금액이 비어 있는 것을 '요금 0원'으로 승격하면 안 된다.
+  // 지자체가 금액을 입력하지 않은 것일 뿐이며, freeCalc 가 '정보 부족'으로 처리한다.
+  if (basicCharge === 0 && basicTime > 0 && addCharge > 0) {
     // 요금표 자체가 '최초 N분 0원' 구조인 경우. 요금 계산에서 이미 반영되므로
     // freeCalc 는 이 규칙을 표시용으로만 쓴다(중복 차감 방지).
     rules.push({

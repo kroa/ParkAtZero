@@ -36,7 +36,18 @@ export function computeCost(fee: ParkingFee, minutes: number): { cost: number | 
 
   const { basicTime, basicCharge, addTime, addCharge, dayTicket } = fee
 
-  if (basicCharge === 0 && addCharge === 0) return { cost: 0, estimated: false }
+  /*
+   * 금액이 전부 비어 있으면 '0원'이 아니라 '모른다'.
+   *
+   * 표준데이터에는 요금정보를 '유료'로 등록해 놓고 금액 칸은 채우지 않은 레코드가
+   * 적지 않다(실측 621곳). 그걸 0원으로 읽으면 유료 주차장이 초록 '완전 무료'로
+   * 표시되어, 돈을 내야 하는 곳에 무료인 줄 알고 가게 된다.
+   * 무료인 주차장은 요금정보가 '무료'로 들어오고 evaluate 가 그 경로를 따로 타므로,
+   * 여기까지 왔다는 것은 유료·혼합이라는 뜻이다.
+   */
+  if (basicCharge === 0 && addCharge === 0 && !(dayTicket && dayTicket > 0)) {
+    return { cost: null, estimated: true }
+  }
 
   let cost = 0
   let remaining = minutes
@@ -240,8 +251,9 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
     reasons.push('선택한 시간은 운영시간이 아닙니다.')
   } else if (priced.cost === null) {
     status = 'unknown'
-    headline = '요금 정보가 부족해 계산할 수 없어요'
-    reasons.push('원본 데이터에 추가 요금 단위가 없습니다.')
+    headline = '요금이 공개되지 않은 유료 주차장'
+    reasons.push('원본 데이터에 요금이 비어 있어 금액을 계산할 수 없습니다.')
+    reasons.push('무료라는 뜻이 아닙니다 — 현장 안내판을 확인하세요.')
   } else if (priced.cost === 0) {
     if (coveredByRules) {
       status = 'free'
