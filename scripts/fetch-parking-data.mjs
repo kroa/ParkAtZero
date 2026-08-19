@@ -24,8 +24,8 @@ import path from 'node:path'
 import process from 'node:process'
 
 const OUT_PATH = path.join('public', 'data', 'parkings.full.json')
-const PER_PAGE = 1000
-const MAX_PAGES = 300
+const PAGE_SIZES = [1000, 100]
+const MAX_PAGES = 800
 /** 이 크기를 넘으면 경고한다 — 브라우저가 한 번에 파싱하기 버거워지는 지점. */
 const WARN_BYTES = 12 * 1024 * 1024
 
@@ -98,18 +98,18 @@ function apiFlavor(base) {
  *  - 'raw'     : 받은 문자열을 그대로 붙인다 (이미 %2B 등이 섞인 Encoding 키일 때 맞는 형태)
  * 어느 쪽인지 사용자가 알기 어려우므로 둘 다 시도한다.
  */
-function buildUrl(base, key, page, flavor, keyMode) {
+function buildUrl(base, key, page, flavor, keyMode, perPage) {
   const url = new URL(base)
   // 사용자가 ?serviceKey=... 까지 통째로 붙여 넣는 경우가 흔하다. 우리가 다시 세팅하므로 지운다.
   url.searchParams.delete('serviceKey')
 
   if (flavor === 'odcloud') {
     url.searchParams.set('page', String(page))
-    url.searchParams.set('perPage', String(PER_PAGE))
+    url.searchParams.set('perPage', String(perPage))
     url.searchParams.set('returnType', 'JSON')
   } else {
     url.searchParams.set('pageNo', String(page))
-    url.searchParams.set('numOfRows', String(PER_PAGE))
+    url.searchParams.set('numOfRows', String(perPage))
     // 구형 계열은 JSON 을 요구하는 파라미터 이름이 API 마다 다르다(type/dataType/resultType).
     // 모르는 파라미터는 대개 무시되므로 넷을 함께 보내 어느 쪽이든 걸리게 한다.
     url.searchParams.set('type', 'json')
@@ -141,8 +141,8 @@ function assertNoApiError(payload, text) {
   }
 }
 
-async function fetchPage(base, key, page, flavor, keyMode) {
-  const url = buildUrl(base, key, page, flavor, keyMode)
+async function fetchPage(base, key, page, flavor, keyMode, perPage) {
+  const url = buildUrl(base, key, page, flavor, keyMode, perPage)
 
   // 공공 API 는 간헐적으로 5xx 를 뱉는다. 몇 번은 조용히 다시 시도한다.
   let lastError
@@ -181,11 +181,52 @@ async function fetchPage(base, key, page, flavor, keyMode) {
   throw new Error('page ' + page + ' 실패: ' + lastError.message)
 }
 
+/** 주차장 레코드로 보이는 객체인지 — 깊이 탐색이 엉뚱한 배열을 잡지 않게 하는 최소 판별. */
+function looksLikeRecord(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false
+  const keys = Object.keys(v)
+  if (keys.length < 3) return false
+  return keys.some((k) => /prkplce|주차장|latitude|위도|longitude|경도/i.test(k))
+}
+
+/**
+ * 응답에서 레코드 배열을 찾아낸다.
+ *
+ * 공공데이터포털은 같은 데이터도 배포 경로마다 감싸는 구조가 다르다
+ * (data / response.body.items / items.item / body.items ...).
+ * 알려진 경로를 먼저 보고, 그래도 못 찾으면 응답 전체를 훑어 '주차장 레코드처럼 생긴
+ * 객체들의 배열' 중 가장 큰 것을 고른다. 구조를 하나씩 추가하며 왕복하는 것보다 확실하다.
+ */
 function rowsOf(payload) {
-  if (Array.isArray(payload?.data)) return payload.data
-  if (Array.isArray(payload?.response?.body?.items)) return payload.response.body.items
-  if (Array.isArray(payload?.response?.body?.items?.item)) return payload.response.body.items.item
-  return []
+  const known = [
+    payload?.data,
+    payload?.response?.body?.items,
+    payload?.response?.body?.items?.item,
+    payload?.response?.body?.item,
+    payload?.body?.items,
+    payload?.items,
+    payload?.records,
+  ]
+  for (const candidate of known) {
+    if (Array.isArray(candidate) && candidate.length > 0) return candidate
+    // 단건이 배열이 아니라 객체로 오는 경우도 있다.
+    if (looksLikeRecord(candidate)) return [candidate]
+  }
+
+  let best = []
+  const seen = new Set()
+  const walk = (node, depth) => {
+    if (!node || typeof node !== 'object' || depth > 6 || seen.has(node)) return
+    seen.add(node)
+    if (Array.isArray(node)) {
+      if (node.length > best.length && node.some(looksLikeRecord)) best = node
+      for (const child of node.slice(0, 3)) walk(child, depth + 1)
+      return
+    }
+    for (const value of Object.values(node)) walk(value, depth + 1)
+  }
+  walk(payload, 0)
+  return best
 }
 
 function coord(row, keys) {
@@ -237,23 +278,33 @@ async function main() {
   const guessed = apiFlavor(base)
   const flavors = [guessed, guessed === 'odcloud' ? 'classic' : 'odcloud']
   const attempts = []
+  let emptySample = null
   let flavor = null
   let keyMode = null
+  let perPage = PAGE_SIZES[0]
   let first = null
 
   outer: for (const f of flavors) {
     for (const km of ['encoded', 'raw']) {
-      try {
-        const payload = await fetchPage(base, key, 1, f, km)
-        if (rowsOf(payload).length > 0) {
-          flavor = f
-          keyMode = km
-          first = payload
-          break outer
+      for (const size of PAGE_SIZES) {
+        const label = f + ' + ' + km + ' 키 + ' + size + '건'
+        try {
+          const payload = await fetchPage(base, key, 1, f, km, size)
+          if (rowsOf(payload).length > 0) {
+            flavor = f
+            keyMode = km
+            perPage = size
+            first = payload
+            break outer
+          }
+          attempts.push(label + ' → 0건')
+          // 인증은 통과했는데 목록을 못 찾은 경우다. 응답 구조를 그대로 남겨야 원인이 보인다.
+          if (!emptySample) emptySample = { combo: label, body: JSON.stringify(payload).slice(0, 1200) }
+        } catch (err) {
+          attempts.push(label + ' → ' + err.message)
+          // 인증 실패는 페이지 크기와 무관하므로 같은 조합의 다른 크기는 건너뛴다.
+          if (err.fatal) break
         }
-        attempts.push(f + ' + ' + km + ' 키 → 0건')
-      } catch (err) {
-        attempts.push(f + ' + ' + km + ' 키 → ' + err.message)
       }
     }
   }
@@ -261,6 +312,11 @@ async function main() {
   if (!first) {
     console.error('✗ 어떤 조합으로도 데이터를 받지 못했습니다. 시도한 내역:')
     for (const line of attempts) console.error('  - ' + line)
+    if (emptySample) {
+      console.error('')
+      console.error('  인증은 통과했으나 목록을 찾지 못한 응답 (' + emptySample.combo + '):')
+      console.error('  ' + emptySample.body)
+    }
     console.error('')
     console.error('  확인해 볼 것')
     console.error('  1) 활용신청 직후라면 인증키 반영에 시간이 걸립니다(보통 수십 분). 잠시 뒤 재실행하세요.')
@@ -272,6 +328,7 @@ async function main() {
   const firstRows = rowsOf(first)
   console.log('엔드포인트 계열:', flavor === 'odcloud' ? 'odcloud (page/perPage)' : 'classic (pageNo/numOfRows)')
   console.log('인증키 형태:', keyMode === 'raw' ? '받은 문자열 그대로(Encoding 키)' : 'URL 인코딩(Decoding 키)')
+  console.log('페이지 크기:', perPage)
   if (attempts.length > 0) console.log('  (앞선 시도: ' + attempts.length + '회 실패 후 성공)')
   console.log('첫 레코드 컬럼:', Object.keys(firstRows[0]).slice(0, 10).join(', '))
 
@@ -279,7 +336,7 @@ async function main() {
   let dropped = 0
 
   for (let page = 1; page <= MAX_PAGES; page++) {
-    const payload = page === 1 ? first : await fetchPage(base, key, page, flavor, keyMode)
+    const payload = page === 1 ? first : await fetchPage(base, key, page, flavor, keyMode, perPage)
     const rows = rowsOf(payload)
 
     for (const row of rows) {
@@ -296,7 +353,7 @@ async function main() {
     process.stdout.write(
       '\r  page ' + page + ' … 수집 ' + collected.length.toLocaleString('ko-KR') + '건 (제외 ' + dropped + ')',
     )
-    if (rows.length < PER_PAGE) break
+    if (rows.length < perPage) break
   }
   process.stdout.write('\n')
 
