@@ -207,6 +207,15 @@ test.describe('필터', () => {
     expect(new Set(statuses)).toEqual(new Set(['free']))
   })
 
+  test('필터를 켜도 칩의 전체 개수는 그대로다', async ({ page }) => {
+    // 걸러진 결과로 개수를 세면 '0원만'을 켠 순간 전체 개수까지 그 값으로 바뀌어,
+    // 그 지역에 주차장이 몇 곳뿐인 것처럼 보인다.
+    const totalBefore = await page.getByTestId('filter-all').innerText()
+    await page.getByTestId('filter-free').click()
+    await expect(page.getByTestId('parking-card').first()).toBeVisible()
+    expect(await page.getByTestId('filter-all').innerText()).toEqual(totalBefore)
+  })
+
   test('"조건부 포함" 필터는 초록과 주황만 남긴다', async ({ page }) => {
     await page.getByTestId('filter-conditional').click()
 
@@ -541,6 +550,49 @@ test.describe('시간 판별 로직', () => {
     expect(by['혼합 + 금액 빈값']).toMatchObject({ status: 'unknown', cost: null })
     expect(by['무료로 명시']).toMatchObject({ status: 'free', cost: 0 })
     expect(by['유료 + 금액 있음']).toMatchObject({ status: 'paid' })
+  })
+
+  test('차종·대상 전용 주차장은 "완전 무료"가 아니다', async ({ page }) => {
+    /*
+     * "관광버스 전용" 2면짜리 노상 구간이 승용차 운전자에게 초록 0원으로 떴던 적이 있다
+     * (탑골공원·남대문시장). 요금이 0원인 것과 내가 댈 수 있는 것은 다른 문제다.
+     * 초록에서 빼야 '0원만' 필터에도 걸리지 않는다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const results = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const base = {
+        id: 'x',
+        name: '테스트',
+        type: '노상',
+        ownership: '공영',
+        address: 'x',
+        lat: 37.5,
+        lng: 127,
+        capacity: 2,
+        chargeType: '무료' as const,
+        hours: { weekday: null, saturday: null, holiday: null },
+        fee: { basicTime: 0, basicCharge: 0, addTime: 0, addCharge: 0 },
+      }
+      const notes = ['관광버스 전용', '화물차 전용', '거주자 전용', '경차 전용', '24시간 무료 개방 구간']
+      return notes.map((note) => {
+        const r = bridge.evaluate({ ...base, note }, '2026-09-15T14:00:00', 120) as {
+          status: string
+          badge: string
+        }
+        return { note, status: r.status, badge: r.badge }
+      })
+    })
+
+    const by = Object.fromEntries(results.map((r) => [r.note, r]))
+    expect(by['관광버스 전용']).toMatchObject({ status: 'conditional', badge: '관광버스 전용' })
+    expect(by['화물차 전용']).toMatchObject({ status: 'conditional', badge: '화물차 전용' })
+    expect(by['거주자 전용']).toMatchObject({ status: 'conditional', badge: '거주자 전용' })
+    expect(by['경차 전용']).toMatchObject({ status: 'conditional', badge: '경차 전용' })
+    // 제한이 없는 무료 주차장은 그대로 초록이어야 한다.
+    expect(by['24시간 무료 개방 구간']).toMatchObject({ status: 'free' })
   })
 
   test('특기사항에서 무료 규칙을 정확히 뽑아낸다', async ({ page }) => {

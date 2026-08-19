@@ -41,6 +41,12 @@ function matchesKeyword(p: Parking, key: string): boolean {
   )
 }
 
+/** 상태 필터만 따로 적용한다. 필터칩 숫자는 필터 적용 전 결과로 세야 하기 때문. */
+export function filterByStatus(items: ResultItem[], filter: StatusFilter): ResultItem[] {
+  if (filter === 'all') return items
+  return items.filter((it) => passesStatus(it.evaluation.status, filter))
+}
+
 function passesStatus(status: ParkingStatus, filter: StatusFilter): boolean {
   if (filter === 'all') return true
   if (filter === 'free') return status === 'free'
@@ -66,8 +72,6 @@ export function buildResults(parkings: Parking[], q: QueryState): ResultItem[] {
     if (q.ownership !== 'all' && p.ownership !== q.ownership) continue
 
     const evaluation = evaluate({ parking: p, visitStart: q.visitStart, durationMin: q.durationMin })
-    if (!passesStatus(evaluation.status, q.status)) continue
-
     items.push({ parking: p, evaluation, distanceKm })
   }
 

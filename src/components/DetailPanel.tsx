@@ -56,7 +56,7 @@ export function DetailPanel({ item, isSample, onClose, className }: Props) {
 
       <div className="flex items-start gap-3 px-5 pt-5">
         <div className="min-w-0 flex-1">
-          <StatusBadge status={evaluation.status} size="md" />
+          <StatusBadge status={evaluation.status} label={evaluation.badge} size="md" />
           <h2 className="mt-2.5 text-[19px] font-extrabold leading-tight tracking-[-0.02em] text-ink">
             {parking.name}
           </h2>

@@ -19,6 +19,7 @@ import { useGeolocation } from '@/hooks/useGeolocation'
 import { useParkingData } from '@/hooks/useParkingData'
 import {
   buildResults,
+  filterByStatus,
   summarize,
   type OwnershipFilter,
   type QueryState,
@@ -86,8 +87,15 @@ export default function App() {
     [debouncedKeyword, visitStart, durationMin, origin, radiusKm, status, ownership, sort],
   )
 
-  const results = useMemo(() => buildResults(parkings, query), [parkings, query])
-  const summary = useMemo(() => summarize(results), [results])
+  /*
+   * 상태 필터는 마지막에 따로 적용한다.
+   * 필터칩의 숫자("0원만 42")는 필터를 적용하기 전 결과로 세야 의미가 있다.
+   * 걸러진 결과로 세면 '0원만'을 켠 순간 전체 개수까지 그 값으로 바뀌어,
+   * 마치 그 지역에 주차장이 몇 곳뿐인 것처럼 보인다.
+   */
+  const scored = useMemo(() => buildResults(parkings, query), [parkings, query])
+  const summary = useMemo(() => summarize(scored), [scored])
+  const results = useMemo(() => filterByStatus(scored, status), [scored, status])
 
   const markers: MarkerModel[] = useMemo(
     () =>

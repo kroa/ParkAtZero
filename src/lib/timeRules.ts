@@ -163,6 +163,21 @@ const TARGET_WORDS = [
 ]
 
 /**
+ * 특정 차종·대상만 댈 수 있는 주차장인지 본다.
+ *
+ * "관광버스 전용" 2면짜리 노상 구간을 승용차 운전자에게 '완전 무료'로 보여주면
+ * 갔다가 못 대고 돌아온다. 요금이 0원인 것과 내가 댈 수 있는 것은 다른 문제다.
+ */
+export function extractRestriction(note: string | undefined): string | undefined {
+  if (!note) return undefined
+  const m =
+    /(관광버스|대형버스|버스|화물차|화물|이륜차|이륜|오토바이|자전거|경차|전기차|장애인|택시|거주자|주민|입주자|직원|내부)\s*(?:차량\s*)?(전용|만\s*가능|에\s*한함|한정)/.exec(
+      note.replace(/\s+/g, ' '),
+    )
+  return m ? m[1] + ' 전용' : undefined
+}
+
+/**
  * 요금 필드와 특기사항(spcmnt) 에서 '무료 규칙'을 추출한다.
  *
  * 공공데이터의 특기사항은 자유 서술이라 100% 정형화가 불가능하다.

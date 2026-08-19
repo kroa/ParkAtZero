@@ -117,4 +117,6 @@ export interface Evaluation {
   isOpen: boolean
   /** 요금 상세를 추정으로 계산했는지 여부 */
   estimated: boolean
+  /** 특정 차종·대상 전용이라 일반 차량은 댈 수 없는 경우의 라벨 (예: '관광버스 전용') */
+  restriction?: string
 }

@@ -65,7 +65,7 @@ export const ParkingCard = memo(function ParkingCard({ item, selected, onSelect,
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <StatusBadge status={evaluation.status} />
+            <StatusBadge status={evaluation.status} label={evaluation.badge} />
             {evaluation.estimated && (
               <span className="pz-chip bg-ink/[0.06] text-ink-mute" title="원본 데이터가 불완전해 일부 값을 추정했습니다">
                 <TriangleAlert className="h-3 w-3" strokeWidth={2.4} />

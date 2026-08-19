@@ -14,6 +14,7 @@ import {
   formatMinuteOfDay,
   getDayType,
   minutesOfDay,
+  extractRestriction,
   minutesToDate,
   operatesOn,
   startOfDay,
@@ -276,6 +277,18 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
     headline = formatDurationShort(duration) + ' 주차 시 ' + formatMoney(priced.cost)
   }
 
+  /*
+   * 전용 주차장은 '무료'가 아니라 '못 댄다'.
+   *
+   * 요금이 0원이어도 관광버스 전용 2면짜리 구간은 승용차 운전자의 답이 아니다.
+   * 초록(완전 무료)에서 빼고 제한 내용을 그대로 뱃지에 띄워, '0원만' 필터에도 걸리지 않게 한다.
+   */
+  const restriction = extractRestriction(parking.note)
+  if (restriction && (status === 'free' || status === 'conditional')) {
+    status = 'conditional'
+    headline = restriction + ' — 일반 차량은 이용할 수 없어요'
+  }
+
   // ── 근거 문구 ────────────────────────────────────────────────
   for (const r of ruleSet.used) reasons.push(r.label)
   for (const r of graceRules) if (!reasons.includes(r.label)) reasons.push(r.label)
@@ -311,7 +324,7 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
 
   return {
     status,
-    badge: pickBadge(status),
+    badge: restriction ?? pickBadge(status),
     headline,
     totalMinutes: duration,
     freeMinutes,
@@ -325,6 +338,7 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
     dayType,
     isOpen: openMinutes > 0,
     estimated: priced.estimated || oper.assumed || ruleSet.inferred,
+    restriction,
   }
 }
 
