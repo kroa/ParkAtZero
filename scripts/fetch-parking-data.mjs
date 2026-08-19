@@ -141,12 +141,12 @@ function assertNoApiError(payload, text) {
   }
 }
 
-async function fetchPage(base, key, page, flavor, keyMode, perPage) {
+async function fetchPage(base, key, page, flavor, keyMode, perPage, { attempts = 3 } = {}) {
   const url = buildUrl(base, key, page, flavor, keyMode, perPage)
 
   // 공공 API 는 간헐적으로 5xx 를 뱉는다. 몇 번은 조용히 다시 시도한다.
   let lastError
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(45000) })
       const text = await res.text()
@@ -175,7 +175,7 @@ async function fetchPage(base, key, page, flavor, keyMode, perPage) {
     } catch (err) {
       lastError = err
       if (err.fatal) break
-      if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 1500))
+      if (attempt < attempts) await new Promise((r) => setTimeout(r, attempt * 1500))
     }
   }
   throw new Error('page ' + page + ' 실패: ' + describeError(lastError))
@@ -316,8 +316,11 @@ async function main() {
     for (const km of ['encoded', 'raw']) {
       for (const size of PAGE_SIZES) {
         const label = f + ' + ' + km + ' 키 + ' + size + '건'
+        if (attempts.length > 0) await new Promise((r) => setTimeout(r, 700))
         try {
-          const payload = await fetchPage(base, key, 1, f, km, size)
+          // 탐색은 조합당 1회만 던진다. 여덟 조합 × 재시도 3회면 원본 서버에
+          // 짧은 시간에 24번을 두드리게 되고, 그 자체가 차단·조임을 부른다.
+          const payload = await fetchPage(base, key, 1, f, km, size, { attempts: 1 })
           if (rowsOf(payload).length > 0) {
             flavor = f
             keyMode = km
@@ -332,6 +335,8 @@ async function main() {
           attempts.push(label + ' → ' + describeError(err))
           // 인증 실패는 페이지 크기와 무관하므로 같은 조합의 다른 크기는 건너뛴다.
           if (err.fatal) break
+          // 연결 자체가 실패하면 조합을 바꿔도 소용없다. 더 두드리지 말고 멈춘다.
+          if (/fetch failed|ETIMEDOUT|ECONNRESET|ENOTFOUND|ECONNREFUSED/.test(err.message)) break outer
         }
       }
     }
