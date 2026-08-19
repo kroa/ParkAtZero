@@ -80,22 +80,87 @@ async function loadEnvFile(file) {
   }
 }
 
-async function fetchPage(base, key, page) {
+/**
+ * 공공데이터포털 오픈API 는 계열이 둘이고 파라미터 이름이 다르다.
+ *
+ *   odcloud   api.odcloud.kr/api/<id>/v1/uddi:<uuid>   page / perPage / returnType
+ *   classic   api(s).data.go.kr/openapi/<서비스명>      pageNo / numOfRows / type
+ *
+ * 어느 쪽 주소를 받아 오는지는 데이터셋마다 달라서, 호스트로 판별해 맞는 이름을 쓴다.
+ */
+function apiFlavor(base) {
+  return new URL(base).hostname.includes('odcloud.kr') ? 'odcloud' : 'classic'
+}
+
+function buildUrl(base, key, page, flavor) {
   const url = new URL(base)
-  url.searchParams.set('page', String(page))
-  url.searchParams.set('perPage', String(PER_PAGE))
+  // 사용자가 ?serviceKey=... 까지 통째로 붙여 넣는 경우가 흔하다. 우리가 다시 세팅하므로 지운다.
+  url.searchParams.delete('serviceKey')
+
+  if (flavor === 'odcloud') {
+    url.searchParams.set('page', String(page))
+    url.searchParams.set('perPage', String(PER_PAGE))
+    url.searchParams.set('returnType', 'JSON')
+  } else {
+    url.searchParams.set('pageNo', String(page))
+    url.searchParams.set('numOfRows', String(PER_PAGE))
+    url.searchParams.set('type', 'json')
+  }
   url.searchParams.set('serviceKey', key)
-  url.searchParams.set('returnType', 'JSON')
+  return url
+}
+
+/** 구형 API 는 HTTP 200 에 에러를 실어 보낸다. 그 메시지를 그대로 드러내야 원인을 알 수 있다. */
+function assertNoApiError(payload, text) {
+  const header = payload?.response?.header
+  const code = header?.resultCode ?? header?.returnReasonCode
+  if (code !== undefined && String(code) !== '00' && String(code) !== '0') {
+    throw new Error(
+      'API 오류 ' + code + ': ' + (header?.resultMsg ?? header?.returnAuthMsg ?? '(메시지 없음)'),
+    )
+  }
+  if (typeof payload?.code === 'string' && payload.code !== 'success') {
+    throw new Error('API 오류: ' + payload.code + ' ' + (payload.msg ?? ''))
+  }
+  if (payload === null || payload === undefined) {
+    throw new Error('응답을 JSON 으로 해석하지 못했습니다: ' + text.slice(0, 200))
+  }
+}
+
+async function fetchPage(base, key, page, flavor) {
+  const url = buildUrl(base, key, page, flavor)
 
   // 공공 API 는 간헐적으로 5xx 를 뱉는다. 몇 번은 조용히 다시 시도한다.
   let lastError
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const res = await fetch(url, { headers: { Accept: 'application/json' } })
-      if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText)
-      return await res.json()
+      const text = await res.text()
+
+      if (!res.ok) {
+        // 인증키 문제는 재시도해도 소용없다. 바로 세워서 원인을 보여준다.
+        if (res.status === 401 || res.status === 403) {
+          throw Object.assign(new Error('인증 실패(HTTP ' + res.status + '). 인증키가 맞는지, Decoding 값인지 확인하세요.'), { fatal: true })
+        }
+        throw new Error('HTTP ' + res.status + ' ' + res.statusText + ' — ' + text.slice(0, 200))
+      }
+
+      let payload
+      try {
+        payload = JSON.parse(text)
+      } catch {
+        // XML 로 에러를 돌려주는 경우가 많다. 본문을 그대로 보여줘야 진단이 된다.
+        throw Object.assign(
+          new Error('JSON 이 아닌 응답을 받았습니다. 엔드포인트 주소를 확인하세요. ' + text.slice(0, 400)),
+          { fatal: true },
+        )
+      }
+
+      assertNoApiError(payload, text)
+      return payload
     } catch (err) {
       lastError = err
+      if (err.fatal) break
       if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 1500))
     }
   }
@@ -148,11 +213,41 @@ async function main() {
     process.exit(1)
   }
 
+  console.log('주소:', new URL(base).origin + new URL(base).pathname)
+
+  /*
+   * 호스트명만으로 계열을 단정하지 않는다.
+   * 데이터셋마다 발급되는 주소 형태가 제각각이라, 추정한 계열로 1페이지를 던져 보고
+   * 0건이면 반대 계열로 한 번 더 시도한다. 파라미터 이름이 틀리면 대부분 빈 목록이 온다.
+   */
+  let flavor = apiFlavor(base)
+  let first = await fetchPage(base, key, 1, flavor)
+
+  if (rowsOf(first).length === 0) {
+    const other = flavor === 'odcloud' ? 'classic' : 'odcloud'
+    console.log('  ' + flavor + ' 파라미터로 0건 — ' + other + ' 계열로 다시 시도합니다.')
+    const retry = await fetchPage(base, key, 1, other).catch(() => null)
+    if (retry && rowsOf(retry).length > 0) {
+      flavor = other
+      first = retry
+    }
+  }
+
+  const firstRows = rowsOf(first)
+  if (firstRows.length === 0) {
+    console.error('✗ 첫 페이지가 0건입니다. 두 계열 모두 실패했습니다. 응답 구조를 확인하세요:')
+    console.error(JSON.stringify(first).slice(0, 600))
+    process.exit(1)
+  }
+
+  console.log('엔드포인트 계열:', flavor === 'odcloud' ? 'odcloud (page/perPage)' : 'classic (pageNo/numOfRows)')
+  console.log('첫 레코드 컬럼:', Object.keys(firstRows[0]).slice(0, 10).join(', '))
+
   const collected = []
   let dropped = 0
 
   for (let page = 1; page <= MAX_PAGES; page++) {
-    const payload = await fetchPage(base, key, page)
+    const payload = page === 1 ? first : await fetchPage(base, key, page, flavor)
     const rows = rowsOf(payload)
 
     for (const row of rows) {

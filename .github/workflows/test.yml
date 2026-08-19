@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   # 광고 스크립트와 원격 API 는 CI 에서 항상 꺼 둔다 — 외부 상태에 테스트가 흔들리면 안 된다.
   VITE_ADS_ENABLED: 'false'
   VITE_PARKING_API_PROXY: ''

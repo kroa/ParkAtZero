@@ -49,7 +49,7 @@ jobs:
       - uses: actions/setup-node@v4
         if: steps.cf.outputs.ready == 'true'
         with:
-          node-version: '20'
+          node-version: '22'
           cache: npm
 
       - run: npm ci
