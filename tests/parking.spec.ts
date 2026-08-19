@@ -151,13 +151,14 @@ test.describe('검색', () => {
     await widenRadius(page)
     await page.getByTestId('search-input').fill('여의도')
 
-    const cards = page.getByTestId('parking-card')
-    await expect(cards.first()).toBeVisible()
-    expect(await cards.count()).toBeGreaterThan(0)
-
-    for (const name of await page.getByTestId('card-name').allInnerTexts()) {
-      expect(name).toContain('여의도')
-    }
+    // 검색어는 디바운스를 거치므로 '모든 카드가 걸러진 상태'가 될 때까지 기다린다.
+    // 입력 직후 스냅샷을 찍으면 필터 적용 전 목록을 보게 된다.
+    await expect
+      .poll(async () => {
+        const names = await page.getByTestId('card-name').allInnerTexts()
+        return names.length > 0 && names.every((n) => n.includes('여의도'))
+      })
+      .toBe(true)
   })
 
   test('검색 결과가 없으면 빈 상태와 초기화 버튼이 나온다', async ({ page }) => {

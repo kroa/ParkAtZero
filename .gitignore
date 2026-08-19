@@ -49,6 +49,9 @@ pnpm-debug.log*
 logs/
 *.log
 
-# ── 대용량 원본 데이터 (스크립트로 재생성 가능) ──
-public/data/parkings.full.json
+# ── 스크립트 캐시 ──
 scripts/.cache/
+
+# public/data/parkings.full.json 은 일부러 커밋한다.
+# 자동 갱신 워크플로우(refresh-data.yml)가 월 1회 갱신 커밋을 만들고,
+# 그 커밋이 배포를 트리거해 사용자에게 새 데이터가 나간다.

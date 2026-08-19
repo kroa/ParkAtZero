@@ -184,6 +184,43 @@ Content-Security-Policy: default-src 'self'; img-src 'self' data: https://*.base
 |---|---|---|
 | `.github/workflows/test.yml` | push / PR (`main`) | 타입체크 · 린트 · 빌드 · E2E(데스크톱+모바일) |
 | `.github/workflows/deploy.yml` | push (`main`) | wrangler 로 직접 배포 **(선택)** |
+| `.github/workflows/refresh-data.yml` | **매월 1일** + 수동 | 주차장 데이터 자동 갱신 |
+
+### 데이터 자동 갱신 (핵심)
+
+원본 갱신주기가 '반기'라 실시간 API 호출은 낭비입니다.
+**월 1회 받아 스냅샷으로 굽고 커밋하는** 방식이며, 그 커밋이 배포를 태웁니다.
+
+```
+매월 1일 ──▶ data:fetch (전체 페이지네이션)
+              ↓
+           data:verify (앱 코드로 실제 정규화·판별 검증)
+              ↓  통과해야만
+           변경 있으면 커밋 ──▶ deploy.yml ──▶ 사용자
+```
+
+검증 단계가 중요합니다. 공공데이터 컬럼명은 예고 없이 바뀌는데, 그대로 밀어 넣으면
+**배포는 성공하고 화면만 텅 비는** 가장 알아채기 어려운 장애가 됩니다.
+`scripts/verify-snapshot.mjs` 는 앱이 쓰는 코드(`normalize.ts`, `freeCalc.ts`)를 그대로 번들해
+정규화 통과율·요금 판별 분포·좌표 범위를 확인하고, 이상하면 워크플로우를 실패시킵니다.
+
+수동 실행: **Actions → 주차장 데이터 자동 갱신 → Run workflow**
+
+### 필요한 Secrets
+
+**Settings → Secrets and variables → Actions → New repository secret**
+
+| Secret | 값 | 쓰는 곳 |
+|---|---|---|
+| `PARKING_API_KEY` | 공공데이터포털 **일반 인증키(Decoding)** | refresh-data |
+| `PARKING_API_BASE` | `https://api.odcloud.kr/api/15012896/v1/uddi:<UUID>` | refresh-data |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare → API Tokens → Edit Cloudflare Workers | deploy |
+| `CLOUDFLARE_ACCOUNT_ID` | Workers & Pages 개요 우측 | deploy |
+
+> **인증키는 GitHub Secrets 에만 넣으면 됩니다.**
+> 스냅샷 방식이라 Cloudflare 에는 인증키가 필요 없습니다 —
+> 앱은 정적 파일만 읽고, 런타임에 공공 API 를 호출하지 않습니다.
+> 개발계정 일일 트래픽 10,000회 중 월 30~40회만 사용합니다.
 
 Cloudflare **Git 연동을 쓰면 `deploy.yml` 은 필요 없습니다.** 둘 다 켜면 이중 배포가 됩니다.
 CI 통과 후에만 배포하고 싶을 때 `deploy.yml` 을 쓰고, 그 경우 Pages 쪽 Git 연동은 끄세요.

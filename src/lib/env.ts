@@ -28,7 +28,13 @@ function urlPath(value: unknown, fallback: string): string {
 }
 
 export const CONFIG = {
-  /** 정적 시드 데이터 경로 — 네트워크 없이도 즉시 뜨는 Local-First 의 기반 */
+  /**
+   * 실제 공공데이터 스냅샷. 자동 갱신 워크플로우(refresh-data.yml)가 월 1회 구워
+   * 저장소에 커밋하며, 없으면 아래 시드로 자연스럽게 폴백한다.
+   */
+  dataUrl: urlPath(env.VITE_PARKING_DATA_URL, '/data/parkings.full.json'),
+
+  /** 예시 데이터 — 실제 스냅샷이 없을 때만 쓰는 폴백 */
   seedUrl: urlPath(env.VITE_PARKING_SEED_URL, '/data/parkings.sample.json'),
 
   /** 서버리스 프록시 경로(권장). 비어 있으면 원격 갱신을 건너뛴다. */

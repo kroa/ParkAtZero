@@ -9,17 +9,19 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:only": "vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "data:fetch": "node scripts/fetch-parking-data.mjs",
+    "data:import": "node scripts/import-parking-file.mjs",
+    "data:verify": "node scripts/verify-snapshot.mjs",
+    "dev": "vite",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
+    "preview": "vite preview",
     "test": "playwright test --project=desktop-chromium --project=mobile-chrome",
-    "test:ui": "playwright test --ui",
     "test:dev": "playwright test --project=dev",
     "test:report": "playwright show-report",
-    "data:fetch": "node scripts/fetch-parking-data.mjs"
+    "test:ui": "playwright test --ui",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -39,6 +41,7 @@
     "@typescript-eslint/parser": "^8.15.0",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
+    "esbuild": "^0.21.5",
     "eslint": "^8.57.1",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.14",

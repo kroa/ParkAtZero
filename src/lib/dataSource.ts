@@ -90,12 +90,24 @@ function buildRemoteUrl(): string | null {
   return url.toString()
 }
 
+/** 실패를 예외가 아니라 null 로 돌려주는 정적 파일 로더. */
+async function tryLoad(url: string, signal?: AbortSignal): Promise<Parking[] | null> {
+  if (!url) return null
+  try {
+    const parkings = normalizeAll(await fetchJson(url, signal))
+    return parkings.length > 0 ? parkings : null
+  } catch {
+    // 스냅샷이 아직 없으면 404 다. 예시 데이터로 내려가면 되므로 조용히 넘어간다.
+    return null
+  }
+}
+
 /**
  * Local-First 로딩.
  *
  * 1) localStorage 캐시가 있으면 즉시 방출 → 첫 화면이 네트워크를 기다리지 않는다.
- * 2) 캐시가 없으면 번들과 함께 배포된 시드 JSON 을 방출 (오프라인에서도 동작).
- * 3) 마지막으로 원격 API 를 백그라운드 갱신. 실패해도 화면은 이미 살아 있다.
+ * 2) 캐시가 없으면 정적 스냅샷 → 예시 데이터 순으로 방출 (오프라인에서도 동작).
+ * 3) 프록시가 설정돼 있으면 마지막으로 원격 갱신. 실패해도 화면은 이미 살아 있다.
  *
  * onEvent 는 단계마다 호출되므로 UI 는 점진적으로 갱신된다.
  */
@@ -110,16 +122,34 @@ export async function loadParkings(
     // 예전 버전이 남긴 캐시에는 source 가 없을 수 있다. 확실치 않으면 예시로 간주한다(보수적).
     const source: DataSource = cached.source === 'remote' ? 'remote' : 'sample'
     onEvent({ stage: 'cache', source, parkings: cached.parkings, savedAt: cached.savedAt })
-  } else {
-    try {
-      const payload = await fetchJson(CONFIG.seedUrl, signal)
-      const parkings = normalizeAll(payload)
-      onEvent({ stage: 'seed', source: 'sample', parkings })
-      writeCache(parkings, 'sample')
-    } catch (err) {
-      if ((err as Error).name === 'AbortError') return
+  }
+
+  /*
+   * 예시 데이터와 실제 스냅샷을 '동시에' 던진다.
+   *
+   * 순서대로 시도하면 스냅샷이 아직 없을 때 404 한 왕복만큼 첫 페인트가 늦는다.
+   * 병렬로 던져 두면 가벼운 예시가 먼저 도착해 화면을 채우고, 뒤이어 스냅샷이 오면
+   * 실제 데이터로 조용히 올라선다. 자동 갱신이 스냅샷을 커밋하는 순간
+   * 환경변수도 코드도 건드리지 않고 앱이 알아서 승격된다.
+   */
+  const snapshotPromise = tryLoad(CONFIG.dataUrl, signal)
+
+  if (!cached) {
+    const sample = await tryLoad(CONFIG.seedUrl, signal)
+    if (signal?.aborted) return
+    if (sample) {
+      onEvent({ stage: 'seed', source: 'sample', parkings: sample })
+      writeCache(sample, 'sample')
+    } else {
       onEvent({ stage: 'seed', source: 'sample', parkings: [] })
     }
+  }
+
+  const snapshot = await snapshotPromise
+  if (signal?.aborted) return
+  if (snapshot) {
+    onEvent({ stage: 'remote', source: 'remote', parkings: snapshot, savedAt: Date.now() })
+    writeCache(snapshot, 'remote')
   }
 
   const remoteUrl = buildRemoteUrl()

@@ -1,0 +1,104 @@
+name: 주차장 데이터 자동 갱신
+
+# ─────────────────────────────────────────────────────────────
+#  전국주차장정보표준데이터를 월 1회 받아 스냅샷으로 굽고, 바뀐 게 있으면 커밋한다.
+#  그 커밋이 deploy 워크플로우를 태워 사용자에게 새 데이터가 나간다.
+#
+#  왜 런타임 API 호출이 아니라 이 방식인가
+#   - 원본 갱신주기가 '반기'라 실시간성이 의미가 없다.
+#   - 개발계정 일일 트래픽은 10,000회. 사용자 트래픽이 그 한도를 먹으면
+#     화면이 먼저 죽는다. 이 방식은 한 달에 수십 회만 쓴다.
+#   - 정적 파일이라 엣지 캐시 + 브라우저 캐시가 그대로 먹힌다.
+#
+#  필요한 Secrets (Settings → Secrets and variables → Actions)
+#   PARKING_API_KEY   공공데이터포털 일반 인증키(Decoding)
+#   PARKING_API_BASE  https://api.odcloud.kr/api/15012896/v1/uddi:<UUID>
+# ─────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    # 매월 1일 03:00 KST (UTC 18:00 전날). 갱신주기가 반기라 월 1회로 충분하다.
+    - cron: '0 18 1 * *'
+  workflow_dispatch:
+    inputs:
+      force_commit:
+        description: '내용이 같아도 커밋할지'
+        type: boolean
+        default: false
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: 스냅샷 갱신
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: 인증키 확인
+        env:
+          KEY: ${{ secrets.PARKING_API_KEY }}
+          BASE: ${{ secrets.PARKING_API_BASE }}
+        run: |
+          if [ -z "$KEY" ] || [ -z "$BASE" ]; then
+            echo "::error::PARKING_API_KEY / PARKING_API_BASE 시크릿이 없습니다. DEPLOY.md 4절 참고."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: 데이터 수집
+        env:
+          PARKING_API_KEY: ${{ secrets.PARKING_API_KEY }}
+          PARKING_API_BASE: ${{ secrets.PARKING_API_BASE }}
+        run: npm run data:fetch
+
+      # 스냅샷이 실제로 앱에서 동작하는지 확인한 뒤에만 커밋한다.
+      # 원본 스키마가 바뀌었는데 그대로 밀어 넣으면 서비스가 빈 목록이 된다.
+      - name: 스냅샷 검증
+        run: node scripts/verify-snapshot.mjs public/data/parkings.full.json
+
+      - name: 변경 여부 판단
+        id: diff
+        run: |
+          if git diff --quiet -- public/data/parkings.full.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "원본에 변화가 없습니다. 커밋을 건너뜁니다."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- public/data/parkings.full.json
+          fi
+
+      - name: 커밋 & 푸시
+        if: steps.diff.outputs.changed == 'true' || inputs.force_commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          COUNT=$(node -p "require('./public/data/parkings.full.json').totalCount")
+          git add public/data/parkings.full.json
+          git commit -m "chore(data): 주차장 스냅샷 갱신 (${COUNT}건)" \
+                     -m "출처: 공공데이터포털 전국주차장정보표준데이터 (공공누리 제1유형)" \
+                     -m "refresh-data 워크플로우가 자동 생성한 커밋입니다."
+          git push
+
+      - name: 요약
+        run: |
+          {
+            echo "### 주차장 스냅샷"
+            echo ""
+            echo "- 건수: $(node -p "require('./public/data/parkings.full.json').totalCount.toLocaleString('ko-KR')")"
+            echo "- 크기: $(du -h public/data/parkings.full.json | cut -f1)"
+            echo "- 변경: ${{ steps.diff.outputs.changed }}"
+          } >> "$GITHUB_STEP_SUMMARY"

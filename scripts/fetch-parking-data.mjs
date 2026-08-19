@@ -1,29 +1,71 @@
 #!/usr/bin/env node
 /**
- * 전국주차장정보표준데이터 전체를 내려받아 public/data/parkings.full.json 으로 저장한다.
+ * 전국주차장정보표준데이터 전체를 받아 public/data/parkings.full.json 으로 굽는다.
  *
  *   npm run data:fetch
  *
- * 필요한 환경변수 (.env.local 또는 셸 환경):
+ * 필요한 환경변수 (.env.local 또는 CI 시크릿):
  *   PARKING_API_KEY   공공데이터포털 일반 인증키(Decoding)
- *   PARKING_API_BASE  데이터셋 엔드포인트
- *                     예) https://api.odcloud.kr/api/15012896/v1/uddi:xxxx-xxxx
+ *   PARKING_API_BASE  https://api.odcloud.kr/api/15012896/v1/uddi:<UUID>
  *
- * 만들어진 파일은 .gitignore 에 걸려 있다(수십 MB). 배포에 포함하려면
- * VITE_PARKING_SEED_URL=/data/parkings.full.json 로 바꾸고 저장소 정책에 맞게 커밋하거나,
- * Cloudflare Pages Functions 프록시(functions/api/parkings.ts)를 그대로 쓰면 된다.
+ * 왜 런타임 API 가 아니라 빌드 타임 스냅샷인가
+ *   - 이 데이터셋 갱신주기는 '반기'다. 매 요청마다 원본을 부를 이유가 없다.
+ *   - 개발계정 일일 트래픽은 10,000회다. 사용자가 늘면 그 한도에 화면이 먼저 죽는다.
+ *     월 1회 수집이면 한 달에 수십 회만 쓴다.
+ *   - 정적 파일이면 Cloudflare 엣지가 brotli 로 눌러 보내고 브라우저가 캐시한다.
+ *     앱의 Local-First 구조와 그대로 맞물린다.
+ *
+ * 출력은 결정적(deterministic)이다. 원본이 그대로면 파일도 같아서
+ * 자동 갱신 워크플로우가 의미 없는 커밋을 만들지 않는다.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 
-const ROOT = process.cwd()
-const OUT_PATH = path.join(ROOT, 'public', 'data', 'parkings.full.json')
+const OUT_PATH = path.join('public', 'data', 'parkings.full.json')
 const PER_PAGE = 1000
-const MAX_PAGES = 200
+const MAX_PAGES = 300
+/** 이 크기를 넘으면 경고한다 — 브라우저가 한 번에 파싱하기 버거워지는 지점. */
+const WARN_BYTES = 12 * 1024 * 1024
 
-/** dotenv 의존성 없이 .env.local 을 읽는다 — 이 스크립트 하나 때문에 패키지를 늘리지 않는다. */
+/**
+ * 앱이 실제로 읽는 컬럼만 남긴다(src/lib/normalize.ts 의 FIELD 와 일치).
+ * 표준데이터에는 앱이 쓰지 않는 컬럼이 여럿 있고, 전국 규모에서는 그 무게가 무시 못 할 수준이다.
+ */
+const KEEP = new Set([
+  'prkplceNo', '주차장관리번호',
+  'prkplceNm', '주차장명',
+  'prkplceSe', '주차장구분',
+  'prkplceType', '주차장유형',
+  'rdnmadr', '소재지도로명주소',
+  'lnmadr', '소재지지번주소',
+  'prkcmprt', '주차구획수',
+  'operDay', '운영요일',
+  'weekdayOperOpenHhmm', '평일운영시작시각',
+  'weekdayOperColseHhmm', 'weekdayOperCloseHhmm', '평일운영종료시각',
+  'satOperOperOpenHhmm', 'satOperOpenHhmm', '토요일운영시작시각',
+  'satOperCloseHhmm', '토요일운영종료시각',
+  'holidayOperOpenHhmm', '공휴일운영시작시각',
+  'holidayCloseHhmm', 'holidayOperCloseHhmm', '공휴일운영종료시각',
+  'parkingchrgeInfo', '요금정보',
+  'basicTime', '주차기본시간',
+  'basicCharge', '주차기본요금',
+  'addUnitTime', '추가단위시간',
+  'addUnitCharge', '추가단위요금',
+  'dayCmmtktAdjTime', '1일주차권요금적용시간',
+  'dayCmmtkt', '1일주차권요금',
+  'monthCmmtkt', '월정기권요금',
+  'metpay', '결제방법',
+  'spcmnt', '특기사항',
+  'phoneNumber', '전화번호',
+  'institutionNm', '관리기관명',
+  'latitude', '위도',
+  'longitude', '경도',
+  'referenceDate', '데이터기준일자',
+])
+
+/** dotenv 의존성 없이 .env.local 을 읽는다 — 스크립트 하나 때문에 패키지를 늘리지 않는다. */
 async function loadEnvFile(file) {
   if (!existsSync(file)) return
   const text = await readFile(file, 'utf-8')
@@ -45,9 +87,19 @@ async function fetchPage(base, key, page) {
   url.searchParams.set('serviceKey', key)
   url.searchParams.set('returnType', 'JSON')
 
-  const res = await fetch(url, { headers: { Accept: 'application/json' } })
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} (page ${page})`)
-  return res.json()
+  // 공공 API 는 간헐적으로 5xx 를 뱉는다. 몇 번은 조용히 다시 시도한다.
+  let lastError
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url, { headers: { Accept: 'application/json' } })
+      if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + res.statusText)
+      return await res.json()
+    } catch (err) {
+      lastError = err
+      if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 1500))
+    }
+  }
+  throw new Error('page ' + page + ' 실패: ' + lastError.message)
 }
 
 function rowsOf(payload) {
@@ -57,40 +109,97 @@ function rowsOf(payload) {
   return []
 }
 
-async function main() {
-  await loadEnvFile(path.join(ROOT, '.env.local'))
-  await loadEnvFile(path.join(ROOT, '.dev.vars'))
+function coord(row, keys) {
+  for (const k of keys) {
+    const n = Number(String(row[k] ?? '').replace(/[^0-9.-]/g, ''))
+    if (Number.isFinite(n) && n !== 0) return n
+  }
+  return NaN
+}
 
-  const key = process.env.PARKING_API_KEY ?? process.env.VITE_PARKING_API_KEY
-  const base = process.env.PARKING_API_BASE ?? process.env.VITE_PARKING_API_BASE
+/** 쓰지 않는 컬럼과 빈 값을 걷어낸다. 빈 문자열 키가 전국 규모에서 수 MB 를 차지한다. */
+function prune(row) {
+  const out = {}
+  for (const [key, value] of Object.entries(row)) {
+    if (!KEEP.has(key)) continue
+    if (value === null || value === undefined) continue
+    const s = typeof value === 'string' ? value.trim() : value
+    if (s === '') continue
+    out[key] = s
+  }
+  return out
+}
+
+function idOf(row) {
+  return String(row.prkplceNo ?? row['주차장관리번호'] ?? row.prkplceNm ?? row['주차장명'] ?? '')
+}
+
+async function main() {
+  await loadEnvFile(path.join(process.cwd(), '.env.local'))
+  await loadEnvFile(path.join(process.cwd(), '.dev.vars'))
+
+  const key = process.env.PARKING_API_KEY
+  const base = process.env.PARKING_API_BASE
 
   if (!key || !base) {
     console.error('✗ PARKING_API_KEY / PARKING_API_BASE 가 필요합니다.')
-    console.error('  .env.local 을 만들고 값을 채운 뒤 다시 실행하세요. (.env.example 참고)')
+    console.error('  로컬: .env.local 에 넣으세요 (.env.example 참고)')
+    console.error('  CI  : GitHub Secrets 에 등록하세요 (DEPLOY.md 8절)')
     process.exit(1)
   }
 
-  const all = []
+  const collected = []
+  let dropped = 0
+
   for (let page = 1; page <= MAX_PAGES; page++) {
-    process.stdout.write(`\r  page ${page} … 누적 ${all.length}건`)
     const payload = await fetchPage(base, key, page)
     const rows = rowsOf(payload)
-    all.push(...rows)
+
+    for (const row of rows) {
+      const lat = coord(row, ['latitude', '위도'])
+      const lng = coord(row, ['longitude', '경도'])
+      // 좌표가 없거나 국내 밖이면 지도에 못 올린다. 앱이 어차피 버리므로 여기서 뺀다.
+      if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 32 || lat > 39.5 || lng < 124 || lng > 132.5) {
+        dropped++
+        continue
+      }
+      collected.push(prune(row))
+    }
+
+    process.stdout.write(
+      '\r  page ' + page + ' … 수집 ' + collected.length.toLocaleString('ko-KR') + '건 (제외 ' + dropped + ')',
+    )
     if (rows.length < PER_PAGE) break
   }
   process.stdout.write('\n')
 
-  if (all.length === 0) {
+  if (collected.length === 0) {
     console.error('✗ 받은 데이터가 없습니다. 엔드포인트와 인증키를 확인하세요.')
     process.exit(1)
   }
 
-  await mkdir(path.dirname(OUT_PATH), { recursive: true })
-  await writeFile(OUT_PATH, JSON.stringify({ totalCount: all.length, data: all }), 'utf-8')
+  // 중복 제거 + 정렬 → 원본이 그대로면 출력도 그대로(불필요한 커밋 방지)
+  const byId = new Map()
+  for (const row of collected) byId.set(idOf(row) + '|' + row.latitude + '|' + row.longitude, row)
+  const data = [...byId.values()].sort((a, b) => idOf(a).localeCompare(idOf(b), 'ko'))
 
-  const mb = (Buffer.byteLength(JSON.stringify(all)) / 1024 / 1024).toFixed(1)
-  console.log(`✓ ${all.length.toLocaleString('ko-KR')}건 저장 → public/data/parkings.full.json (${mb} MB)`)
-  console.log('  앱에서 쓰려면 .env.local 에 VITE_PARKING_SEED_URL=/data/parkings.full.json 을 넣으세요.')
+  await mkdir(path.dirname(OUT_PATH), { recursive: true })
+  const json = JSON.stringify({ totalCount: data.length, data })
+  await writeFile(OUT_PATH, json, 'utf-8')
+
+  const bytes = Buffer.byteLength(json)
+  const mb = (bytes / 1024 / 1024).toFixed(1)
+  console.log('✓ ' + data.length.toLocaleString('ko-KR') + '건 저장 → ' + OUT_PATH + ' (' + mb + ' MB)')
+  if (dropped > 0) console.log('  좌표 없음/범위 밖 ' + dropped.toLocaleString('ko-KR') + '건 제외')
+  if (collected.length !== data.length) {
+    console.log('  중복 ' + (collected.length - data.length).toLocaleString('ko-KR') + '건 병합')
+  }
+
+  if (bytes > WARN_BYTES) {
+    console.warn('')
+    console.warn('⚠ 파일이 ' + mb + ' MB 입니다.')
+    console.warn('  브라우저가 한 번에 파싱하기 버거운 크기라 지역별 분할을 검토하세요.')
+  }
 }
 
 main().catch((err) => {
