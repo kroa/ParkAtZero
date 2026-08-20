@@ -298,8 +298,17 @@ export function extractFreeRules(p: Parking): FreeRule[] {
   //  정규식 한 방으로 잡지 않는 이유: "경차 및 저공해차량 무료" 처럼 한 절에 대상이 여러 개면
   //  앞선 매칭이 뒤 단어까지 삼켜 버려 하나만 남는다. 절 안에 '무료/면제'가 있는지만 확인하고
   //  해당 절에 등장하는 사전 단어를 전부 거두는 편이 정확하다.
-  for (const clause of text.split(/[,.;\u00b7]/)) {
-    if (!/(무료|개방|면제|100%)/.test(clause)) continue
+  let carried = ''
+  for (const fragment of splitClauses(text)) {
+    const clause = carried ? carried + ' ' + fragment : fragment
+
+    if (!/(무료|개방|면제|100%)/.test(clause)) {
+      // "일요일+공휴일 무료개방" 처럼 목록의 앞 항목만 떨어져 나오는 형태가 있다.
+      // 사전 단어로만 이뤄진 조각은 버리지 않고 다음 절에 이어 붙인다.
+      carried = isBareListItem(fragment) ? clause : ''
+      continue
+    }
+    carried = ''
 
     // 6) 대상 한정 무료 — 모든 방문자에게 적용되지 않으므로 별도 분류
     const targets = pickWords(clause, TARGET_WORDS)
@@ -308,11 +317,24 @@ export function extractFreeRules(p: Parking): FreeRule[] {
     // 7) 요일 규칙. 대상 한정 문구가 섞인 절은 '누구나 무료'가 아니므로 건너뛴다.
     if (targets.length > 0) continue
 
-    const words = pickWords(clause, Object.keys(DAYTYPE_WORD))
-    const days = new Set<DayType>()
-    for (const word of words) for (const d of DAYTYPE_WORD[word] as DayType[]) days.add(d)
-    if (days.size > 0) {
-      rules.push({ kind: 'dayType', days: [...days], label: words.join('\u00b7') + ' 무료' })
+    /*
+     * 요일은 절 전체가 아니라 항목별로 본다.
+     *
+     * "무료개방(평일 야간+토\u00b7일\u00b7공휴일)" 을 한 덩어리로 읽으면 '평일 종일 무료'가 되어
+     * 평일 낮에도 초록 무료로 표시된다(실측 24곳). 실제로는 평일은 야간만 무료다.
+     * 시각을 특정하지 못한 시간 한정어가 붙은 항목은 종일 무료로 승격하지 않는다.
+     */
+    for (const item of clause.split(/[+\u00b7,]/)) {
+      // 이미 시간대 규칙으로 해석돼 마스킹된 항목은 다시 세지 않는다.
+      if (item.includes(MASK)) continue
+      if (/(야간|심야|주간|오전|오후)/.test(item)) continue
+
+      const words = pickWords(item, Object.keys(DAYTYPE_WORD))
+      const days = new Set<DayType>()
+      for (const word of words) for (const d of DAYTYPE_WORD[word] as DayType[]) days.add(d)
+      if (days.size > 0) {
+        rules.push({ kind: 'dayType', days: [...days], label: words.join('\u00b7') + ' 무료' })
+      }
     }
   }
 
@@ -323,6 +345,49 @@ export function extractFreeRules(p: Parking): FreeRule[] {
   }
 
   return dedupeRules(rules)
+}
+
+/**
+ * 특기사항을 절 단위로 나눈다.
+ *
+ * '+' 를 구분자에 넣는 이유: 특기사항이 있는 곳의 절반(실측 1,271곳)이
+ * "경차+저공해 50프로 할인+일요일+공휴일 무료개방" 처럼 '+' 로 항목을 잇는다.
+ * 이걸 한 절로 보면 맨 앞의 '경차'가 대상 한정으로 잡혀, 뒤에 붙은 요일 무료 규칙까지
+ * 통째로 버려진다(실측 74곳이 이렇게 무료를 잃고 있었다).
+ *
+ * 다만 괄호 안의 '+' 는 한 항목 안의 목록이므로 자르지 않는다.
+ */
+function splitClauses(text: string): string[] {
+  const out: string[] = []
+  let depth = 0
+  let buf = ''
+
+  for (const ch of text) {
+    if (ch === '(' || ch === '[') depth++
+    else if (ch === ')' || ch === ']') depth = Math.max(0, depth - 1)
+    else if (depth === 0 && /[,.;\u00b7+]/.test(ch)) {
+      out.push(buf)
+      buf = ''
+      continue
+    }
+    buf += ch
+  }
+  out.push(buf)
+  return out
+}
+
+const LIST_WORDS = [...Object.keys(DAYTYPE_WORD), ...TARGET_WORDS].sort((a, b) => b.length - a.length)
+
+/** 사전 단어와 이음말로만 이뤄진 조각인가 — "일요일", "경차ㆍ장애인" 같은 목록의 한 항목. */
+function isBareListItem(fragment: string): boolean {
+  let rest = fragment
+  let matched = false
+  for (const word of LIST_WORDS) {
+    if (!rest.includes(word)) continue
+    rest = rest.split(word).join(' ')
+    matched = true
+  }
+  return matched && /^[\s\u00b7\u318d/및과와()[\]]*$/.test(rest)
 }
 
 /**

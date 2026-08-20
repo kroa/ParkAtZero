@@ -659,6 +659,66 @@ test.describe('시간 판별 로직', () => {
     expect(byNote['24시간 무료 개방 구간']).toEqual(['always|상시 무료'])
   })
 
+  test("특기사항이 '+' 로 이어져 있어도 요일 무료 규칙을 잃지 않는다", async ({ page }) => {
+    /*
+     * 공공데이터 특기사항은 절반이 '+' 로 항목을 잇는다(실측 1,271곳).
+     * 이걸 한 문장으로 읽으면 두 방향으로 틀린다.
+     *  - 앞머리의 '경차' 때문에 뒤의 요일 무료 규칙이 통째로 버려진다(74곳이 무료를 잃었다).
+     *  - "무료개방(평일 야간+...)" 이 '평일 종일 무료'로 부풀려진다(24곳이 유료인데 초록이었다).
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const rules = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const base = {
+        id: 'x',
+        name: 'x',
+        type: '노상',
+        ownership: '공영',
+        address: 'x',
+        lat: 37.5,
+        lng: 127,
+        capacity: 10,
+        chargeType: '유료' as const,
+        hours: { weekday: null, saturday: null, holiday: null },
+        fee: { basicTime: 30, basicCharge: 1000, addTime: 10, addCharge: 300 },
+      }
+      const notes = [
+        '경차+저공해자동차 50프로 할인+장애인 및 국가유공자 차량 80프로 할인+일요일+공휴일 무료개방',
+        '무료개방(평일 야간+토·일·공휴일)+주차요금(경차+장애인+독립유공자등 감면)',
+        '50퍼센트감면(경차+저공해차+장애인)+무료(일요일)',
+        '평일 무료+주말 1급지',
+        '경차ㆍ저공해차량ㆍ장애인차량 등 50퍼센트 감면+공휴일 무료 운영',
+      ]
+      return notes.map((note) => ({
+        note,
+        rules: bridge.extractFreeRules({ ...base, note }).map((r) => r.kind + '|' + r.label),
+      }))
+    })
+
+    const byNote = Object.fromEntries(rules.map((r) => [r.note, r.rules]))
+
+    // 할인 문구에 가려 사라지던 요일 무료 규칙 (용산구 노상 6곳)
+    expect(
+      byNote['경차+저공해자동차 50프로 할인+장애인 및 국가유공자 차량 80프로 할인+일요일+공휴일 무료개방'],
+    ).toEqual(['dayType|일요일·공휴일 무료'])
+
+    // '평일 야간' 은 종일 무료가 아니다. 공휴일만 남아야 한다 (문경시 노상 24곳).
+    expect(byNote['무료개방(평일 야간+토·일·공휴일)+주차요금(경차+장애인+독립유공자등 감면)']).toEqual([
+      'dayType|공휴일 무료',
+    ])
+
+    // 50퍼센트 감면은 무료가 아니다. 대상 규칙으로 잡히면 안 된다.
+    expect(byNote['50퍼센트감면(경차+저공해차+장애인)+무료(일요일)']).toEqual(['dayType|일요일 무료'])
+    expect(byNote['경차ㆍ저공해차량ㆍ장애인차량 등 50퍼센트 감면+공휴일 무료 운영']).toEqual([
+      'dayType|공휴일 무료',
+    ])
+
+    // "주말 1급지" 는 주말이 유료라는 뜻이다. 평일만 무료여야 한다 (과천시 노상).
+    expect(byNote['평일 무료+주말 1급지']).toEqual(['dayType|평일 무료'])
+  })
+
   test('원본에 차종 제한이 비어 있어도 보정표가 채운다', async ({ page }) => {
     /*
      * 남산공원 '소월로'는 특기사항에 '관광버스 전용'이 적혀 있는데 바로 옆 '소파로'는
