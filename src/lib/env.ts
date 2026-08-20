@@ -32,10 +32,11 @@ function urlPath(value: unknown, fallback: string): string {
 
 export const CONFIG = {
   /**
-   * 실제 공공데이터 스냅샷. 자동 갱신 워크플로우(refresh-data.yml)가 월 1회 구워
-   * 저장소에 커밋하며, 없으면 아래 시드로 자연스럽게 폴백한다.
+   * 격자 색인. 빌드 때 만들어지며, 앱은 이걸 먼저 읽고 필요한 칸만 골라 받는다.
+   * 없으면(격자를 만들지 않은 환경) 예시 데이터로 내려간다.
    */
-  dataUrl: urlPath(env.VITE_PARKING_DATA_URL, '/data/parkings.full.json'),
+  cellIndexUrl: urlPath(env.VITE_PARKING_CELL_INDEX, '/data/cells/index.json'),
+  cellBaseUrl: urlPath(env.VITE_PARKING_CELL_BASE, '/data/cells'),
 
   /** 예시 데이터 — 실제 스냅샷이 없을 때만 쓰는 폴백 */
   seedUrl: urlPath(env.VITE_PARKING_SEED_URL, '/data/parkings.sample.json'),

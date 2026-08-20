@@ -273,8 +273,8 @@ E2E 테스트가 이 동작을 실제로 검증합니다.
 □ 모바일에서 바텀시트가 스와이프로 접히고 펼쳐진다
 □ '내 위치' 버튼이 권한 요청 후 지도를 이동시킨다
 □ DevTools → Network 에 인증키가 실린 요청이 없다
-□ DevTools → Application → Local Storage 에 pz.parkings.v1 캐시가 쌓인다
-□ 비행기 모드로 새로고침해도 캐시로 화면이 뜬다
+□ DevTools → Network 에 /data/cells/index.json 과 칸 몇 개만 받는다 (전체 스냅샷을 받지 않는다)
+□ 다른 지역으로 검색하면 그 지역 칸을 추가로 받는다
 ```
 
 ---

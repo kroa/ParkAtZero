@@ -42,7 +42,15 @@ const DETAIL_WIDTH = 392
 export default function App() {
   const { isDark, toggle } = useTheme()
   const isDesktop = useIsDesktop()
-  const { parkings, loading, refreshing, updatedAt, source } = useParkingData()
+  const [origin, setOrigin] = useState<LatLng>(SEOUL_CITY_HALL)
+  const [radiusKm, setRadiusKm] = useState(10)
+
+  /*
+   * 데이터는 기준점 주변 격자 칸만 받는다.
+   * 전국 스냅샷을 통째로 읽으면 저사양 단말에서 파싱만 2초가 걸리고, 그동안 사용자는
+   * 예시(가짜) 데이터를 보고 있어야 했다.
+   */
+  const { parkings, loading, refreshing, source, totalCount, referenceDate } = useParkingData(origin, radiusKm)
   const isSample = source !== 'remote'
   const geo = useGeolocation()
 
@@ -59,7 +67,6 @@ export default function App() {
    * 둘을 하나로 합치면 카드를 누를 때마다 기준점이 그 주차장으로 옮겨가
    * 모든 거리가 0m 이 되고 반경 안에 드는 목록까지 통째로 바뀐다.
    */
-  const [origin, setOrigin] = useState<LatLng>(SEOUL_CITY_HALL)
   const [mapView, setMapView] = useState({ center: SEOUL_CITY_HALL, zoom: 14, token: 0 })
   /** 사용자가 실제로 보고 있는 지도 중심. 팬·줌으로도 바뀌며 마커 선택 기준이 된다. */
   const [viewCenter, setViewCenter] = useState<LatLng>(SEOUL_CITY_HALL)
@@ -67,7 +74,6 @@ export default function App() {
   const [status, setStatus] = useState<StatusFilter>('all')
   const [ownership, setOwnership] = useState<OwnershipFilter>('all')
   const [sort, setSort] = useState<SortKey>('smart')
-  const [radiusKm, setRadiusKm] = useState(10)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [snap, setSnap] = useState<Snap>('half')
@@ -123,15 +129,6 @@ export default function App() {
       lng: item.parking.lng,
     }))
   }, [results, viewCenter])
-
-  /** 출처 표시에 쓸 스냅샷 요약 — 반경 필터와 무관한 전체 건수와 원본 기준일. */
-  const dataInfo = useMemo(() => {
-    let referenceDate: string | undefined
-    for (const p of parkings) {
-      if (p.updatedAt && (!referenceDate || p.updatedAt > referenceDate)) referenceDate = p.updatedAt
-    }
-    return { count: parkings.length, referenceDate }
-  }, [parkings])
 
   const selectedItem = useMemo(
     () => results.find((r) => r.parking.id === selectedId) ?? null,
@@ -266,8 +263,8 @@ export default function App() {
         statusFilter={status}
         hasOtherStatuses={summary.total > results.length}
         onRelaxStatus={() => setStatus('all')}
-        totalCount={dataInfo.count}
-        referenceDate={dataInfo.referenceDate}
+        totalCount={totalCount}
+        referenceDate={referenceDate}
         loading={loading}
         selectedId={selectedId}
         onSelect={handleSelect}
@@ -349,7 +346,7 @@ export default function App() {
           </AnimatePresence>
 
           {/* 지도 우하단 줌 컨트롤·저작권 표기 위로 띄운다 */}
-          <Legend className="absolute bottom-28 right-4 z-10" updatedAt={updatedAt} />
+          <Legend className="absolute bottom-28 right-4 z-10" referenceDate={referenceDate} />
         </>
       ) : (
         /* ── 모바일: 상단 플로팅 컨트롤 + 바텀 시트 ────── */
@@ -486,7 +483,7 @@ function ResultSummaryLine({ total, free, conditional, visitStart, durationMin, 
   )
 }
 
-function Legend({ className, updatedAt }: { className?: string; updatedAt: number | null }) {
+function Legend({ className, referenceDate }: { className?: string; referenceDate?: string }) {
   const items = [
     { color: 'bg-free-500', label: '완전 무료' },
     { color: 'bg-conditional-500', label: '조건부 무료' },
@@ -502,9 +499,9 @@ function Legend({ className, updatedAt }: { className?: string; updatedAt: numbe
           </li>
         ))}
       </ul>
-      {updatedAt && (
+      {referenceDate && (
         <p className="tnum mt-2 border-t border-hairline/60 pt-1.5 text-[10px] text-ink-mute">
-          갱신 {new Date(updatedAt).toLocaleDateString('ko-KR')}
+          데이터 기준 {referenceDate}
         </p>
       )}
     </div>

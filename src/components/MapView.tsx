@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Map as MapLibreMap, Marker as MapLibreMarker } from 'maplibre-gl'
 import { cn } from '@/lib/cn'
 import { CONFIG } from '@/lib/env'
+import { whenIdle } from '@/lib/idle'
 import type { LatLng } from '@/lib/geo'
 import { MapFallback } from './MapFallback'
 import { createMarkerElement, updateMarkerElement, type MarkerModel } from './mapMarker'
@@ -21,6 +22,8 @@ interface Props {
   onBackgroundClick?: () => void
   /** 사용자가 지도를 움직였을 때 현재 중심을 알린다(마커를 화면 기준으로 고르기 위함). */
   onViewChange?: (center: LatLng) => void
+  /** 지도 엔진이 실제 지도든 간이 지도든 자리를 잡았을 때 한 번 알린다. */
+  onSettled?: () => void
   center: LatLng
   zoom: number
   /** 값이 바뀔 때마다 center/zoom 으로 부드럽게 이동한다(같은 좌표 재선택도 동작하게 하는 토큰) */
@@ -30,9 +33,6 @@ interface Props {
   userPosition: LatLng | null
   className?: string
 }
-
-/** 지도가 이 시간 안에 뜨지 않으면 간이 지도로 전환한다. */
-const MAP_LOAD_TIMEOUT_MS = 6000
 
 /** WebGL 가용성 확인 — 없으면 maplibre 를 아예 로드하지 않는다(번들 낭비 방지). */
 function hasWebGL(): boolean {
@@ -90,6 +90,7 @@ export function MapView({
   onSelect,
   onBackgroundClick,
   onViewChange,
+  onSettled,
   center,
   zoom,
   flyToken,
@@ -106,6 +107,13 @@ export function MapView({
   const selectRef = useRef(onSelect)
   const viewChangeRef = useRef(onViewChange)
   const [mode, setMode] = useState<'probing' | 'gl' | 'fallback'>('probing')
+  const settledRef = useRef(onSettled)
+  settledRef.current = onSettled
+
+  // 지도가 자리를 잡은 뒤에야 무거운 스냅샷을 읽어도 안전하다.
+  useEffect(() => {
+    if (mode !== 'probing') settledRef.current?.()
+  }, [mode])
 
   selectRef.current = onSelect
   viewChangeRef.current = onViewChange
@@ -118,12 +126,21 @@ export function MapView({
     }
 
     let disposed = false
-    let loaded = false
     // cleanup 시점에 ref 접근을 피하기 위해 지금 실체를 잡아둔다(exhaustive-deps 권고).
     const liveMarkers = markerRefs.current
 
     void (async () => {
       try {
+        /*
+         * 지도 엔진은 목록이 그려진 뒤에 올린다.
+         *
+         * maplibre 청크는 213KB 이고, 저사양 단말에서 이걸 파싱하고 WebGL 컨텍스트를
+         * 만드는 데만 1초 넘게 메인 스레드를 잡는다(실측: 첫 카드 2.8초 → 차단 시 1.8초).
+         * 지도는 목록보다 조금 늦게 떠도 되지만, 목록이 1초 늦게 뜨는 건 체감이 다르다.
+         */
+        await whenIdle(1500)
+        if (disposed) return
+
         const [{ Map, Marker, NavigationControl }] = await Promise.all([
           import('maplibre-gl'),
           import('maplibre-gl/dist/maplibre-gl.css'),
@@ -154,23 +171,23 @@ export function MapView({
         mapRef.current = map
         markerCtorRef.current = Marker
 
-        // WebGL 컨텍스트가 고갈되거나(탭 다수·CI 병렬 실행) 드라이버가 죽으면 load 가 영원히 오지 않는다.
-        // 그 경우 지도는 텅 빈 채로 남고 마커도 하나도 못 그리므로, 일정 시간 안에 뜨지 않으면
-        // 간이 지도로 갈아탄다. 사용자는 최소한 마커와 위치 관계는 그대로 볼 수 있다.
-        const watchdog = window.setTimeout(() => {
-          if (disposed || loaded) return
-          console.warn('[ParkAtZero] 지도 로딩이 지연되어 간이 지도로 전환합니다.')
-          map.remove()
-          mapRef.current = null
-          markerCtorRef.current = null
-          setMode('fallback')
-        }, MAP_LOAD_TIMEOUT_MS)
+        /*
+         * Map 생성이 성공한 시점에 이미 지도를 쓸 수 있다 — 마커는 DOM 오버레이라
+         * 타일과 무관하고, flyTo 도 동작한다.
+         *
+         * 여기서 load 이벤트를 기다리면 안 된다. MapLibre 의 load 는 첫 타일이 그려질
+         * 때까지 발생하지 않아서, 오프라인이거나 타일 도메인이 막힌 환경에서는 영영 오지
+         * 않는다. 그러면 멀쩡한 지도를 두고 몇십 초 뒤 간이 지도로 내려앉는다.
+         */
+        if (!disposed) setMode('gl')
 
-        // 스타일이 인라인 객체라 타일이 차단된 환경(오프라인/CI)에서도 load 는 정상 발생한다.
-        map.once('load', () => {
-          loaded = true
-          window.clearTimeout(watchdog)
-          if (!disposed) setMode('gl')
+        // WebGL 컨텍스트를 잃으면 지도는 되살아나지 못한다. 그때만 간이 지도로 내려간다.
+        map.on('webglcontextlost', () => {
+          if (disposed) return
+          console.warn('[ParkAtZero] WebGL 컨텍스트를 잃어 간이 지도로 전환합니다.')
+          markerCtorRef.current = null
+          mapRef.current = null
+          setMode('fallback')
         })
       } catch (err) {
         console.warn('[ParkAtZero] 지도 엔진 로드 실패 — 간이 지도로 전환합니다.', err)

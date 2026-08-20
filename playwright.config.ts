@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
-const PORT = Number(process.env.PW_PORT ?? 4173)
+// 4173 은 Vite 기본값이라 다른 프로젝트와 부딪힌다. 실제로 다른 앱이 그 포트를 물고 있어
+// reuseExistingServer 가 엉뚱한 앱을 붙잡고 테스트한 적이 있다. 이 프로젝트 전용 포트를 쓴다.
+const PORT = Number(process.env.PW_PORT ?? 4273)
 const BASE_URL = process.env.PW_BASE_URL ?? 'http://127.0.0.1:' + PORT
 const DEV_URL = process.env.PW_DEV_URL ?? 'http://127.0.0.1:5173'
 
@@ -90,10 +92,11 @@ export default defineConfig({
           VITE_E2E: 'true',
           VITE_ADS_ENABLED: 'false',
           VITE_PARKING_API_PROXY: '',
-          // 테스트는 예시 데이터 32건만 쓴다.
+          // 테스트는 예시 데이터 32건만 쓴다(격자를 꺼서 폴백시킨다).
           // 전국 스냅샷은 갱신될 때마다 내용이 바뀌므로 '마포구청은 평일 20시에 무료'
-          // 같은 단언이 성립하지 않는다. 스냅샷 자체의 건전성은 verify-snapshot.mjs 가 본다.
-          VITE_PARKING_DATA_URL: '',
+          // 같은 단언이 성립하지 않는다. 스냅샷 자체의 건전성은 verify-snapshot.mjs 가 보고,
+          // 격자 경로는 dev-smoke 가 실제 데이터로 확인한다.
+          VITE_PARKING_CELL_INDEX: '',
         },
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,

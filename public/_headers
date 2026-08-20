@@ -11,5 +11,9 @@
 /data/*
   Cache-Control: public, max-age=3600, stale-while-revalidate=86400
 
+# 격자 칸은 배포 사이에 잘 바뀌지 않는다. 재방문 때 즉시 뜨도록 넉넉히 캐시한다.
+/data/cells/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
 /index.html
   Cache-Control: public, max-age=0, must-revalidate

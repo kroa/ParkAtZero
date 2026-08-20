@@ -105,8 +105,17 @@ export function normalizeParking(row: Raw, index: number): Parking | null {
    */
   const restriction = extractRestriction(note) ?? findCorrection(name, managedBy)?.restriction
 
+  /*
+   * 관리번호(prkplceNo)는 고유하지 않다. 지자체마다 자체 번호를 붙여서 서로 겹친다.
+   * 실제로 '116-2-000002' 하나에 구로3동 마을공동·천왕역·동구로가 함께 달려 있다.
+   * 이 값을 그대로 id 로 쓰면 카드를 골랐을 때 엉뚱한 주차장의 상세가 열린다.
+   * 좌표를 섞어 고유하게 만든다 — 원본이 같으면 id 도 같아 화면 상태가 흔들리지 않는다.
+   */
+  const baseId = str(pick(row, FIELD.id), 'pz-' + index)
+  const id = baseId + '@' + lat.toFixed(5) + ',' + lng.toFixed(5)
+
   return {
-    id: str(pick(row, FIELD.id), 'pz-' + index),
+    id,
     name,
     type: str(pick(row, FIELD.type), '기타'),
     ownership: str(pick(row, FIELD.ownership), '기타'),
@@ -159,14 +168,27 @@ export function normalizeAll(payload: unknown): Parking[] {
   const rows = extractRows(payload)
   const out: Parking[] = []
   const seen = new Set<string>()
+  const usedIds = new Set<string>()
+
   rows.forEach((row, i) => {
     const p = normalizeParking(row, i)
     if (!p) return
-    // 같은 주차장이 여러 지자체 파일에 중복 등재되는 일이 잦다.
-    const key = p.id + '|' + p.name + '|' + p.lat.toFixed(5) + '|' + p.lng.toFixed(5)
+
+    // id 에 이미 좌표가 섞여 있으므로 이름까지 같아야 같은 등재로 본다.
+    const key = p.id + '|' + p.name
     if (seen.has(key)) return
     seen.add(key)
-    out.push(p)
+
+    /*
+     * 관리번호와 좌표가 모두 같은데 이름만 다른 레코드가 드물게 있다(전국 5건).
+     * id 가 겹치면 카드를 골랐을 때 다른 주차장이 열리므로 꼬리표를 붙여 갈라 둔다.
+     * 입력이 정렬된 스냅샷이라 매번 같은 번호가 붙는다.
+     */
+    let id = p.id
+    for (let n = 2; usedIds.has(id); n++) id = p.id + '#' + n
+    usedIds.add(id)
+
+    out.push(id === p.id ? p : { ...p, id })
   })
   return out
 }

@@ -53,6 +53,35 @@ test.describe('개발 서버 스모크', () => {
     expect(problems, '개발 모드 콘솔 오류').toEqual([])
   })
 
+  test('격자 색인으로 주변 칸만 받아 온다', async ({ page }) => {
+    /*
+     * 기본 E2E 는 예시 데이터로 고정돼 있어 격자 경로를 지나가지 않는다.
+     * 실서비스가 쓰는 경로이므로 여기서 확인한다 — 색인을 읽고, 전국 파일이 아니라
+     * 주변 칸 몇 개만 받아야 한다.
+     */
+    const requested: string[] = []
+    page.on('request', (r) => {
+      const u = r.url()
+      if (u.includes('/data/')) requested.push(u.split('/data/')[1] ?? u)
+    })
+
+    await blockExternal(page)
+    await page.goto('/')
+    await expect(page.getByTestId('parking-card').first()).toBeVisible({ timeout: 30_000 })
+    await page.waitForTimeout(1500)
+
+    expect(requested).toContain('cells/index.json')
+    // 전국 스냅샷을 통째로 받으면 안 된다 — 저사양 단말에서 파싱만 2초가 걸린다.
+    expect(requested.some((u) => u.includes('parkings.full.json'))).toBe(false)
+
+    const cells = requested.filter((u) => /^cells\/-?\d+_-?\d+\.json$/.test(u))
+    expect(cells.length).toBeGreaterThan(0)
+    expect(cells.length).toBeLessThan(20)
+
+    // 실제 데이터이므로 예시 고지가 뜨면 안 된다.
+    await expect(page.getByTestId('sample-notice')).toHaveCount(0)
+  })
+
   test('상호작용 한 바퀴가 개발 모드에서도 동작한다', async ({ page }) => {
     await blockExternal(page)
     await page.goto('/')

@@ -20,17 +20,16 @@ test.describe('초기 로딩 · Local-First', () => {
     expect(count).toBeGreaterThan(3)
   })
 
-  test('두 번째 방문은 로컬 캐시에서 즉시 복원된다', async ({ page }) => {
+  test('격자 색인이 없으면 예시 데이터로 내려간다', async ({ page }) => {
+    /*
+     * 실서비스는 격자 색인(cells/index.json)을 먼저 읽고 필요한 칸만 받는다.
+     * 인증키 없이 띄운 환경처럼 격자가 아직 없을 때도 화면이 비면 안 된다.
+     * 이 테스트 빌드는 격자를 꺼 둔 상태라 그 폴백 경로를 그대로 확인한다.
+     */
     await gotoApp(page)
 
-    const cached = await page.evaluate(() => localStorage.getItem('pz.parkings.v1'))
-    expect(cached).toBeTruthy()
-    expect(JSON.parse(cached as string).parkings.length).toBeGreaterThan(10)
-
-    // 시드 JSON 요청까지 막아도 캐시만으로 살아나야 한다.
-    await page.route('**/data/parkings.sample.json', (r) => r.abort())
-    await page.reload()
-    await expect(page.getByTestId('parking-card').first()).toBeVisible()
+    await expect(page.getByTestId('sample-notice')).toBeVisible()
+    expect(await page.getByTestId('parking-card').count()).toBeGreaterThan(3)
   })
 
   test('예시 데이터로 동작할 때는 그 사실이 화면에 드러난다', async ({ page }) => {
@@ -498,7 +497,8 @@ test.describe('시간 판별 로직', () => {
       const bridge = window.__parkatzero!
       const payload = await fetch('/data/parkings.sample.json').then((r) => r.json())
       const parkings = bridge.normalizeAll(payload)
-      const byId = new Map(parkings.map((p) => [p.id, p]))
+      // id 에는 좌표가 꼬리로 붙는다(관리번호가 고유하지 않아서). 앞부분으로 찾는다.
+      const byId = new Map(parkings.map((p) => [p.id.split('@')[0], p]))
 
       return input.map((c) => {
         const parking = byId.get(c.id)
@@ -760,8 +760,9 @@ test.describe('시간 판별 로직', () => {
       )
     })
 
+    // 관리번호가 고유하지 않아 좌표를 꼬리로 붙인다.
+    expect(normalized?.id).toBe('TEST-1@37.56630,126.97790')
     expect(normalized).toMatchObject({
-      id: 'TEST-1',
       name: '테스트 주차장',
       ownership: '공영',
       type: '노상',
@@ -771,6 +772,34 @@ test.describe('시간 판별 로직', () => {
     expect(normalized?.hours.weekday).toEqual({ open: 540, close: 1080, allDay: false })
     expect(normalized?.hours.holiday).toBeNull()
     expect(normalized?.fee).toMatchObject({ basicTime: 30, basicCharge: 1000, addTime: 10, addCharge: 500 })
+  })
+
+  test('관리번호가 겹쳐도 주차장 id 는 고유하다', async ({ page }) => {
+    /*
+     * prkplceNo 는 지자체마다 자체 번호를 붙여서 서로 겹친다. 실제로 '116-2-000002'
+     * 하나에 구로3동 마을공동·천왕역·동구로가 함께 달려 있다. id 가 겹치면 카드를
+     * 골랐을 때 엉뚱한 주차장의 상세가 열리고, 목록 렌더도 흔들린다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const result = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const base = { prkplceNo: '116-2-000002', parkingchrgeInfo: '무료' }
+      const parkings = bridge.normalizeAll({
+        data: [
+          { ...base, prkplceNm: '구로3동 마을공동', latitude: '37.48502', longitude: '126.85' },
+          { ...base, prkplceNm: '천왕역', latitude: '37.48728', longitude: '126.86' },
+          { ...base, prkplceNm: '동구로', latitude: '37.49157', longitude: '126.87' },
+          // 좌표까지 같고 이름만 다른 경우
+          { ...base, prkplceNm: '이름만 다름', latitude: '37.48502', longitude: '126.85' },
+        ],
+      })
+      return { count: parkings.length, unique: new Set(parkings.map((p) => p.id)).size }
+    })
+
+    expect(result.count).toBe(4)
+    expect(result.unique).toBe(4)
   })
 
   test('좌표가 없거나 국내 범위를 벗어난 레코드는 걸러진다', async ({ page }) => {

@@ -15,7 +15,8 @@ export default defineConfig({
     host: true,
   },
   preview: {
-    port: 4173,
+    // 4173(Vite 기본값)은 다른 프로젝트와 부딪히기 쉬워 전용 포트를 쓴다.
+    port: 4273,
     host: true,
   },
   build: {
