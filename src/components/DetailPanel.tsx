@@ -102,6 +102,17 @@ export function DetailPanel({ item, isSample, onClose, className }: Props) {
           </p>
         </div>
 
+        {evaluation.status === 'unknown' && parking.tel && (
+          <a
+            data-testid="detail-call"
+            href={'tel:' + parking.tel}
+            className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-brand-500 py-2.5 text-[13px] font-bold text-white shadow-[0_8px_20px_-8px_rgba(50,139,255,0.9)] transition-transform active:scale-95"
+          >
+            <Phone className="h-4 w-4" strokeWidth={2.6} />
+            {parking.tel} 로 요금 문의
+          </a>
+        )}
+
         {evaluation.reasons.length > 0 && (
           <ul data-testid="detail-reasons" className="mt-3 space-y-1.5 border-t border-hairline/70 pt-3">
             {evaluation.reasons.map((reason) => (

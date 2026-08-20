@@ -83,7 +83,8 @@ function escapeHtml(text: string): string {
 /** 요금/상태를 마커 한 줄 라벨로. 지도를 훑을 때 숫자 하나로 판단되게 한다. */
 export function markerLabel(status: ParkingStatus, cost: number | null): string {
   if (status === 'closed') return '종료'
-  if (status === 'unknown' || cost === null) return '?'
+  // '?' 만 찍으면 무슨 뜻인지 알 수 없다. 요금을 모른다는 사실을 그대로 적는다.
+  if (status === 'unknown' || cost === null) return '미공개'
   if (cost === 0) return '0원'
   if (cost >= 10000) return Math.round(cost / 1000) + '천'
   return cost.toLocaleString('ko-KR')

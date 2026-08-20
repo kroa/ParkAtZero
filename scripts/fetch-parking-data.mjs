@@ -55,7 +55,7 @@ const KEEP = new Set([
   'satOperOperOpenHhmm', 'satOperOpenHhmm', '토요일운영시작시각',
   'satOperCloseHhmm', '토요일운영종료시각',
   'holidayOperOpenHhmm', '공휴일운영시작시각',
-  'holidayCloseHhmm', 'holidayOperCloseHhmm', '공휴일운영종료시각',
+  'holidayCloseOpenHhmm', 'holidayCloseHhmm', 'holidayOperCloseHhmm', '공휴일운영종료시각',
   'parkingchrgeInfo', '요금정보',
   'basicTime', '주차기본시간',
   'basicCharge', '주차기본요금',
@@ -71,6 +71,7 @@ const KEEP = new Set([
   'latitude', '위도',
   'longitude', '경도',
   'referenceDate', '데이터기준일자',
+  'pwdbsPpkZoneYn', '장애인전용주차구역여부',
 ])
 
 /** dotenv 의존성 없이 .env.local 을 읽는다 — 스크립트 하나 때문에 패키지를 늘리지 않는다. */

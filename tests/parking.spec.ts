@@ -696,6 +696,36 @@ test.describe('시간 판별 로직', () => {
     expect(by['보정 없음']).toBeNull()
   })
 
+  test('공휴일 운영종료시각 컬럼명을 원본 그대로 읽는다', async ({ page }) => {
+    /*
+     * 실제 API 가 쓰는 이름은 holidayCloseOpenHhmm 이다(오탈자로 보이지만 원본 스펙).
+     * 이걸 빠뜨렸더니 전 레코드의 공휴일 종료시각을 못 읽어 모두 24시간 운영으로 오해했고,
+     * 공휴일 밤에 문 닫는 1,362곳이 열려 있는 것으로 표시됐다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const hours = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const base = {
+        prkplceNm: '테스트',
+        parkingchrgeInfo: '무료',
+        latitude: '37.5',
+        longitude: '127.0',
+        holidayOperOpenHhmm: '09:00',
+      }
+      return {
+        원본이름: bridge.normalize({ ...base, holidayCloseOpenHhmm: '18:00' }, 0)?.hours.holiday,
+        예전이름: bridge.normalize({ ...base, holidayCloseHhmm: '18:00' }, 1)?.hours.holiday,
+      }
+    })
+
+    // 09:00~18:00 → 540~1080분. 24시간(allDay)으로 읽히면 안 된다.
+    expect(hours.원본이름).toEqual({ open: 540, close: 1080, allDay: false })
+    // 다른 배포 경로에서 쓰는 이름도 계속 지원해야 한다.
+    expect(hours.예전이름).toEqual({ open: 540, close: 1080, allDay: false })
+  })
+
   test('공공데이터 원본 필드를 그대로 정규화한다', async ({ page }) => {
     await gotoApp(page)
     await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)

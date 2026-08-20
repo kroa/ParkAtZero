@@ -32,7 +32,9 @@ export async function blockExternal(page: Page): Promise<void> {
 export async function gotoApp(page: Page): Promise<void> {
   await blockExternal(page)
   await page.goto('/')
-  await expect(page.getByTestId('parking-card').first()).toBeVisible({ timeout: 15_000 })
+  // 30초는 앱의 목표치가 아니라 경합 여유다. 빌드·데이터 수집과 겹치면 첫 페인트가 밀린다.
+  // 실제 로딩 성능은 별도 실측으로 확인하며, 여기서는 '결국 뜨는가'만 본다.
+  await expect(page.getByTestId('parking-card').first()).toBeVisible({ timeout: 30_000 })
 }
 
 /** 모바일에서는 시간 선택기가 접혀 있으므로 필요 시 펼친다. */

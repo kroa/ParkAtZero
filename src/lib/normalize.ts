@@ -47,7 +47,9 @@ const FIELD = {
   satOpen: ['satOperOperOpenHhmm', 'satOperOpenHhmm', '토요일운영시작시각'],
   satClose: ['satOperCloseHhmm', '토요일운영종료시각'],
   holOpen: ['holidayOperOpenHhmm', '공휴일운영시작시각'],
-  holClose: ['holidayCloseHhmm', 'holidayOperCloseHhmm', '공휴일운영종료시각'],
+  // 실제 API 가 쓰는 이름은 holidayCloseOpenHhmm 이다(오탈자로 보이지만 원본 스펙 그대로).
+  // 이걸 빠뜨리면 공휴일 종료시각을 못 읽어 전부 24시간 운영으로 오해한다.
+  holClose: ['holidayCloseOpenHhmm', 'holidayCloseHhmm', 'holidayOperCloseHhmm', '공휴일운영종료시각'],
   chargeInfo: ['parkingchrgeInfo', '요금정보', 'chargeType'],
   basicTime: ['basicTime', '주차기본시간'],
   basicCharge: ['basicCharge', '주차기본요금'],
@@ -95,6 +97,12 @@ export function normalizeParking(row: Raw, index: number): Parking | null {
   const managedBy = str(pick(row, FIELD.managedBy)) || undefined
 
   // 특기사항에 적혀 있으면 그것을 쓰고, 비어 있으면 확인된 보정표로 채운다.
+  /*
+   * pwdbsPpkZoneYn 은 '장애인전용주차구역 보유 여부'다.
+   * 주차장 전체가 장애인 전용이라는 뜻이 아니라 그런 구획을 갖췄다는 표시이며,
+   * 전국 4,825곳(27%)이 Y다. 이걸 이용 제한으로 읽으면 일반 주차장이 무더기로 막힌다.
+   * 이용 제한이 아니라 편의시설 정보이므로 restriction 에 쓰지 않는다.
+   */
   const restriction = extractRestriction(note) ?? findCorrection(name, managedBy)?.restriction
 
   return {

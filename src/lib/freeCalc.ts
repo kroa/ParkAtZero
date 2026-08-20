@@ -252,9 +252,12 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
     reasons.push('선택한 시간은 운영시간이 아닙니다.')
   } else if (priced.cost === null) {
     status = 'unknown'
-    headline = '요금이 공개되지 않은 유료 주차장'
-    reasons.push('원본 데이터에 요금이 비어 있어 금액을 계산할 수 없습니다.')
-    reasons.push('무료라는 뜻이 아닙니다 — 현장 안내판을 확인하세요.')
+    headline = parking.tel ? '요금 미공개 — ' + parking.tel + ' 문의' : '요금이 공개되지 않은 유료 주차장'
+    reasons.push('유료 주차장이지만 공공데이터에 금액이 비어 있어 계산할 수 없습니다.')
+    reasons.push('무료라는 뜻이 아닙니다.')
+    if (parking.tel) {
+      reasons.push('관리기관(' + (parking.managedBy ?? '운영기관') + ')에 문의하면 확인할 수 있어요.')
+    }
   } else if (priced.cost === 0) {
     if (coveredByRules) {
       status = 'free'
