@@ -252,6 +252,22 @@
   transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.22s ease;
 }
 
+/* 요금 미공개·운영 종료 마커. 자리는 지키되 시선을 끌지 않는다. */
+.pz-marker-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  opacity: 0.55;
+  box-shadow: 0 1px 3px -1px rgb(15 23 42 / 0.35);
+  outline: 1.5px solid rgb(255 255 255 / 0.85);
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.pz-marker:hover .pz-marker-dot {
+  opacity: 1;
+  transform: scale(1.35);
+}
+
 .pz-marker-tip {
   width: 0;
   height: 0;

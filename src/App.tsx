@@ -11,7 +11,7 @@ import { BottomSheet, type Snap } from '@/components/BottomSheet'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { AdSlot } from '@/components/AdSlot'
 import { BrandMark } from '@/components/BrandMark'
-import { markerLabel, type MarkerModel } from '@/components/mapMarker'
+import { isMinorMarker, markerLabel, type MarkerModel } from '@/components/mapMarker'
 import { useTheme } from '@/hooks/useTheme'
 import { useIsDesktop } from '@/hooks/useMediaQuery'
 import { useDebounced } from '@/hooks/useDebounced'
@@ -25,6 +25,7 @@ import {
   type QueryState,
   type SortKey,
   type StatusFilter,
+  type VehicleFilter,
 } from '@/lib/query'
 import { haversineKm, SEOUL_CITY_HALL, type LatLng } from '@/lib/geo'
 import { formatVisitLabel, snapToFiveMinutes } from '@/lib/format'
@@ -73,6 +74,8 @@ export default function App() {
 
   const [status, setStatus] = useState<StatusFilter>('all')
   const [ownership, setOwnership] = useState<OwnershipFilter>('all')
+  /* 기본은 승용차. 관광버스·거주자우선 같은 전용 구획은 그 차를 고를 때만 보인다. */
+  const [vehicle, setVehicle] = useState<VehicleFilter>('car')
   const [sort, setSort] = useState<SortKey>('smart')
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -90,9 +93,10 @@ export default function App() {
       radiusKm,
       status,
       ownership,
+      vehicle,
       sort,
     }),
-    [debouncedKeyword, visitStart, durationMin, origin, radiusKm, status, ownership, sort],
+    [debouncedKeyword, visitStart, durationMin, origin, radiusKm, status, ownership, vehicle, sort],
   )
 
   /*
@@ -113,11 +117,20 @@ export default function App() {
    * 마치 그 지역에 주차장이 없는 것처럼 보인다.
    */
   const markers: MarkerModel[] = useMemo(() => {
+    /*
+     * 상한에 걸릴 때는 답이 되는 마커부터 남긴다.
+     * 거리만으로 자르면 요금 미공개 주차장이 자리를 차지해 정작 초록 마커가 잘린다.
+     */
     const nearView =
       results.length <= MAX_MARKERS
         ? results
         : [...results]
-            .sort((a, b) => haversineKm(viewCenter, a.parking) - haversineKm(viewCenter, b.parking))
+            .sort((a, b) => {
+              const am = isMinorMarker(a.evaluation.status, a.evaluation.cost) ? 1 : 0
+              const bm = isMinorMarker(b.evaluation.status, b.evaluation.cost) ? 1 : 0
+              if (am !== bm) return am - bm
+              return haversineKm(viewCenter, a.parking) - haversineKm(viewCenter, b.parking)
+            })
             .slice(0, MAX_MARKERS)
 
     return nearView.map((item) => ({
@@ -125,6 +138,7 @@ export default function App() {
       name: item.parking.name,
       status: item.evaluation.status,
       label: markerLabel(item.evaluation.status, item.evaluation.cost),
+      minor: isMinorMarker(item.evaluation.status, item.evaluation.cost),
       lat: item.parking.lat,
       lng: item.parking.lng,
     }))
@@ -237,6 +251,8 @@ export default function App() {
       onRadiusChange={setRadiusKm}
       ownership={ownership}
       onOwnershipChange={setOwnership}
+      vehicle={vehicle}
+      onVehicleChange={setVehicle}
       sort={sort}
       onSortChange={setSort}
       summary={summary}

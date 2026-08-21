@@ -103,7 +103,38 @@ export function normalizeParking(row: Raw, index: number): Parking | null {
    * 전국 4,825곳(27%)이 Y다. 이걸 이용 제한으로 읽으면 일반 주차장이 무더기로 막힌다.
    * 이용 제한이 아니라 편의시설 정보이므로 restriction 에 쓰지 않는다.
    */
-  const restriction = extractRestriction(note) ?? findCorrection(name, managedBy)?.restriction
+  const chargeType = normalizeChargeType(str(pick(row, FIELD.chargeInfo)))
+  const fee = {
+    basicTime: num(pick(row, FIELD.basicTime)),
+    basicCharge: num(pick(row, FIELD.basicCharge)),
+    addTime: num(pick(row, FIELD.addTime)),
+    addCharge: num(pick(row, FIELD.addCharge)),
+    dayTicketTime: num(pick(row, FIELD.dayTicketTime)) || undefined,
+    dayTicket: dayTicket || undefined,
+    monthTicket: monthTicket || undefined,
+  }
+
+  /*
+   * 월정기권 금액만 있고 시간 주차 상품이 아예 없는 곳(실측 59곳).
+   *
+   * 기본시간·추가단위시간까지 전부 0 이면 시간 단위로 파는 상품이 없다는 뜻이다.
+   * 지자체가 금액 입력을 빠뜨린 것과 다르다. 이런 곳을 '요금 미공개'로 두면 방문자가
+   * 갈 수 있는 곳처럼 보이는데, 실제로는 월정기 계약자만 댈 수 있다.
+   * 서울 도봉구 공영주차장이 대표적이다(월 50,000원, 시간요금 없음).
+   */
+  const monthPassOnly =
+    chargeType !== '무료' &&
+    monthTicket > 0 &&
+    fee.basicTime === 0 &&
+    fee.basicCharge === 0 &&
+    fee.addTime === 0 &&
+    fee.addCharge === 0 &&
+    !fee.dayTicket
+
+  const restriction =
+    extractRestriction(note) ??
+    findCorrection(name, managedBy)?.restriction ??
+    (monthPassOnly ? '월정기 전용' : undefined)
 
   /*
    * 관리번호(prkplceNo)는 고유하지 않다. 지자체마다 자체 번호를 붙여서 서로 겹친다.
@@ -123,18 +154,10 @@ export function normalizeParking(row: Raw, index: number): Parking | null {
     lat,
     lng,
     capacity: num(pick(row, FIELD.capacity)),
-    chargeType: normalizeChargeType(str(pick(row, FIELD.chargeInfo))),
+    chargeType,
     operDay: str(pick(row, FIELD.operDay)) || undefined,
     hours: { weekday, saturday, holiday },
-    fee: {
-      basicTime: num(pick(row, FIELD.basicTime)),
-      basicCharge: num(pick(row, FIELD.basicCharge)),
-      addTime: num(pick(row, FIELD.addTime)),
-      addCharge: num(pick(row, FIELD.addCharge)),
-      dayTicketTime: num(pick(row, FIELD.dayTicketTime)) || undefined,
-      dayTicket: dayTicket || undefined,
-      monthTicket: monthTicket || undefined,
-    },
+    fee,
     note,
     restriction,
     tel: str(pick(row, FIELD.tel)) || undefined,

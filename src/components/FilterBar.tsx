@@ -1,7 +1,7 @@
-import { ArrowUpDown, Building2, Ruler } from 'lucide-react'
+import { ArrowUpDown, Building2, Car, Ruler } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { statusStyle } from '@/lib/statusStyle'
-import type { OwnershipFilter, ResultSummary, SortKey, StatusFilter } from '@/lib/query'
+import type { OwnershipFilter, ResultSummary, SortKey, StatusFilter, VehicleFilter } from '@/lib/query'
 
 interface Props {
   status: StatusFilter
@@ -10,6 +10,8 @@ interface Props {
   onRadiusChange: (next: number) => void
   ownership: OwnershipFilter
   onOwnershipChange: (next: OwnershipFilter) => void
+  vehicle: VehicleFilter
+  onVehicleChange: (next: VehicleFilter) => void
   sort: SortKey
   onSortChange: (next: SortKey) => void
   summary: ResultSummary
@@ -22,6 +24,23 @@ const SORT_LABEL: Record<SortKey, string> = {
   smart: '추천순',
   distance: '거리순',
   cost: '요금순',
+}
+
+/*
+ * 전용 구획을 걸러내는 기준.
+ *
+ * 기본이 '승용차' 인 이유: 관광버스 전용 2면짜리 노상 구간이 '조건부 무료' 목록에
+ * 섞여 있으면 정작 댈 수 있는 곳이 묻힌다. 전용 주차장은 그 차를 고른 사람에게만
+ * 답이므로 그때만 보여 준다. '전용 포함' 은 데이터를 그대로 다 보고 싶을 때 쓴다.
+ */
+const VEHICLE_LABEL: Record<VehicleFilter, string> = {
+  car: '승용차',
+  light: '경차',
+  ev: '전기차',
+  bus: '버스·승합',
+  truck: '화물차',
+  bike: '이륜차',
+  any: '전용 포함',
 }
 
 const OWNERSHIP_LABEL: Record<OwnershipFilter, string> = {
@@ -38,6 +57,8 @@ export function FilterBar({
   onRadiusChange,
   ownership,
   onOwnershipChange,
+  vehicle,
+  onVehicleChange,
   sort,
   onSortChange,
   summary,
@@ -96,6 +117,17 @@ export function FilterBar({
       <span className="mx-0.5 h-5 w-px shrink-0 bg-hairline" aria-hidden />
 
       <SelectChip
+        testId="filter-vehicle"
+        icon={<Car className="h-3.5 w-3.5" strokeWidth={2.4} />}
+        value={vehicle}
+        onChange={(v) => onVehicleChange(v as VehicleFilter)}
+        options={(Object.keys(VEHICLE_LABEL) as VehicleFilter[]).map((k) => ({
+          value: k,
+          label: VEHICLE_LABEL[k],
+        }))}
+        label="차량"
+      />
+      <SelectChip
         testId="filter-radius"
         icon={<Ruler className="h-3.5 w-3.5" strokeWidth={2.4} />}
         value={String(radiusKm)}
@@ -103,6 +135,7 @@ export function FilterBar({
         options={RADIUS_OPTIONS.map((km) => ({ value: String(km), label: km + 'km' }))}
         label="반경"
       />
+
 
       <SelectChip
         testId="filter-ownership"

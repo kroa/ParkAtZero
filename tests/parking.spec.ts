@@ -377,6 +377,45 @@ test.describe('지도', () => {
 /* ═══════════════════════════════════════════════════════════════
  *  7. 테마
  * ═══════════════════════════════════════════════════════════════ */
+test.describe('지도 마커 정리', () => {
+  test('요금 미공개·운영 종료는 라벨 없이 점으로 찍는다', async ({ page }) => {
+    /*
+     * 이 앱은 0원 주차장을 찾는 도구다. 답이 될 수 없는 곳이 '미공개'·'종료' 글자를 달고
+     * 무료 마커와 같은 크기로 지도를 덮으면 정작 초록 마커가 묻힌다.
+     * 정보는 남기되(눌러서 상세를 열 수 있다) 목소리만 낮춘다.
+     */
+    await gotoApp(page)
+    await setVisit(page, DATES.weekday, '23:00', 120)
+
+    const markers = page.getByTestId('map-marker')
+    await expect(markers.first()).toBeVisible()
+
+    const shape = await markers.evaluateAll((els) =>
+      els.map((el) => ({
+        status: el.getAttribute('data-status'),
+        dot: Boolean(el.querySelector('.pz-marker-dot')),
+        label: el.querySelector('.pz-marker-label')?.textContent ?? null,
+      })),
+    )
+
+    const quiet = shape.filter((s) => s.status === 'closed' || s.status === 'unknown')
+    const loud = shape.filter((s) => s.status === 'free' || s.status === 'conditional')
+
+    expect(quiet.length).toBeGreaterThan(0)
+    for (const s of quiet) {
+      expect(s.dot).toBe(true)
+      expect(s.label).toBeNull()
+    }
+
+    // 무료·조건부는 그대로 라벨을 달고 있어야 한다.
+    expect(loud.length).toBeGreaterThan(0)
+    for (const s of loud) {
+      expect(s.dot).toBe(false)
+      expect(s.label).toBeTruthy()
+    }
+  })
+})
+
 test.describe('다크 / 라이트 모드', () => {
   test('토글이 html.dark 클래스와 localStorage 를 함께 바꾼다', async ({ page }) => {
     await gotoApp(page)
@@ -717,6 +756,157 @@ test.describe('시간 판별 로직', () => {
 
     // "주말 1급지" 는 주말이 유료라는 뜻이다. 평일만 무료여야 한다 (과천시 노상).
     expect(byNote['평일 무료+주말 1급지']).toEqual(['dayType|평일 무료'])
+  })
+
+  test("'개방' 은 무료 신호가 아니다", async ({ page }) => {
+    /*
+     * "토+일+공휴일 개방" 은 그날 문을 연다는 뜻이지 공짜라는 뜻이 아니다.
+     * 이걸 무료로 읽어 부천시 노상 22곳이 일요일에 초록 '완전 무료'로 나오고 있었다.
+     * '무료개방' 은 여전히 무료로 읽어야 한다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const rules = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const base = {
+        id: 'x',
+        name: 'x',
+        type: '노상',
+        ownership: '공영',
+        address: 'x',
+        lat: 37.5,
+        lng: 127,
+        capacity: 10,
+        chargeType: '유료' as const,
+        hours: { weekday: null, saturday: null, holiday: null },
+        fee: { basicTime: 30, basicCharge: 1000, addTime: 10, addCharge: 300 },
+      }
+      const notes = [
+        '토+ 일+ 공휴일 개방',
+        '월+공휴일개방',
+        '토+일+공휴일 개방<밤 11시 주차장 폐쇄>',
+        '일요일 무료개방',
+        '공휴일 무료 개방',
+      ]
+      return notes.map((note) => ({
+        note,
+        rules: bridge.extractFreeRules({ ...base, note }).map((r) => r.kind + '|' + r.label),
+      }))
+    })
+    const byNote = Object.fromEntries(rules.map((r) => [r.note, r.rules]))
+
+    expect(byNote['토+ 일+ 공휴일 개방']).toEqual([])
+    expect(byNote['월+공휴일개방']).toEqual([])
+    expect(byNote['토+일+공휴일 개방<밤 11시 주차장 폐쇄>']).toEqual([])
+    // '무료' 가 붙으면 그대로 무료다.
+    expect(byNote['일요일 무료개방']).toEqual(['dayType|일요일 무료'])
+    expect(byNote['공휴일 무료 개방']).toEqual(['dayType|공휴일 무료'])
+  })
+
+  test('월정기·거주자우선 구획을 이용 제한으로 읽는다', async ({ page }) => {
+    /*
+     * 시간 요금 칸이 비어 있어 '요금 미공개'로 분류되던 곳들이다. 사실은 금액을 모르는 게
+     * 아니라 시간 단위로 파는 상품이 아예 없다. 전화해서 물어보면 댈 수 있는 곳처럼
+     * 보이면 안 된다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const pick = (extra: Record<string, unknown>) =>
+        bridge.normalize(
+          {
+            prkplceNo: 'R',
+            prkplceNm: '테스트',
+            prkplceSe: '공영',
+            prkplceType: '노상',
+            rdnmadr: '서울특별시 도봉구 도봉로 170',
+            parkingchrgeInfo: '유료',
+            latitude: '37.66',
+            longitude: '127.03',
+            ...extra,
+          },
+          0,
+        )?.restriction ?? null
+
+      return {
+        월정기전용: pick({ spcmnt: '월정기 전용' }),
+        거주자주차제: pick({ spcmnt: '거주자주차제 전용' }),
+        거주민월정기: pick({ spcmnt: '거주민 월정기 전용' }),
+        거주자우선: pick({ spcmnt: '경차 50프로 할인+월야간 20000원+거주자우선주차장' }),
+        주간개방: pick({ spcmnt: '주간만사용가능(야간_거주자우선주차장)' }),
+        월정기금액만: pick({ monthCmmtkt: '50000', basicTime: '0', basicCharge: '0' }),
+        시간요금있음: pick({ monthCmmtkt: '50000', basicTime: '30', basicCharge: '1000' }),
+      }
+    })
+
+    expect(out.월정기전용).toBe('월정기 전용')
+    expect(out.거주자주차제).toBe('거주자 전용')
+    expect(out.거주민월정기).toBe('월정기 전용')
+    expect(out.거주자우선).toBe('거주자 전용')
+    // 낮에는 일반 개방하는 곳까지 막으면 안 된다.
+    expect(out.주간개방).toBeNull()
+    // 특기사항이 없어도 월정기 금액만 있고 시간 주차 상품이 없으면 월정기 전용이다.
+    expect(out.월정기금액만).toBe('월정기 전용')
+    // 시간 요금이 있으면 평범한 유료 주차장이다.
+    expect(out.시간요금있음).toBeNull()
+  })
+
+  test('차종을 고르면 그 차가 댈 수 있는 곳만 남는다', async ({ page }) => {
+    /*
+     * 관광버스 전용 2면짜리 노상 구간이 승용차 운전자의 '조건부 무료' 목록에 섞여 있으면
+     * 정작 댈 수 있는 곳이 묻힌다. 필터칩 숫자도 함께 걸러져야 한다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const base = {
+        type: '노상',
+        ownership: '공영',
+        address: '서울특별시 중구',
+        lat: 37.5665,
+        lng: 126.978,
+        capacity: 10,
+        chargeType: '무료' as const,
+        hours: { weekday: null, saturday: null, holiday: null },
+        fee: { basicTime: 0, basicCharge: 0, addTime: 0, addCharge: 0 },
+      }
+      const parkings = [
+        { ...base, id: 'a', name: '누구나 주차장' },
+        { ...base, id: 'b', name: '관광버스 자리', note: '관광버스 전용' },
+        { ...base, id: 'c', name: '경차 자리', note: '경차 전용' },
+        { ...base, id: 'd', name: '거주자 자리', note: '거주자주차제 전용' },
+      ]
+      const q = {
+        keyword: '',
+        durationMin: 120,
+        center: { lat: 37.5665, lng: 126.978 },
+        radiusKm: 5,
+        status: 'all' as const,
+        ownership: 'all' as const,
+        sort: 'smart' as const,
+        visitIso: '2026-09-15T14:00:00+09:00',
+      }
+      const names = (vehicle: 'car' | 'bus' | 'light' | 'any') =>
+        (bridge.run(parkings, { ...q, vehicle }) as { items: Array<{ name: string }> }).items.map((i) => i.name)
+
+      return { car: names('car'), bus: names('bus'), light: names('light'), any: names('any') }
+    })
+
+    // 기본(승용차)에서는 전용 구획이 전부 빠진다.
+    expect(out.car).toEqual(['누구나 주차장'])
+    // 그 차를 고르면 해당 전용 구획이 함께 나온다.
+    expect(out.bus).toEqual(expect.arrayContaining(['누구나 주차장', '관광버스 자리']))
+    expect(out.bus).not.toContain('경차 자리')
+    expect(out.light).toEqual(expect.arrayContaining(['누구나 주차장', '경차 자리']))
+    // 거주자우선은 어떤 차종을 골라도 방문자가 댈 수 없다.
+    expect(out.car).not.toContain('거주자 자리')
+    expect(out.bus).not.toContain('거주자 자리')
+    expect(out.any).toHaveLength(4)
   })
 
   test('원본에 차종 제한이 비어 있어도 보정표가 채운다', async ({ page }) => {

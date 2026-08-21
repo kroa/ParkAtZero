@@ -86,6 +86,13 @@ export function describeFee(p: Parking): string {
   else if (basicCharge > 0) parts.push('기본 ' + formatMoney(basicCharge))
   if (addTime > 0) parts.push('추가 ' + formatDurationShort(addTime) + '당 ' + formatMoney(addCharge))
   if (dayTicket && dayTicket > 0) parts.push('일 최대 ' + formatMoney(dayTicket))
+
+  /*
+   * 시간 요금이 하나도 없는 곳은 월정기만 파는 구획이다(실측 59곳).
+   * '요금 정보 없음' 이라고 적으면 알아낼 방법이 없어 보이지만, 실제로는 아는 금액이 있다.
+   */
+  if (parts.length === 0 && p.fee.monthTicket) return '월 정기권 ' + formatMoney(p.fee.monthTicket)
+
   return parts.length ? parts.join(' · ') : '요금 정보 없음'
 }
 
@@ -203,6 +210,10 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
   const visit: Interval = { start: startMin, end: startMin + duration }
   const dayType = getDayType(visitStart)
 
+  // 보통은 정규화 단계에서 채워진다. 다만 normalize 를 거치지 않고 만든 레코드도
+  // 같은 판정을 받아야 하므로 특기사항에서 직접 읽는 경로를 남겨 둔다.
+  const restriction = parking.restriction ?? extractRestriction(parking.note)
+
   const rules = extractFreeRules(parking)
   const targetedRules = rules.filter((r): r is Extract<FreeRule, { kind: 'targeted' }> => r.kind === 'targeted')
   const graceRules = rules.filter((r): r is Extract<FreeRule, { kind: 'grace' }> => r.kind === 'grace')
@@ -252,11 +263,21 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
     reasons.push('선택한 시간은 운영시간이 아닙니다.')
   } else if (priced.cost === null) {
     status = 'unknown'
-    headline = parking.tel ? '요금 미공개 — ' + parking.tel + ' 문의' : '요금이 공개되지 않은 유료 주차장'
-    reasons.push('유료 주차장이지만 공공데이터에 금액이 비어 있어 계산할 수 없습니다.')
-    reasons.push('무료라는 뜻이 아닙니다.')
-    if (parking.tel) {
-      reasons.push('관리기관(' + (parking.managedBy ?? '운영기관') + ')에 문의하면 확인할 수 있어요.')
+    if (restriction) {
+      /*
+       * 금액을 모르는 게 아니라 시간 단위로 파는 상품이 아예 없는 곳이다.
+       * 월정기·거주자우선 구획이 여기 해당한다(실측 143곳). 이런 곳을
+       * '요금 미공개'로 적으면 전화해서 물어보면 댈 수 있는 것처럼 읽힌다.
+       */
+      headline = restriction + ' — 일반 차량은 이용할 수 없어요'
+      reasons.push('시간 단위 주차를 받지 않는 곳입니다.')
+    } else {
+      headline = parking.tel ? '요금 미공개 — ' + parking.tel + ' 문의' : '요금이 공개되지 않은 유료 주차장'
+      reasons.push('유료 주차장이지만 공공데이터에 금액이 비어 있어 계산할 수 없습니다.')
+      reasons.push('무료라는 뜻이 아닙니다.')
+      if (parking.tel) {
+        reasons.push('관리기관(' + (parking.managedBy ?? '운영기관') + ')에 문의하면 확인할 수 있어요.')
+      }
     }
   } else if (priced.cost === 0) {
     if (coveredByRules) {
@@ -286,9 +307,6 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
    * 요금이 0원이어도 관광버스 전용 2면짜리 구간은 승용차 운전자의 답이 아니다.
    * 초록(완전 무료)에서 빼고 제한 내용을 그대로 뱃지에 띄워, '0원만' 필터에도 걸리지 않게 한다.
    */
-  // 보통은 정규화 단계에서 채워진다. 다만 normalize 를 거치지 않고 만든 레코드도
-  // 같은 판정을 받아야 하므로 특기사항에서 직접 읽는 경로를 남겨 둔다.
-  const restriction = parking.restriction ?? extractRestriction(parking.note)
   if (restriction && (status === 'free' || status === 'conditional')) {
     status = 'conditional'
     headline = restriction + ' — 일반 차량은 이용할 수 없어요'

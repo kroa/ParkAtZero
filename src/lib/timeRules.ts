@@ -135,6 +135,14 @@ function scan(text: string, re: RegExp, onMatch: (m: RegExpExecArray) => void): 
   return working
 }
 
+/*
+ * '개방' 은 무료 신호가 아니다.
+ *
+ * "토+일+공휴일 개방", "월+공휴일개방", "토+일+공휴일 개방<밤 11시 주차장 폐쇄>" 처럼
+ * 그날 문을 연다(운영한다)는 뜻으로 쓰인다. 이걸 무료로 읽어 부천시 노상 22곳이
+ * 일요일에 초록 '완전 무료'로 나오고 있었다. 실제로는 요금을 받는 곳이다.
+ * '무료개방' 은 아래 TAIL 이 '개방' 을 먹으므로 그대로 잡힌다.
+ */
 /** 무료 표현 뒤에 흔히 붙는 군더더기까지 함께 먹어 치워 잔여 텍스트를 깨끗하게 만든다. */
 const TAIL = '(?:\\s*(?:개방|운영|가능|적용))?'
 
@@ -170,10 +178,26 @@ const TARGET_WORDS = [
  */
 export function extractRestriction(note: string | undefined): string | undefined {
   if (!note) return undefined
+  const cleaned = note.replace(/\s+/g, ' ')
+
+  /*
+   * 월정기·거주자우선 구획은 방문자가 시간 단위로 댈 수 있는 곳이 아니다.
+   *
+   * 이런 곳은 시간 요금 칸이 비어 있어 '요금 미공개'로 분류됐지만, 사실은 금액을
+   * 모르는 게 아니라 시간 주차라는 상품 자체가 없는 것이다(실측 84곳).
+   * "월정기 전용", "거주자주차제 전용" 처럼 단어가 바로 붙지 않는 표현이 많아
+   * 아래 일반 패턴으로는 잡히지 않으므로 따로 본다.
+   *
+   * "주간만사용가능(야간_거주자우선주차장)" 처럼 낮에는 일반 개방하는 곳은 제외한다.
+   */
+  if (!/주간만|주간\s*개방/.test(cleaned)) {
+    if (/(월\s*정기|정기권)\s*(?:주차제?\s*)?(?:전용|만\s*운영|만\s*가능)/.test(cleaned))
+      return '월정기 전용'
+    if (/거주자\s*(?:우선|주차제)|거주민?\s*(?:월정기|우선)/.test(cleaned)) return '거주자 전용'
+  }
+
   const m =
-    /(관광버스|대형버스|버스|화물차|화물|이륜차|이륜|오토바이|자전거|경차|전기차|장애인|택시|거주자|주민|입주자|직원|내부)\s*(?:차량\s*)?(전용|만\s*가능|에\s*한함|한정)/.exec(
-      note.replace(/\s+/g, ' '),
-    )
+    /(관광버스|대형버스|버스|화물차|화물|이륜차|이륜|오토바이|자전거|경차|전기차|장애인|택시|거주자|주민|입주자|직원|내부)\s*(?:차량\s*)?(전용|만\s*가능|에\s*한함|한정)/.exec(cleaned)
   return m ? m[1] + ' 전용' : undefined
 }
 
@@ -218,7 +242,7 @@ export function extractFreeRules(p: Parking): FreeRule[] {
   text = scan(
     text,
     new RegExp(
-      '(\\d{1,2})(?::(\\d{2}))?\\s*시?\\s*(?:~|-|–|부터)\\s*(?:익일\\s*|다음날\\s*)?(\\d{1,2})(?::(\\d{2}))?\\s*시?\\s*(?:까지)?\\s*(?:무료|개방|면제)' +
+      '(\\d{1,2})(?::(\\d{2}))?\\s*시?\\s*(?:~|-|–|부터)\\s*(?:익일\\s*|다음날\\s*)?(\\d{1,2})(?::(\\d{2}))?\\s*시?\\s*(?:까지)?\\s*(?:무료|면제)' +
         TAIL,
       'g',
     ),
@@ -237,7 +261,7 @@ export function extractFreeRules(p: Parking): FreeRule[] {
   // 2) "19시 이후 무료", "18:30부터 무료"
   text = scan(
     text,
-    new RegExp('(\\d{1,2})(?::(\\d{2}))?\\s*시?\\s*(?:이후|부터)\\s*(?:는\\s*)?(?:무료|개방|면제)' + TAIL, 'g'),
+    new RegExp('(\\d{1,2})(?::(\\d{2}))?\\s*시?\\s*(?:이후|부터)\\s*(?:는\\s*)?(?:무료|면제)' + TAIL, 'g'),
     (m) => {
       const from = Number(m[1]) * 60 + Number(m[2] ?? 0)
       rules.push({
@@ -252,7 +276,7 @@ export function extractFreeRules(p: Parking): FreeRule[] {
   // 3) "08시 이전 무료"
   text = scan(
     text,
-    new RegExp('(\\d{1,2})(?::(\\d{2}))?\\s*시\\s*(?:이전|까지)\\s*(?:는\\s*)?(?:무료|개방|면제)' + TAIL, 'g'),
+    new RegExp('(\\d{1,2})(?::(\\d{2}))?\\s*시\\s*(?:이전|까지)\\s*(?:는\\s*)?(?:무료|면제)' + TAIL, 'g'),
     (m) => {
       const to = Number(m[1]) * 60 + Number(m[2] ?? 0)
       rules.push({
@@ -265,7 +289,7 @@ export function extractFreeRules(p: Parking): FreeRule[] {
   )
 
   // 4) "야간 무료" / "심야 무료" — 시각이 명시되지 않아 추정값(20:00~08:00)을 쓴다.
-  text = scan(text, new RegExp('(?:야간|심야)\\s*(?:에는|시간대?)?\\s*(?:무료|개방)' + TAIL, 'g'), () => {
+  text = scan(text, new RegExp('(?:야간|심야)\\s*(?:에는|시간대?)?\\s*(?:무료|면제)' + TAIL, 'g'), () => {
     rules.push({
       kind: 'window',
       from: 20 * 60,
@@ -302,7 +326,7 @@ export function extractFreeRules(p: Parking): FreeRule[] {
   for (const fragment of splitClauses(text)) {
     const clause = carried ? carried + ' ' + fragment : fragment
 
-    if (!/(무료|개방|면제|100%)/.test(clause)) {
+    if (!/(무료|면제|100%)/.test(clause)) {
       // "일요일+공휴일 무료개방" 처럼 목록의 앞 항목만 떨어져 나오는 형태가 있다.
       // 사전 단어로만 이뤄진 조각은 버리지 않고 다음 절에 이어 붙인다.
       carried = isBareListItem(fragment) ? clause : ''

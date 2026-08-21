@@ -7,6 +7,8 @@ export interface MarkerModel {
   status: ParkingStatus
   /** 마커에 찍히는 짧은 라벨 — 보통 요금 */
   label: string
+  /** 라벨 없이 작은 점으로만 찍는다 — 요금 미공개·운영 종료 */
+  minor?: boolean
   lat: number
   lng: number
 }
@@ -21,6 +23,23 @@ export interface MarkerModel {
 export function markerInnerHtml(model: MarkerModel, selected: boolean): string {
   const style = statusStyle(model.status)
   const scale = selected ? 1.12 : 1
+
+  /*
+   * 요금 미공개·운영 종료는 점으로만 찍는다.
+   *
+   * 이 앱은 0원 주차장을 찾는 도구다. 금액을 모르는 유료 주차장이 '미공개' 라는
+   * 글자를 달고 무료 주차장과 같은 크기로 지도를 덮으면, 정작 답인 초록 마커가
+   * 그 사이에 묻힌다. 정보는 남기되(누르면 상세가 열린다) 목소리만 낮춘다.
+   */
+  if (model.minor) {
+    return `
+    <span class="pz-marker-dot" style="
+      background:${style.markerFill};
+      transform:scale(${selected ? 1.6 : 1});
+      ${selected ? `box-shadow:0 0 0 3px ${style.markerRing},0 2px 6px -1px rgba(15,23,42,.4)` : ''};
+    "></span>
+  `
+  }
 
   return `
     <span class="pz-marker-ring" style="background:${style.markerRing};opacity:${selected ? 1 : 0}"></span>
@@ -78,6 +97,11 @@ function escapeHtml(text: string): string {
         return '&#39;'
     }
   })
+}
+
+/** 지도에서 점으로만 찍을 상태 — 답이 될 수 없는 곳은 목소리를 낮춘다. */
+export function isMinorMarker(status: ParkingStatus, cost: number | null): boolean {
+  return status === 'closed' || status === 'unknown' || cost === null
 }
 
 /** 요금/상태를 마커 한 줄 라벨로. 지도를 훑을 때 숫자 하나로 판단되게 한다. */

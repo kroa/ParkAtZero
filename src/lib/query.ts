@@ -7,6 +7,33 @@ export type StatusFilter = 'all' | 'free' | 'freeish'
 export type OwnershipFilter = 'all' | '공영' | '민영'
 export type SortKey = 'smart' | 'distance' | 'cost'
 
+/** 내가 몰고 갈 차. 전용 구획을 걸러내는 기준이 된다. */
+export type VehicleFilter = 'car' | 'light' | 'ev' | 'bus' | 'truck' | 'bike' | 'any'
+
+/*
+ * 전용 구획은 그 차를 가진 사람에게만 답이다.
+ *
+ * 남산 소파로 '관광버스 전용' 2면짜리 구간이 승용차 운전자의 '조건부 무료' 목록에 섞여
+ * 있으면 목록이 못 쓰게 된다. 거주자우선·월정기 구획은 어떤 차종을 골라도 방문자가
+ * 댈 수 없으므로 'any'(전용 포함) 를 고를 때만 보인다.
+ */
+const VEHICLE_ALLOWS: Record<VehicleFilter, RegExp | null> = {
+  car: null,
+  light: /경차/,
+  ev: /전기차/,
+  bus: /버스/,
+  truck: /화물/,
+  bike: /이륜|오토바이/,
+  any: /./,
+}
+
+/** 이 이용 제한을 선택한 차량으로 통과할 수 있는가. 제한이 없으면 언제나 통과. */
+export function allowsVehicle(restriction: string | undefined, vehicle: VehicleFilter): boolean {
+  if (!restriction) return true
+  const allowed = VEHICLE_ALLOWS[vehicle]
+  return allowed ? allowed.test(restriction) : false
+}
+
 export interface QueryState {
   keyword: string
   visitStart: Date
@@ -15,6 +42,7 @@ export interface QueryState {
   radiusKm: number
   status: StatusFilter
   ownership: OwnershipFilter
+  vehicle: VehicleFilter
   sort: SortKey
 }
 
@@ -72,6 +100,8 @@ export function buildResults(parkings: Parking[], q: QueryState): ResultItem[] {
     if (q.ownership !== 'all' && p.ownership !== q.ownership) continue
 
     const evaluation = evaluate({ parking: p, visitStart: q.visitStart, durationMin: q.durationMin })
+    // 전용 구획은 그 차를 고른 사람에게만 보여 준다. 필터칩 숫자도 여기서 함께 걸러진다.
+    if (!allowsVehicle(evaluation.restriction, q.vehicle)) continue
     items.push({ parking: p, evaluation, distanceKm })
   }
 
