@@ -987,6 +987,62 @@ test.describe('시간 판별 로직', () => {
     expect(out.차단기_운영밖.status).toBe('closed')
   })
 
+  test('보완표에서 온 주차장은 출처를 따로 들고 다닌다', async ({ page }) => {
+    /*
+     * 「전국주차장정보표준데이터」는 지자체가 자율로 등록해서, 실제로 있고 이용자도 많은
+     * 주차장이 통째로 빠진다(서울 25개 자치구 중 구청 청사가 등록된 곳은 10곳뿐이다).
+     * 그 빈칸을 보완표(src/data/supplements.json)로 채우는데, 이 행들은 행정안전부
+     * 표준데이터가 아니므로 공공누리 출처 표시를 달면 안 된다. 확인한 URL 을 그대로
+     * 들고 다녀야 사용자가 직접 대조할 수 있다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const row = {
+        prkplceNo: 'PZ-SUP-TEST',
+        prkplceNm: '보완 주차장',
+        prkplceSe: '공영',
+        prkplceType: '부설',
+        rdnmadr: '서울특별시 서대문구 연희로 248',
+        latitude: '37.57918',
+        longitude: '126.93680',
+        prkcmprt: '90',
+        operDay: '평일+토요일+공휴일',
+        weekdayOperOpenHhmm: '0900',
+        weekdayOperColseHhmm: '1800',
+        parkingchrgeInfo: '유료',
+        basicTime: '30',
+        basicCharge: '0',
+        addUnitTime: '5',
+        addUnitCharge: '500',
+        spcmnt: '평일 09:00~18:00 유료(최초 30분 무료). 토요일+공휴일 무료개방',
+        pzSource: 'https://example.gov/parking',
+        pzVerifiedOn: '2026-08-22',
+      }
+      const p = bridge.normalize(row, 0)
+      const at = (iso: string) =>
+        (bridge.evaluate(p as never, iso, 120) as { status: string }).status
+      return {
+        sourceUrl: p?.sourceUrl ?? null,
+        sourceVerifiedOn: p?.sourceVerifiedOn ?? null,
+        평일낮: at('2026-08-19T14:00:00+09:00'),
+        토요일: at('2026-08-22T14:00:00+09:00'),
+        일요일: at('2026-08-23T14:00:00+09:00'),
+      }
+    })
+
+    // 확인 출처가 레코드에 그대로 실려야 상세 화면이 링크를 걸 수 있다.
+    expect(out.sourceUrl).toBe('https://example.gov/parking')
+    expect(out.sourceVerifiedOn).toBe('2026-08-22')
+
+    // 보완표 행도 표준데이터와 똑같은 판정 경로를 탄다.
+    expect(out.평일낮).toBe('conditional')
+    expect(out.토요일).toBe('free')
+    expect(out.일요일).toBe('free')
+  })
+
   test('원본에 차종 제한이 비어 있어도 보정표가 채운다', async ({ page }) => {
     /*
      * 남산공원 '소월로'는 특기사항에 '관광버스 전용'이 적혀 있는데 바로 옆 '소파로'는

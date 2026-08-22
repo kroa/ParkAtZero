@@ -68,6 +68,14 @@ export interface Parking {
    */
   restriction?: string
   tel?: string
+  /**
+   * 이 레코드가 표준데이터가 아니라 보완표(data/supplements.json)에서 온 경우의 확인 출처.
+   * 공공누리 출처 표시는 행정안전부 표준데이터에만 해당하므로, 이런 레코드는 상세 화면이
+   * 출처를 따로 밝혀야 한다.
+   */
+  sourceUrl?: string
+  /** 그 출처를 확인한 날짜 (YYYY-MM-DD) */
+  sourceVerifiedOn?: string
   payment?: string
   managedBy?: string
   updatedAt?: string

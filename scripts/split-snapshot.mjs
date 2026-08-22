@@ -17,6 +17,7 @@ import path from 'node:path'
 import process from 'node:process'
 
 const SOURCE = path.join('public', 'data', 'parkings.full.json')
+const SUPPLEMENTS = path.join('src', 'data', 'supplements.json')
 const OUT_DIR = path.join('public', 'data', 'cells')
 /** 격자 한 칸의 크기(도). 0.25도 ≈ 28km. */
 const CELL_SIZE = 0.25
@@ -36,6 +37,31 @@ async function main() {
   if (rows.length === 0) {
     console.error('✗ 스냅샷에 데이터가 없습니다.')
     process.exit(1)
+  }
+
+  /*
+   * 표준데이터에 빠져 있는 주차장을 여기서 합친다.
+   *
+   * 「전국주차장정보표준데이터」는 지자체가 자율로 등록하는 자료라, 실제로 존재하고
+   * 이용자도 많은 주차장이 통째로 빠진다(서울 25개 자치구 중 구청 청사가 등록된 곳은 10곳).
+   * 보완표의 행은 표준데이터와 같은 모양이라 normalize 가 그대로 읽는다.
+   * 이름·좌표가 겹치면 표준데이터를 그대로 두고 보완 행을 버린다 — 원본이 우선이다.
+   */
+  if (existsSync(SUPPLEMENTS)) {
+    const sup = JSON.parse(await readFile(SUPPLEMENTS, 'utf-8'))
+    const supRows = Array.isArray(sup?.rows) ? sup.rows : []
+    const seen = new Set(
+      rows.map((r) => String(r.prkplceNm ?? '').trim() + '@' + Number(r.latitude).toFixed(4) + ',' + Number(r.longitude).toFixed(4)),
+    )
+    let added = 0
+    for (const r of supRows) {
+      const key = String(r.prkplceNm ?? '').trim() + '@' + Number(r.latitude).toFixed(4) + ',' + Number(r.longitude).toFixed(4)
+      if (seen.has(key)) continue
+      seen.add(key)
+      rows.push(r)
+      added++
+    }
+    console.log('보완표 합침: ' + added + '건 (' + SUPPLEMENTS + ')')
   }
 
   const cells = new Map()

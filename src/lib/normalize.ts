@@ -65,6 +65,9 @@ const FIELD = {
   lat: ['latitude', '위도', 'lat'],
   lng: ['longitude', '경도', 'lng'],
   updatedAt: ['referenceDate', '데이터기준일자'],
+  // 보완표(data/supplements.json)에서만 오는 값. 표준데이터에는 없다.
+  sourceUrl: ['pzSource'],
+  sourceVerifiedOn: ['pzVerifiedOn'],
 } as const
 
 function normalizeChargeType(raw: string): Parking['chargeType'] {
@@ -161,6 +164,8 @@ export function normalizeParking(row: Raw, index: number): Parking | null {
     note,
     restriction,
     tel: str(pick(row, FIELD.tel)) || undefined,
+    sourceUrl: str(pick(row, FIELD.sourceUrl)) || undefined,
+    sourceVerifiedOn: str(pick(row, FIELD.sourceVerifiedOn)) || undefined,
     payment: str(pick(row, FIELD.payment)) || undefined,
     managedBy,
     updatedAt: str(pick(row, FIELD.updatedAt)) || undefined,

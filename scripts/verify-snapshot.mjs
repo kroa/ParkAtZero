@@ -12,6 +12,7 @@
  * 검증은 앱이 실제로 쓰는 코드(src/lib/normalize.ts, freeCalc.ts)를 그대로 번들해서 돌린다.
  * 별도로 재구현하면 검증과 실제 동작이 어긋나므로 의미가 없다.
  */
+import { existsSync } from 'node:fs'
 import { readFile, writeFile, mkdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -111,6 +112,34 @@ async function main() {
     if (badCoord > 0) {
       fail(`국내 범위를 벗어난 좌표 ${badCoord}건이 남아 있습니다.`)
       return
+    }
+
+    /*
+     * 보완표 검사.
+     *
+     * 표준데이터에 빠진 주차장을 손으로 채우는 곳이라 규율이 무너지기 쉽다.
+     * 출처 없이 한 줄만 슬쩍 들어가도 앱 전체의 신뢰가 깨지므로 여기서 막는다.
+     */
+    const supPath = path.join('src', 'data', 'supplements.json')
+    if (existsSync(supPath)) {
+      const sup = JSON.parse(await readFile(supPath, 'utf-8'))
+      const supRows = Array.isArray(sup?.rows) ? sup.rows : []
+      const problems = []
+      for (const r of supRows) {
+        const who = r.prkplceNm ?? r.prkplceNo ?? '(이름 없음)'
+        if (!r.pzSource) problems.push(who + ': 확인 출처(pzSource)가 없습니다')
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(r.pzVerifiedOn ?? undefined)))
+          problems.push(who + ': 확인 날짜(pzVerifiedOn)가 없거나 형식이 다릅니다')
+        const la = Number(r.latitude)
+        const ln = Number(r.longitude)
+        if (!(la > 32 && la < 39.5 && ln > 124 && ln < 132.5))
+          problems.push(who + ': 좌표가 국내 범위를 벗어났습니다')
+      }
+      if (problems.length > 0) {
+        fail('보완표에 문제가 있습니다:' + problems.map((p) => '\n  - ' + p).join(''))
+        return
+      }
+      console.log('보완표:', supRows.length, '건 (모두 출처·확인일자·좌표 확인)')
     }
 
     console.log('✓ 스냅샷 검증 통과')

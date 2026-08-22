@@ -202,6 +202,23 @@ export function DetailPanel({ item, isSample, onClose, className }: Props) {
               공공데이터포털 인증키를 연결하면 실제 데이터로 바뀝니다.
             </span>
           </p>
+        ) : parking.sourceUrl ? (
+          /*
+           * 표준데이터에 없어 보완표에서 채운 주차장.
+           * 공공누리 출처 표시는 행정안전부 표준데이터에만 해당하므로 여기에 붙이면 안 된다.
+           * 어디서 확인했는지를 링크로 그대로 밝혀 사용자가 직접 대조할 수 있게 한다.
+           */
+          <p className="pt-1 text-[11px] leading-relaxed text-ink-mute">
+            표준데이터에 없어 관리기관 공식 안내에서 직접 확인했습니다{parking.sourceVerifiedOn ? ' (' + parking.sourceVerifiedOn + ' 확인)' : ''}.{' '}
+            <a
+              href={parking.sourceUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="font-semibold text-brand-600 underline underline-offset-2 dark:text-brand-300"
+            >
+              출처 보기
+            </a>
+          </p>
         ) : (
           <p className="pt-1 text-[11px] leading-relaxed text-ink-mute">
             {parking.updatedAt ? '데이터 기준일 ' + parking.updatedAt + ' · ' : ''}
