@@ -12,6 +12,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { AdSlot } from '@/components/AdSlot'
 import { BrandMark } from '@/components/BrandMark'
 import { isMinorMarker, markerLabel, type MarkerModel } from '@/components/mapMarker'
+import { SearchHereButton } from '@/components/SearchHereButton'
 import { useTheme } from '@/hooks/useTheme'
 import { useIsDesktop } from '@/hooks/useMediaQuery'
 import { useDebounced } from '@/hooks/useDebounced'
@@ -148,6 +149,21 @@ export default function App() {
     () => results.find((r) => r.parking.id === selectedId) ?? null,
     [results, selectedId],
   )
+
+  /*
+   * 지도를 얼마나 옮겼나.
+   *
+   * 결과는 기준점 반경 안에서만 고르므로, 다른 동네로 지도를 밀면 마커가 하나도 없다.
+   * 그럴 때 '이 지역에서 다시 찾기' 를 띄워 기준점을 옮길 기회를 준다.
+   * 카드를 골라 지도가 움직인 경우에는 띄우지 않는다 — 상세를 보는 중에 다시 찾기를
+   * 권하는 건 방해다.
+   */
+  const driftKm = useMemo(() => haversineKm(origin, viewCenter), [origin, viewCenter])
+  const canSearchHere = !selectedItem && driftKm > Math.max(1, radiusKm * 0.3)
+
+  const searchHere = useCallback(() => {
+    setOrigin(viewCenter)
+  }, [viewCenter])
 
   // 필터가 바뀌어 선택한 주차장이 목록에서 빠지면 선택도 함께 해제한다.
   useEffect(() => {
@@ -305,6 +321,18 @@ export default function App() {
         userPosition={geo.position}
         className="absolute inset-0"
       />
+
+      {/* 지도를 옮긴 만큼만 나타난다. 사이드바/시트에 가리지 않게 지도 영역 안에서 가운데. */}
+      <div
+        className="pointer-events-none absolute z-30 flex justify-center"
+        style={{
+          left: isDesktop ? SIDEBAR_WIDTH + 16 : 12,
+          right: 12,
+          top: isDesktop ? 24 : 150,
+        }}
+      >
+        <SearchHereButton visible={canSearchHere} onClick={searchHere} />
+      </div>
 
       {/* ── 데스크톱: 좌측 글래스 사이드바 ───────────────── */}
       {isDesktop ? (

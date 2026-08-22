@@ -349,6 +349,39 @@ test.describe('지도', () => {
     expect(await markers.count()).toBeGreaterThan(3)
   })
 
+  test('지도를 다른 동네로 옮기면 "이 지역에서 다시 찾기" 가 나타난다', async ({ page, isMobile }) => {
+    /*
+     * 결과는 언제나 기준점 반경 안에서만 고른다. 그런데 지도를 옮겨도 기준점은 그대로라,
+     * 다른 동네로 밀어 보면 마커가 하나도 없어 그 지역엔 주차장이 없는 것처럼 보인다.
+     * 기준점을 지도에 자동으로 붙여 버리면 카드 거리와 목록이 지도를 건드릴 때마다
+     * 출렁이므로, 옮길지 말지는 사용자가 정하게 한다.
+     */
+    test.skip(Boolean(isMobile), '지도 드래그는 데스크톱 프로젝트에서 한 번만 확인한다')
+
+    const here = page.getByTestId('search-here')
+    await expect(page.getByTestId('map-marker').first()).toBeVisible({ timeout: 15_000 })
+    // 처음에는 기준점과 지도 중심이 같으므로 뜨지 않는다.
+    await expect(here).toHaveCount(0)
+
+    const box = await page.getByTestId('map').boundingBox()
+    if (!box) throw new Error('지도 영역을 찾지 못했습니다')
+    const x = box.x + box.width * 0.7
+    const y = box.y + box.height * 0.5
+    for (let i = 0; i < 4; i++) {
+      await page.mouse.move(x, y + 250)
+      await page.mouse.down()
+      await page.mouse.move(x, y - 250, { steps: 12 })
+      await page.mouse.up()
+      await page.waitForTimeout(300)
+    }
+
+    await expect(here).toBeVisible({ timeout: 10_000 })
+
+    // 누르면 기준점이 지도 중심으로 옮겨가고, 옮겨졌으니 버튼은 사라진다.
+    await here.click()
+    await expect(here).toHaveCount(0, { timeout: 10_000 })
+  })
+
   test('마커 색상은 카드 상태와 같은 값을 쓴다', async ({ page }) => {
     await page.getByTestId('filter-free').click()
     await expect(page.getByTestId('map-marker').first()).toBeVisible()
