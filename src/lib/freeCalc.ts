@@ -147,7 +147,7 @@ function buildRuleIntervals(
   let inferred = false
 
   for (const rule of rules) {
-    if (rule.kind === 'grace' || rule.kind === 'targeted') continue
+    if (rule.kind === 'grace' || rule.kind === 'targeted' || rule.kind === 'exempt') continue
 
     if (rule.kind === 'always') {
       intervals.push({ start: DAY_SPAN[0] * DAY_MINUTES, end: (DAY_SPAN[DAY_SPAN.length - 1] + 1) * DAY_MINUTES })
@@ -234,6 +234,16 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
   const ruleSet = buildRuleIntervals(rules, visitStart)
   const freeByRules = intersectAll(ruleSet.intervals, visit)
 
+  /*
+   * ── 면제시간(회차시간) ────────────────────────────────
+   *
+   * '최초 N분 무료'(grace) 와 다르다. grace 는 그 시간만큼 과금 대상에서 빼 준다.
+   * 면제시간은 <그 안에 나가면 전액 무료, 넘기면 처음부터 과금>이다. 시간을 빼 주면
+   * 요금을 실제보다 싸게 알려 주게 된다 — 한강공원 2시간이 2,800원인데 2,600원이 된다.
+   */
+  const exemptMinutes = rules.reduce((max, r) => (r.kind === 'exempt' ? Math.max(max, r.minutes) : max), 0)
+  const exemptCovers = exemptMinutes > 0 && duration <= exemptMinutes
+
   // ── 최초 N분 무료 ────────────────────────────────────────
   const graceMinutes = graceRules.reduce((max, r) => Math.max(max, r.minutes), 0)
   // 요금표에 이미 반영된 무료 시간은 요금 계산에서 다시 빼면 안 된다.
@@ -243,8 +253,11 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
   const graceInterval = (minutes: number): Interval[] =>
     minutes > 0 ? [{ start: startMin, end: Math.min(startMin + minutes, visit.end) }] : []
 
-  const freeForCost = union([...freeByRules, ...graceInterval(billableGrace)])
-  const freeForDisplay = union([...freeByRules, ...graceInterval(graceMinutes)])
+  // 면제시간 안에 들어오는 방문은 구간 전체가 0원이다.
+  const exemptInterval: Interval[] = exemptCovers ? [{ start: startMin, end: visit.end }] : []
+
+  const freeForCost = union([...freeByRules, ...graceInterval(billableGrace), ...exemptInterval])
+  const freeForDisplay = union([...freeByRules, ...graceInterval(graceMinutes), ...exemptInterval])
 
   const freeInOpen = totalLength(intersectLists(freeForCost, openInVisit))
   const nonGraceInOpen = totalLength(intersectLists(freeByRules, openInVisit))
@@ -321,6 +334,11 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
     if (coveredByRules) {
       status = 'free'
       headline = isDeclaredFree ? '무료 주차장' : '이 시간대 전면 무료'
+    } else if (exemptCovers) {
+      // 면제시간 안에 들어와 0원이 된 경우 — 넘기면 처음부터 요금이 붙는다.
+      status = 'conditional'
+      headline = formatDurationShort(exemptMinutes) + ' 이내 무료 — ' + formatDurationShort(duration) + ' 주차 시 0원'
+      reasons.push(formatDurationShort(exemptMinutes) + '을 넘기면 처음부터 요금이 붙습니다.')
     } else if (graceMinutes > 0) {
       // 무료 시간 한도 안에 들어와 0원이 된 경우 — 더 오래 대면 요금이 붙는다.
       status = 'conditional'

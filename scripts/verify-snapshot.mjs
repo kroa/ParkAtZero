@@ -120,8 +120,12 @@ async function main() {
      * 표준데이터에 빠진 주차장을 손으로 채우는 곳이라 규율이 무너지기 쉽다.
      * 출처 없이 한 줄만 슬쩍 들어가도 앱 전체의 신뢰가 깨지므로 여기서 막는다.
      */
-    const supPath = path.join('src', 'data', 'supplements.json')
-    if (existsSync(supPath)) {
+    const supPaths = [
+      path.join('src', 'data', 'supplements.json'),
+      path.join('public', 'data', 'hangang.json'),
+    ]
+    for (const supPath of supPaths) {
+      if (!existsSync(supPath)) continue
       const sup = JSON.parse(await readFile(supPath, 'utf-8'))
       const supRows = Array.isArray(sup?.rows) ? sup.rows : []
       const problems = []
@@ -139,7 +143,7 @@ async function main() {
         fail('보완표에 문제가 있습니다:' + problems.map((p) => '\n  - ' + p).join(''))
         return
       }
-      console.log('보완표:', supRows.length, '건 (모두 출처·확인일자·좌표 확인)')
+      console.log('보완 ' + supPath + ':', supRows.length, '건 (출처·확인일자·좌표 확인)')
     }
 
     console.log('✓ 스냅샷 검증 통과')

@@ -86,8 +86,13 @@ export interface Parking {
 /** 특기사항/요금 필드에서 추출한 '무료 규칙' */
 export type FreeRule =
   | { kind: 'always'; label: string }
-  /** 최초 N분 무료 */
+  /** 최초 N분 무료 — 그 시간만큼은 과금 대상에서 빠진다 */
   | { kind: 'grace'; minutes: number; label: string }
+  /**
+   * 면제시간(회차시간) — N분 안에 나가면 전액 무료, 넘기면 처음부터 과금된다.
+   * grace 와 달리 시간을 빼 주지 않는다. 한강공원 주차장의 EXMPTN_HR 이 이것이다.
+   */
+  | { kind: 'exempt'; minutes: number; label: string }
   /** 하루 중 특정 시간대 무료 (분 단위, to 가 from 보다 작으면 자정 넘김) */
   | { kind: 'window'; from: number; to: number; days?: DayType[]; label: string; inferred?: boolean }
   /** 특정 요일 전일 무료 */

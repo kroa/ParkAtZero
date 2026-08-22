@@ -252,6 +252,19 @@
   transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.22s ease;
 }
 
+/*
+ * 칩 안의 native select.
+ *
+ * 닫혀 있을 때는 배경이 투명해야 칩의 알약 모양이 그대로 비친다. 그런데 Windows
+ * Chrome 은 드롭다운 <b>목록</b>의 배경도 select 의 background-color 로 칠한다.
+ * 투명하면 목록이 빈 상자로만 보여서, 고를 수는 있는데 글자가 하나도 안 보인다.
+ * option 에 실제 색을 줘서 목록만 불투명하게 만든다.
+ */
+.pz-select option {
+  background-color: rgb(var(--pz-surface));
+  color: rgb(var(--pz-ink));
+}
+
 /* 요금 미공개·운영 종료 마커. 자리는 지키되 시선을 끌지 않는다. */
 .pz-marker-dot {
   width: 9px;

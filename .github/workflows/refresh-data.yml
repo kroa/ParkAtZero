@@ -71,6 +71,19 @@ jobs:
           set -o pipefail
           npm run data:fetch 2>&1 | tee /tmp/step.log
 
+      # 한강공원 주차장 30곳은 표준데이터에 한 곳도 올라 있지 않아 따로 받는다.
+      # 인증키가 없으면 실패가 아니라 건너뛴다 — 이 갱신은 표준데이터가 본체다.
+      - name: 한강공원 주차장 수집
+        env:
+          SEOUL_OPENAPI_KEY: ${{ secrets.SEOUL_OPENAPI_KEY }}
+        run: |
+          set -o pipefail
+          if [ -z "$SEOUL_OPENAPI_KEY" ]; then
+            echo "::notice::SEOUL_OPENAPI_KEY 가 없어 한강공원 수집을 건너뜁니다."
+            exit 0
+          fi
+          npm run data:hangang 2>&1 | tee /tmp/step.log
+
       # 스냅샷이 실제로 앱에서 동작하는지 확인한 뒤에만 커밋한다.
       # 원본 스키마가 바뀌었는데 그대로 밀어 넣으면 서비스가 빈 목록이 된다.
       - name: 스냅샷 검증

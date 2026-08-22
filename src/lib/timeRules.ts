@@ -299,6 +299,14 @@ export function extractFreeRules(p: Parking): FreeRule[] {
     })
   })
 
+  // 4-1) "면제시간 10분" — N분 안에 나가면 전액 무료. 시간을 빼 주는 grace 와 다르다.
+  text = scan(text, /면제\s*시간\s*(\d{1,3})\s*분/g, (m) => {
+    const minutes = Number(m[1])
+    if (minutes > 0 && minutes < DAY_MINUTES) {
+      rules.push({ kind: 'exempt', minutes, label: formatDurationShort(minutes) + ' 이내 무료' })
+    }
+  })
+
   // 5) "최초 30분 무료", "1시간 무료"
   text = scan(
     text,

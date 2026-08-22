@@ -1043,6 +1043,65 @@ test.describe('시간 판별 로직', () => {
     expect(out.일요일).toBe('free')
   })
 
+  test('면제시간은 시간을 빼 주는 게 아니라 그 안에 나가야 무료다', async ({ page }) => {
+    /*
+     * 한강공원 주차장의 EXMPTN_HR(면제시간) 은 '최초 N분 무료'(grace) 와 의미가 다르다.
+     * grace 는 그 시간만큼 과금 대상에서 빼 주지만, 면제시간은 그 안에 나가면 전액
+     * 무료이고 넘기면 처음부터 과금된다. 빼 주는 쪽으로 계산하면 요금을 실제보다
+     * 싸게 알려 준다 — 여의도1주차장 2시간이 4,700원인데 4,400원이 된다.
+     *
+     * 수치는 서울 열린데이터광장 TbParkingInfoView 의 여의도1주차장 실제 값이다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const p = {
+        id: 'h',
+        name: '한강공원 여의도1주차장',
+        type: '노외',
+        ownership: '공영',
+        address: '서울특별시 영등포구 여의도동 86-5',
+        lat: 37.522752,
+        lng: 126.9396,
+        capacity: 462,
+        chargeType: '유료' as const,
+        hours: {
+          weekday: { open: 360, close: 1380, allDay: false },
+          saturday: { open: 360, close: 1380, allDay: false },
+          holiday: { open: 360, close: 1380, allDay: false },
+        },
+        fee: { basicTime: 30, basicCharge: 2000, addTime: 10, addCharge: 300, dayTicket: 15000 },
+        note: '면제시간 10분',
+      }
+      const at = (dur: number) =>
+        bridge.evaluate(p as never, '2026-08-22T14:00:00+09:00', dur) as {
+          status: string
+          cost: number | null
+          headline: string
+        }
+      return {
+        rules: bridge.extractFreeRules(p as never).map((r) => r.kind + '|' + r.label),
+        분10: at(10),
+        분30: at(30),
+        시간2: at(120),
+      }
+    })
+
+    expect(out.rules).toEqual(['exempt|10분 이내 무료'])
+
+    // 면제시간 안이면 0원.
+    expect(out.분10.status).toBe('conditional')
+    expect(out.분10.cost).toBe(0)
+    expect(out.분10.headline).toContain('10분 이내 무료')
+
+    // 넘기면 처음부터 과금된다 — 10분을 빼면 안 된다.
+    expect(out.분30.cost).toBe(2000)
+    // 기본 30분 2,000원 + 남은 90분을 10분당 300원 = 2,000 + 2,700
+    expect(out.시간2.cost).toBe(4700)
+  })
+
   test('원본에 차종 제한이 비어 있어도 보정표가 채운다', async ({ page }) => {
     /*
      * 남산공원 '소월로'는 특기사항에 '관광버스 전용'이 적혀 있는데 바로 옆 '소파로'는

@@ -12,6 +12,7 @@
     "build": "tsc --noEmit && node scripts/split-snapshot.mjs && vite build",
     "build:only": "node scripts/split-snapshot.mjs && vite build",
     "data:fetch": "node scripts/fetch-parking-data.mjs",
+    "data:hangang": "node scripts/fetch-hangang.mjs",
     "data:import": "node scripts/import-parking-file.mjs",
     "data:verify": "node scripts/verify-snapshot.mjs",
     "dev": "vite",

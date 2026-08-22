@@ -181,7 +181,7 @@ function SelectChip({ testId, icon, value, label, options, onChange }: SelectChi
         aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="cursor-pointer appearance-none bg-transparent pr-1 font-bold text-ink-soft focus:outline-none"
+        className="pz-select cursor-pointer appearance-none bg-transparent pr-1 font-bold text-ink-soft focus:outline-none"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

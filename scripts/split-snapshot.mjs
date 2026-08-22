@@ -18,7 +18,17 @@ import path from 'node:path'
 import process from 'node:process'
 
 const SOURCE = path.join('public', 'data', 'parkings.full.json')
-const SUPPLEMENTS = path.join('src', 'data', 'supplements.json')
+/*
+ * 표준데이터를 보완하는 자료들.
+ *
+ *  supplements.json — 관리기관 공식 안내를 보고 손으로 채운 것 (출처·확인일자 필수)
+ *  hangang.json     — 서울 열린데이터광장 오픈API 로 받은 한강공원 주차장 30곳.
+ *                     표준데이터에는 한 곳도 올라 있지 않다.
+ */
+const SUPPLEMENT_FILES = [
+  path.join('src', 'data', 'supplements.json'),
+  path.join('public', 'data', 'hangang.json'),
+]
 const OUT_DIR = path.join('public', 'data', 'cells')
 /*
  * 색인은 격자 칸과 다른 폴더에 둔다.
@@ -56,12 +66,13 @@ async function main() {
    * 보완표의 행은 표준데이터와 같은 모양이라 normalize 가 그대로 읽는다.
    * 이름·좌표가 겹치면 표준데이터를 그대로 두고 보완 행을 버린다 — 원본이 우선이다.
    */
-  if (existsSync(SUPPLEMENTS)) {
-    const sup = JSON.parse(await readFile(SUPPLEMENTS, 'utf-8'))
+  const seen = new Set(
+    rows.map((r) => String(r.prkplceNm ?? '').trim() + '@' + Number(r.latitude).toFixed(4) + ',' + Number(r.longitude).toFixed(4)),
+  )
+  for (const file of SUPPLEMENT_FILES) {
+    if (!existsSync(file)) continue
+    const sup = JSON.parse(await readFile(file, 'utf-8'))
     const supRows = Array.isArray(sup?.rows) ? sup.rows : []
-    const seen = new Set(
-      rows.map((r) => String(r.prkplceNm ?? '').trim() + '@' + Number(r.latitude).toFixed(4) + ',' + Number(r.longitude).toFixed(4)),
-    )
     let added = 0
     for (const r of supRows) {
       const key = String(r.prkplceNm ?? '').trim() + '@' + Number(r.latitude).toFixed(4) + ',' + Number(r.longitude).toFixed(4)
@@ -70,7 +81,7 @@ async function main() {
       rows.push(r)
       added++
     }
-    console.log('보완표 합침: ' + added + '건 (' + SUPPLEMENTS + ')')
+    console.log('보완 합침: ' + added + '건 (' + file + ')')
   }
 
   const cells = new Map()
