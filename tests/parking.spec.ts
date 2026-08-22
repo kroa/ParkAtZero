@@ -1207,6 +1207,66 @@ test.describe('시간 판별 로직', () => {
     expect(out.조건부_8시간.cost).toBe(6000)
   })
 
+  test('구매·이용 조건이 붙은 무료는 누구나 무료가 아니다', async ({ page }) => {
+    /*
+     * 대형마트 주차 안내에 아주 흔한 표현이다.
+     *   "30분 무료주차 이후 10분당 1,000원, 쇼핑금액 1만원 이상시 2시간 무료주차"
+     * 뒤 문장을 그냥 두면 최초 2시간 무료로 읽혀, 아무것도 사지 않아도 0원이라고
+     * 알려 준다. 이마트 154곳을 붙이면서 실제로 무더기로 새던 자리다.
+     *
+     * 조건이 붙은 절은 통째로 덮고 '조건부'로만 남긴다. 조건 없는 규칙은 그대로 산다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const base = {
+        id: 'x',
+        name: 'x',
+        type: '부설',
+        ownership: '민영',
+        address: '서울',
+        lat: 37.5,
+        lng: 127,
+        capacity: 0,
+        chargeType: '유료' as const,
+        hours: { weekday: null, saturday: null, holiday: null },
+        // 30분 무료 뒤 10분당 1,000원 — 이마트 구로점의 실제 요금이다.
+        fee: { basicTime: 30, basicCharge: 0, addTime: 10, addCharge: 1000 },
+      }
+      const at = (note: string) =>
+        bridge.evaluate({ ...base, note } as never, '2026-09-19T14:00:00+09:00', 120) as {
+          status: string
+          cost: number | null
+        }
+      const rules = (note: string) =>
+        bridge.extractFreeRules({ ...base, note } as never).map((r) => r.kind)
+
+      return {
+        구매조건: at('30분 무료주차 이후 10분당 1,000원 징수, 쇼핑금액 1만원 이상시 2시간 무료주차'),
+        구매조건규칙: rules('30분 무료주차 이후 10분당 1,000원 징수, 쇼핑금액 1만원 이상시 2시간 무료주차'),
+        강좌조건: at('기본 30분 2,000원 이후 10분당 500원 / 1가지의 강좌 이용시 3시간 무료'),
+        최대상한: at('30분 무료 이후 10분당 1,000원 / 최대 4시간 무료주차 가능'),
+        // 조건이 없는 규칙은 그대로 살아야 한다.
+        조건없음: at('평일 19시 이후 무료 개방'),
+        조건없음규칙: rules('평일 19시 이후 무료 개방'),
+      }
+    })
+
+    // 30분 무료 + 남은 90분을 10분당 1,000원 = 9,000원. 구매 조건은 요금을 깎지 않는다.
+    expect(out.구매조건.cost).toBe(9000)
+    expect(out.구매조건규칙).toContain('targeted')
+    expect(out.구매조건규칙).not.toContain('always')
+
+    // 문화센터 강좌, '최대 N시간' 상한도 마찬가지다.
+    expect(out.강좌조건.cost).toBeGreaterThan(0)
+    expect(out.최대상한.cost).toBe(9000)
+
+    // 조건 없는 시간대 규칙은 손대지 않는다.
+    expect(out.조건없음규칙).toContain('window')
+  })
+
   test('원본에 차종 제한이 비어 있어도 보정표가 채운다', async ({ page }) => {
     /*
      * 남산공원 '소월로'는 특기사항에 '관광버스 전용'이 적혀 있는데 바로 옆 '소파로'는

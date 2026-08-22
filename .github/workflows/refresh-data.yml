@@ -84,6 +84,14 @@ jobs:
           fi
           npm run data:hangang 2>&1 | tee /tmp/step.log
 
+      # 이마트·트레이더스 154곳. 대형마트 부설주차장도 표준데이터에 없다.
+      # 점포 안내 페이지를 훑는 것이라 실패해도 갱신 전체를 세우지 않는다.
+      - name: 이마트 주차 정보 수집
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run data:emart 2>&1 | tee /tmp/step.log
+
       # 스냅샷이 실제로 앱에서 동작하는지 확인한 뒤에만 커밋한다.
       # 원본 스키마가 바뀌었는데 그대로 밀어 넣으면 서비스가 빈 목록이 된다.
       - name: 스냅샷 검증

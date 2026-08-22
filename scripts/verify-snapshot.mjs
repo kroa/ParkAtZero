@@ -123,6 +123,7 @@ async function main() {
     const supPaths = [
       path.join('src', 'data', 'supplements.json'),
       path.join('public', 'data', 'hangang.json'),
+      path.join('public', 'data', 'emart.json'),
     ]
     for (const supPath of supPaths) {
       if (!existsSync(supPath)) continue

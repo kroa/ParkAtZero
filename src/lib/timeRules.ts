@@ -238,6 +238,44 @@ export function extractFreeRules(p: Parking): FreeRule[] {
   // 요일 한정어 존재 여부는 마스킹 전에 한 번만 본다(마스킹 후에는 판단이 흔들린다).
   const hasDayWord = Object.keys(DAYTYPE_WORD).some((w) => text.includes(w))
 
+  /*
+   * 0) 구매 조건이 붙은 무료는 '누구나 무료'가 아니다.
+   *
+   * "쇼핑금액 1만원 이상시 2시간 무료주차" 를 그냥 두면 아래 5) 가 최초 2시간 무료로
+   * 읽어, 아무것도 사지 않아도 0원이라고 알려 준다. 대형마트·아울렛 주차 안내에 아주
+   * 흔한 표현이라 그대로 두면 오탐이 무더기로 생긴다.
+   *
+   * 조건이 걸린 절은 통째로 덮고 대상 한정(targeted)으로만 남긴다. 절 안에 조건 없는
+   * 무료 표현이 섞여 있어도 함께 덮는데, 그 값은 요금 칸(기본시간 0원)이 들고 있으므로
+   * 잃는 것이 없다. 못 읽는 쪽이 공짜라고 잘못 말하는 쪽보다 낫다.
+   */
+  {
+    /*
+     * 조건부 무료를 알아보는 표현들.
+     *  - 구매/영수증/금액 : "1만원 이상 구매시 2시간 무료"
+     *  - 강좌/관람/대관   : "강좌 이용시 3시간 무료" (문화센터·영화관 제휴)
+     *  - 최대 N시간 무료  : 조건을 채웠을 때의 상한이지 기본 제공이 아니다
+     */
+    const PURCHASE =
+      /[0-9,]+\s*만?\s*원\s*이상|구매\s*시|구매고객|영수증|쇼핑\s*금액|강좌|수강|문화센터|관람|대관|회원|멤버십|최대\s*[0-9]+\s*(?:분|시간)\s*무료/
+    let cursor = 0
+    /*
+     * 쉼표로는 자르지 않는다. "1만원 이상 구매시, 2시간 무료" 를 갈라 놓으면
+     * 조건은 앞 조각에 남고 혜택만 뒤 조각에 남아 그대로 통과한다.
+     */
+    for (const piece of text.split(/(\s\/\s|[;\u00b7\n])/)) {
+      const start = cursor
+      cursor += piece.length
+      if (!piece || !PURCHASE.test(piece) || !/무료|면제/.test(piece)) continue
+      rules.push({
+        kind: 'targeted',
+        target: '구매',
+        label: piece.trim().replace(/^[-*·■※]+/, '').trim().slice(0, 44),
+      })
+      text = mask(text, start, piece.length)
+    }
+  }
+
   // 1) "20시~08시 무료", "20:00 ~ 익일 08:00 무료"
   text = scan(
     text,

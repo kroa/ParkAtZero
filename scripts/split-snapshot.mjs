@@ -24,10 +24,13 @@ const SOURCE = path.join('public', 'data', 'parkings.full.json')
  *  supplements.json — 관리기관 공식 안내를 보고 손으로 채운 것 (출처·확인일자 필수)
  *  hangang.json     — 서울 열린데이터광장 오픈API 로 받은 한강공원 주차장 30곳.
  *                     표준데이터에는 한 곳도 올라 있지 않다.
+ *  emart.json       — 이마트·트레이더스 154곳. 대형마트 부설주차장은 표준데이터가
+ *                     사실상 공영 전용이라 통째로 빠져 있다.
  */
 const SUPPLEMENT_FILES = [
   path.join('src', 'data', 'supplements.json'),
   path.join('public', 'data', 'hangang.json'),
+  path.join('public', 'data', 'emart.json'),
 ]
 const OUT_DIR = path.join('public', 'data', 'cells')
 /*
