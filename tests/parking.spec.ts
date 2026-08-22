@@ -1135,6 +1135,78 @@ test.describe('시간 판별 로직', () => {
     expect(out.시간2.cost).toBe(4700)
   })
 
+  test('대형몰 부설주차장은 지점별 정책을 그대로 옮긴다', async ({ page }) => {
+    /*
+     * 「전국주차장정보표준데이터」는 공영이 거의 전부라(민영 913곳) 대형몰 부설주차장이
+     * 통째로 빠져 있다. 그렇다고 브랜드 단위로 "스타필드는 무료" 라고 못 박으면 틀린다.
+     * 같은 스타필드인데도 하남·안성·고양은 전액 무료이고 수원은 6시간 무료 뒤 유료다.
+     * 지점별 공식 안내를 그대로 옮겨야 한다.
+     *
+     * 수치는 starfield.co.kr 각 지점 주차안내의 실제 값이다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const mall = (extra: Record<string, unknown>) =>
+        bridge.normalize(
+          {
+            prkplceNo: 'M',
+            prkplceNm: '몰',
+            prkplceSe: '민영',
+            prkplceType: '부설',
+            rdnmadr: '경기도',
+            latitude: '37.5',
+            longitude: '127.1',
+            operDay: '매일',
+            weekdayOperOpenHhmm: '1000',
+            weekdayOperColseHhmm: '2200',
+            satOperOperOpenHhmm: '1000',
+            satOperCloseHhmm: '2200',
+            holidayOperOpenHhmm: '1000',
+            holidayCloseOpenHhmm: '2200',
+            ...extra,
+          },
+          0,
+        )
+      const at = (p: unknown, iso: string, dur: number) =>
+        bridge.evaluate(p as never, iso, dur) as { status: string; cost: number | null }
+
+      // 하남·안성처럼 전액 무료인 지점
+      const freeMall = mall({ parkingchrgeInfo: '무료', spcmnt: '방문객 누구나 무료' })
+      // 수원처럼 최초 6시간 무료 뒤 10분당 500원인 지점
+      const timedMall = mall({
+        parkingchrgeInfo: '유료',
+        basicTime: '360',
+        basicCharge: '0',
+        addUnitTime: '10',
+        addUnitCharge: '500',
+        dayCmmtkt: '18000',
+        spcmnt: '최초 6시간 무료. 이후 10분당 500원',
+      })
+
+      return {
+        무료_낮2시간: at(freeMall, '2026-09-19T14:00:00+09:00', 120),
+        // 몰이 닫힌 새벽에는 무료라고 하면 안 된다.
+        무료_새벽: at(freeMall, '2026-09-19T03:00:00+09:00', 120),
+        조건부_2시간: at(timedMall, '2026-09-19T14:00:00+09:00', 120),
+        조건부_8시간: at(timedMall, '2026-09-19T13:00:00+09:00', 480),
+      }
+    })
+
+    expect(out.무료_낮2시간.status).toBe('free')
+    expect(out.무료_낮2시간.cost).toBe(0)
+    expect(out.무료_새벽.status).toBe('closed')
+
+    // 6시간 안이면 0원이지만 '조건부' 다 — 더 대면 요금이 붙는다.
+    expect(out.조건부_2시간.status).toBe('conditional')
+    expect(out.조건부_2시간.cost).toBe(0)
+
+    // 8시간이면 6시간 무료 + 남은 2시간을 10분당 500원 = 6,000원.
+    expect(out.조건부_8시간.cost).toBe(6000)
+  })
+
   test('원본에 차종 제한이 비어 있어도 보정표가 채운다', async ({ page }) => {
     /*
      * 남산공원 '소월로'는 특기사항에 '관광버스 전용'이 적혀 있는데 바로 옆 '소파로'는
