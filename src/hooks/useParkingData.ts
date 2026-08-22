@@ -94,7 +94,7 @@ export function useParkingData(origin: LatLng, radiusKm: number): ParkingDataSta
     setState((prev) => ({ ...prev, refreshing: true }))
 
     void (async () => {
-      const rows = await loadCells(needed, controller.signal)
+      const rows = await loadCells(needed, index, controller.signal)
       if (controller.signal.aborted) return
 
       for (const key of needed) loadedRef.current.add(key)

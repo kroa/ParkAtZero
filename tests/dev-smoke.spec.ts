@@ -70,11 +70,12 @@ test.describe('개발 서버 스모크', () => {
     await expect(page.getByTestId('parking-card').first()).toBeVisible({ timeout: 30_000 })
     await page.waitForTimeout(1500)
 
-    expect(requested).toContain('cells/index.json')
+    expect(requested).toContain('cell-index.json')
     // 전국 스냅샷을 통째로 받으면 안 된다 — 저사양 단말에서 파싱만 2초가 걸린다.
     expect(requested.some((u) => u.includes('parkings.full.json'))).toBe(false)
 
-    const cells = requested.filter((u) => /^cells\/-?\d+_-?\d+\.json$/.test(u))
+    // 칸 파일명에는 내용 해시가 붙는다 — 데이터가 바뀌면 URL 이 바뀌어 캐시가 저절로 갈린다.
+    const cells = requested.filter((u) => /^cells\/-?\d+_-?\d+\.[0-9a-f]{8}\.json$/.test(u))
     expect(cells.length).toBeGreaterThan(0)
     expect(cells.length).toBeLessThan(20)
 

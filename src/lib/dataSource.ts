@@ -26,8 +26,13 @@ export interface CellIndex {
   /** 스냅샷 전체 건수 — 출처 표시에 쓴다 */
   totalCount: number
   referenceDate?: string
-  /** 존재하는 칸과 그 안의 건수. 없는 칸을 요청하지 않기 위해 둔다. */
-  cells: Record<string, number>
+  /**
+   * 존재하는 칸과 그 안의 건수·파일명.
+   *
+   * 파일명에는 내용 해시가 붙어 있다(150_507.a1b2c3d4.json). 칸 파일은 영구 캐시라
+   * 데이터가 바뀌면 이름이 바뀌고, 색인만 새로 받으면 곧바로 반영된다.
+   */
+  cells: Record<string, { count: number; file: string }>
 }
 
 async function fetchJson(url: string, signal?: AbortSignal): Promise<unknown> {
@@ -80,9 +85,14 @@ export function cellKeysFor(center: LatLng, radiusKm: number, index: CellIndex):
 }
 
 /** 격자 칸 여러 개를 병렬로 받아 하나로 합친다. 실패한 칸은 건너뛴다. */
-export async function loadCells(keys: string[], signal?: AbortSignal): Promise<Parking[]> {
+export async function loadCells(keys: string[], index: CellIndex, signal?: AbortSignal): Promise<Parking[]> {
   const base = CONFIG.cellBaseUrl
-  const results = await Promise.all(keys.map((key) => tryJson(base + '/' + key + '.json', signal)))
+  const results = await Promise.all(
+    keys.map((key) => {
+      const file = index.cells[key]?.file
+      return file ? tryJson(base + '/' + file, signal) : Promise.resolve(null)
+    }),
+  )
   const merged: Parking[] = []
   for (const payload of results) {
     if (!payload) continue

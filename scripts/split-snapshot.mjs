@@ -11,6 +11,7 @@
  * 산출물은 dist 에만 들어간다. 저장소에는 원본 스냅샷 하나만 두고, 쪼갠 결과는
  * 언제든 다시 만들 수 있으므로 커밋하지 않는다.
  */
+import { createHash } from 'node:crypto'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
@@ -19,6 +20,14 @@ import process from 'node:process'
 const SOURCE = path.join('public', 'data', 'parkings.full.json')
 const SUPPLEMENTS = path.join('src', 'data', 'supplements.json')
 const OUT_DIR = path.join('public', 'data', 'cells')
+/*
+ * 색인은 격자 칸과 다른 폴더에 둔다.
+ *
+ * 칸 파일은 이름에 내용 해시가 붙어 영구 캐시(immutable)로 두고, 색인만 짧게 캐시한다.
+ * 같은 폴더에 있으면 _headers 의 /data/cells/* 규칙이 색인까지 영구 캐시로 만들어
+ * 데이터를 고쳐도 재방문자에게 옛 값이 그대로 나간다.
+ */
+const INDEX_FILE = path.join('public', 'data', 'cell-index.json')
 /** 격자 한 칸의 크기(도). 0.25도 ≈ 28km. */
 const CELL_SIZE = 0.25
 
@@ -91,20 +100,30 @@ async function main() {
     cellSize: CELL_SIZE,
     totalCount: rows.length - dropped,
     referenceDate,
-    // 칸마다 몇 건인지 — 없는 칸을 굳이 요청하지 않기 위해서다.
+    // 칸마다 몇 건인지와 실제 파일명(내용 해시 포함). 없는 칸은 요청하지 않는다.
     cells: {},
   }
 
   let biggest = 0
   for (const [key, list] of cells) {
     const json = JSON.stringify({ data: list })
-    await writeFile(path.join(OUT_DIR, key + '.json'), json, 'utf-8')
-    index.cells[key] = list.length
+    /*
+     * 파일명에 내용 해시를 붙인다.
+     *
+     * 예전에는 150_507.json 처럼 고정 이름이라, 캐시를 넉넉히 잡아 두면 데이터를 고쳐도
+     * 재방문자에게는 옛 칸이 그대로 나갔다. 실제로 보완표를 배포한 뒤에도 브라우저가
+     * 캐시된 칸을 그대로 써서 새 주차장이 보이지 않았다.
+     * 이름이 바뀌면 URL 이 바뀌므로 색인만 새로 받으면 곧바로 반영된다.
+     */
+    const hash = createHash('sha256').update(json).digest('hex').slice(0, 8)
+    const file = key + '.' + hash + '.json'
+    await writeFile(path.join(OUT_DIR, file), json, 'utf-8')
+    index.cells[key] = { count: list.length, file }
     biggest = Math.max(biggest, Buffer.byteLength(json))
   }
 
   const indexJson = JSON.stringify(index)
-  await writeFile(path.join(OUT_DIR, 'index.json'), indexJson, 'utf-8')
+  await writeFile(INDEX_FILE, indexJson, 'utf-8')
 
   const kb = (n) => Math.round(n / 1024).toLocaleString('ko-KR') + 'KB'
   console.log(

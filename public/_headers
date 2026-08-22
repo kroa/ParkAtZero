@@ -8,12 +8,27 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-/data/*
+# 데이터 캐시.
+#
+# 규칙이 겹치면 Cloudflare Pages 는 헤더를 덮어쓰지 않고 이어 붙인다. 예전에는
+# /data/* 와 /data/cells/* 가 함께 걸려 Cache-Control 이 두 번 붙은 채로 나갔다.
+# 겹치지 않게 경로를 하나씩 적는다.
+#
+# 격자 칸 파일명에는 내용 해시가 있어(150_507.a1b2c3d4.json) 내용이 바뀌면 URL 이
+# 바뀐다. 그래서 칸은 영구 캐시로 두고, 색인만 짧게 잡아 고친 데이터가 다음 방문에
+# 바로 반영되게 한다. 예전에는 칸을 하루 캐시해서, 데이터를 고쳐도 재방문자가
+# 옛 값을 그대로 보고 있었다.
+/data/cells/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/data/cell-index.json
+  Cache-Control: public, max-age=60, stale-while-revalidate=300
+
+/data/parkings.sample.json
   Cache-Control: public, max-age=3600, stale-while-revalidate=86400
 
-# 격자 칸은 배포 사이에 잘 바뀌지 않는다. 재방문 때 즉시 뜨도록 넉넉히 캐시한다.
-/data/cells/*
-  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+/data/parkings.full.json
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
 
 /index.html
   Cache-Control: public, max-age=0, must-revalidate

@@ -35,7 +35,7 @@ export const CONFIG = {
    * 격자 색인. 빌드 때 만들어지며, 앱은 이걸 먼저 읽고 필요한 칸만 골라 받는다.
    * 없으면(격자를 만들지 않은 환경) 예시 데이터로 내려간다.
    */
-  cellIndexUrl: urlPath(env.VITE_PARKING_CELL_INDEX, '/data/cells/index.json'),
+  cellIndexUrl: urlPath(env.VITE_PARKING_CELL_INDEX, '/data/cell-index.json'),
   cellBaseUrl: urlPath(env.VITE_PARKING_CELL_BASE, '/data/cells'),
 
   /** 예시 데이터 — 실제 스냅샷이 없을 때만 쓰는 폴백 */
