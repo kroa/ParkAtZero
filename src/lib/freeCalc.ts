@@ -96,6 +96,15 @@ export function describeFee(p: Parking): string {
   return parts.length ? parts.join(' · ') : '요금 정보 없음'
 }
 
+/*
+ * 노상인데도 물리적으로 막히는 곳의 신호.
+ *
+ * "운영시간 내 무료. 야간 차단기 통제" 처럼 적힌 노상주차장이 있다. 이런 곳은
+ * 운영시간 밖에 아예 들어갈 수 없으므로 아래 <운영시간 외 무료> 규칙을 적용하면 안 된다.
+ * 요금을 잘못 알려 주는 것보다 갔는데 못 대는 쪽이 더 나쁘다.
+ */
+const BARRIER_HINT = /차단기|차단봉|게이트|폐쇄|통제|출입\s*금지|진입\s*금지/
+
 function dayTypeForOffset(visitStart: Date, offset: number): DayType {
   const d = new Date(startOfDay(visitStart).getTime() + offset * DAY_MINUTES * 60_000)
   return getDayType(d)
@@ -240,7 +249,7 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
   const freeInOpen = totalLength(intersectLists(freeForCost, openInVisit))
   const nonGraceInOpen = totalLength(intersectLists(freeByRules, openInVisit))
   // 표시용 무료 시간도 운영시간 안에서만 센다 — 문이 닫혀 있으면 '무료 2시간'이 아니라 0분이다.
-  const freeMinutes = totalLength(intersectLists(freeForDisplay, openInVisit))
+  let freeMinutes = totalLength(intersectLists(freeForDisplay, openInVisit))
 
   const chargeable = Math.max(0, openMinutes - freeInOpen)
 
@@ -250,17 +259,46 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
   const reasons: string[] = []
   let status: ParkingStatus
   let headline: string
+  /** 운영시간 밖이라 0원이라고 판단한 경우 — 이 레코드에 적힌 값이 아니라 제도에서 온 추론이다. */
+  let offHoursFree = false
 
   const coveredByRules = openMinutes > 0 && nonGraceInOpen >= openMinutes - 0.5
 
   // ── 상태 결정 ────────────────────────────────────────────────
   if (openMinutes === 0) {
-    status = 'closed'
     const range = parking.hours[dayType]
-    headline = range
+    const hoursLabel = range
       ? formatMinuteOfDay(range.open) + '~' + formatMinuteOfDay(range.close) + ' 운영'
       : '해당 요일 미운영'
-    reasons.push('선택한 시간은 운영시간이 아닙니다.')
+
+    /*
+     * 노상주차장의 운영시간 밖은 <문을 닫은 것>이 아니라 <요금을 받지 않는 것>이다.
+     *
+     * 노상주차장은 도로에 그려진 주차구획이라 차단기가 없다. 요금은 조례로 정한
+     * 징수시간에만 부과하고, 그 시간이 지나면 그대로 대도 0원이다.
+     * 이것이 한국 도심에서 공짜로 대는 가장 흔한 방법인데, 이 앱은 그걸 전부
+     * '운영 종료' 회색으로 묻고 있었다. 청계천 일대 노상 주차장이 토요일 15시부터
+     * 무료인데도 목록에 한 곳도 뜨지 않았다.
+     *
+     * 근거: 부천도시공사 안내(노상주차장 월~금 09:00~18:00 운영, 주말 무료),
+     *       강동구청 청사 주차장 안내(평일 09~18시만 유료, 매일 18시~익일 09시 무료).
+     *
+     * 노외·부설은 제외한다. 차단기로 실제로 닫히는 곳이 섞여 있고, 데이터만으로는
+     * 24시간 개방인지 야간 폐쇄인지 가릴 수 없다. 갔는데 못 대는 쪽이 더 나쁘다.
+     */
+    if (parking.type === '노상' && !BARRIER_HINT.test(parking.note ?? '')) {
+      status = 'free'
+      headline = '운영시간 외 — 요금을 받지 않아요'
+      freeMinutes = duration
+      offHoursFree = true
+      reasons.push('노상주차장은 운영시간에만 요금을 받습니다 (' + hoursLabel + ').')
+      reasons.push('도로변 주차구획이라 운영시간 밖에는 차단 없이 댈 수 있습니다.')
+      reasons.push('다만 주차금지 표지·소화전·교차로 모퉁이는 시간과 무관하게 피하세요.')
+    } else {
+      status = 'closed'
+      headline = hoursLabel
+      reasons.push('선택한 시간은 운영시간이 아닙니다.')
+    }
   } else if (priced.cost === null) {
     status = 'unknown'
     if (restriction) {
@@ -360,7 +398,7 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
     freeUntil,
     dayType,
     isOpen: openMinutes > 0,
-    estimated: priced.estimated || oper.assumed || ruleSet.inferred,
+    estimated: priced.estimated || oper.assumed || ruleSet.inferred || offHoursFree,
     restriction,
   }
 }

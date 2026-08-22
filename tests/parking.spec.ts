@@ -909,6 +909,84 @@ test.describe('시간 판별 로직', () => {
     expect(out.any).toHaveLength(4)
   })
 
+  test('노상주차장의 운영시간 밖은 문을 닫은 게 아니라 요금을 받지 않는 것이다', async ({ page }) => {
+    /*
+     * 노상주차장은 도로에 그려진 주차구획이라 차단기가 없고, 요금은 조례로 정한
+     * 징수시간에만 부과한다. 한국 도심에서 공짜로 대는 가장 흔한 방법인데
+     * 이 앱은 그걸 전부 '운영 종료' 회색으로 묻고 있었다 — 청계천 일대 노상이
+     * 토요일 15시부터 무료인데 목록에 한 곳도 뜨지 않았다.
+     *
+     * 노외·부설은 차단기로 실제 닫히는 곳이 섞여 있어 그대로 '운영 종료'로 둔다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const base = {
+        id: 'x',
+        name: '청계N',
+        ownership: '공영',
+        address: '서울특별시 종로구',
+        lat: 37.5696,
+        lng: 126.991,
+        capacity: 10,
+        chargeType: '유료' as const,
+        // 평일 09~19시 / 토·공휴일 09~15시 — 청계천 일대 노상의 실제 운영시간
+        hours: {
+          weekday: { open: 540, close: 1140, allDay: false },
+          saturday: { open: 540, close: 900, allDay: false },
+          holiday: { open: 540, close: 900, allDay: false },
+        },
+        fee: { basicTime: 30, basicCharge: 1000, addTime: 10, addCharge: 500 },
+      }
+      const at = (parking: Record<string, unknown>, iso: string) =>
+        bridge.evaluate(parking as never, iso, 120) as {
+          status: string
+          headline: string
+          cost: number | null
+          estimated: boolean
+        }
+
+      const onStreet = { ...base, type: '노상' }
+      const offStreet = { ...base, type: '노외' }
+      const restricted = { ...base, type: '노상', note: '관광버스 전용' }
+      const gated = { ...base, type: '노상', note: '운영시간 내 무료. 야간 차단기 통제' }
+
+      return {
+        // 토요일 20:00 — 징수시간(09~15시) 밖
+        노상_운영밖: at(onStreet, '2026-08-22T20:00:00+09:00'),
+        // 토요일 12:00 — 징수시간 안
+        노상_운영안: at(onStreet, '2026-08-22T12:00:00+09:00'),
+        // 같은 시각의 노외는 그대로 운영 종료
+        노외_운영밖: at(offStreet, '2026-08-22T20:00:00+09:00'),
+        // 전용 구획은 운영시간 밖이어도 일반 차량이 못 댄다
+        전용_운영밖: at(restricted, '2026-08-22T20:00:00+09:00'),
+        // 노상이어도 차단기로 막는 곳이 있다.
+        차단기_운영밖: at(gated, '2026-08-22T20:00:00+09:00'),
+      }
+    })
+
+    expect(out.노상_운영밖.status).toBe('free')
+    expect(out.노상_운영밖.cost).toBe(0)
+    expect(out.노상_운영밖.headline).toContain('운영시간 외')
+    // 이 레코드에 적힌 값이 아니라 제도에서 온 추론이므로 '추정' 을 달아야 한다.
+    expect(out.노상_운영밖.estimated).toBe(true)
+
+    // 징수시간 안이면 그대로 유료다.
+    expect(out.노상_운영안.status).toBe('paid')
+
+    // 노외는 차단기가 있을 수 있어 판정을 바꾸지 않는다.
+    expect(out.노외_운영밖.status).toBe('closed')
+
+    // 전용 구획이 초록으로 새어 나가면 안 된다.
+    expect(out.전용_운영밖.status).toBe('conditional')
+    expect(out.전용_운영밖.headline).toContain('관광버스 전용')
+
+    // '야간 차단기 통제' 처럼 물리적으로 막히는 노상은 규칙에서 뺀다.
+    expect(out.차단기_운영밖.status).toBe('closed')
+  })
+
   test('원본에 차종 제한이 비어 있어도 보정표가 채운다', async ({ page }) => {
     /*
      * 남산공원 '소월로'는 특기사항에 '관광버스 전용'이 적혀 있는데 바로 옆 '소파로'는
