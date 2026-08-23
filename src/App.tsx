@@ -24,6 +24,7 @@ import {
   summarize,
   type OwnershipFilter,
   type QueryState,
+  type ResultItem,
   type SortKey,
   type StatusFilter,
   type VehicleFilter,
@@ -36,6 +37,8 @@ import { cn } from '@/lib/cn'
 
 /** 지도에 한 번에 올리는 마커 상한 — 그 이상은 시각적으로도 의미가 없고 프레임만 잡아먹는다. */
 const MAX_MARKERS = 200
+/* 그중 점(요금 미공개·운영 종료)에 남겨 두는 자리. 답이 아니어도 있다는 사실은 보여야 한다. */
+const MAX_DOT_MARKERS = 60
 
 /** 데스크톱 사이드바 / 상세 패널 폭 — 지도 여백 계산에 쓴다. */
 const SIDEBAR_WIDTH = 428
@@ -119,27 +122,38 @@ export default function App() {
    */
   const markers: MarkerModel[] = useMemo(() => {
     /*
-     * 상한에 걸릴 때는 답이 되는 마커부터 남긴다.
-     * 거리만으로 자르면 요금 미공개 주차장이 자리를 차지해 정작 초록 마커가 잘린다.
+     * 라벨 마커와 점에 각각 몫을 준다.
+     *
+     * 답이 되는 마커(무료·조건부·금액을 아는 유료)를 앞세우는 것까지는 맞았는데,
+     * 그것만으로 상한을 채우면 점이 하나도 안 그려진다. 실제로 서대문 일대에서
+     * 라벨 마커 298개가 200칸을 다 차지해, 요금 미공개뿐인 홍제·홍은동 8곳이
+     * 지도에서 통째로 사라졌다 — 그 동네에 주차장이 없는 것처럼 보인다.
+     *
+     * 라벨은 넉넉히 주되 점 자리를 남겨 둔다. '여기 주차장이 있긴 하다' 는
+     * 사실은 요금을 몰라도 지도에서 지워지면 안 된다.
      */
-    const nearView =
-      results.length <= MAX_MARKERS
-        ? results
-        : [...results]
-            .sort((a, b) => {
-              const am = isMinorMarker(a.evaluation.status, a.evaluation.cost) ? 1 : 0
-              const bm = isMinorMarker(b.evaluation.status, b.evaluation.cost) ? 1 : 0
-              if (am !== bm) return am - bm
-              return haversineKm(viewCenter, a.parking) - haversineKm(viewCenter, b.parking)
-            })
-            .slice(0, MAX_MARKERS)
+    const byView = (a: ResultItem, b: ResultItem) =>
+      haversineKm(viewCenter, a.parking) - haversineKm(viewCenter, b.parking)
+
+    const isMinor = (it: ResultItem) => isMinorMarker(it.evaluation.status, it.evaluation.cost)
+
+    let nearView: ResultItem[]
+    if (results.length <= MAX_MARKERS) {
+      nearView = results
+    } else {
+      const labelled = results.filter((it) => !isMinor(it)).sort(byView)
+      const dots = results.filter(isMinor).sort(byView)
+      // 점이 적으면 남는 자리는 라벨이 가져간다.
+      const dotShare = Math.min(dots.length, MAX_DOT_MARKERS)
+      nearView = [...labelled.slice(0, MAX_MARKERS - dotShare), ...dots.slice(0, dotShare)]
+    }
 
     return nearView.map((item) => ({
       id: item.parking.id,
       name: item.parking.name,
       status: item.evaluation.status,
       label: markerLabel(item.evaluation.status, item.evaluation.cost),
-      minor: isMinorMarker(item.evaluation.status, item.evaluation.cost),
+      minor: isMinor(item),
       lat: item.parking.lat,
       lng: item.parking.lng,
     }))

@@ -411,6 +411,36 @@ test.describe('지도', () => {
  *  7. 테마
  * ═══════════════════════════════════════════════════════════════ */
 test.describe('지도 마커 정리', () => {
+  test('라벨 마커가 상한을 다 차지해도 점은 남는다', async ({ page }) => {
+    /*
+     * 답이 되는 마커를 앞세우는 것까지는 맞았는데, 그것만으로 상한을 채우면 점이
+     * 하나도 안 그려진다. 실제로 서대문 일대에서 라벨 마커 298개가 200칸을 다 차지해
+     * 요금 미공개뿐인 홍제·홍은동 8곳이 지도에서 통째로 사라졌다 — 그 동네에
+     * 주차장이 없는 것처럼 보인다.
+     *
+     * '여기 주차장이 있긴 하다' 는 사실은 요금을 몰라도 지워지면 안 된다.
+     */
+    await gotoApp(page)
+    await widenRadius(page)
+    // 밤에는 운영 종료가 늘어 점 대상이 많아진다.
+    await setVisit(page, DATES.weekday, '23:00', 120)
+
+    const shape = await page.getByTestId('map-marker').evaluateAll((els) => {
+      let dot = 0
+      let pill = 0
+      for (const el of els) {
+        if (el.querySelector('.pz-marker-dot')) dot++
+        else pill++
+      }
+      return { total: els.length, dot, pill }
+    })
+
+    // 점 대상이 있는 시간대이므로 점이 하나라도 그려져야 한다.
+    expect(shape.dot).toBeGreaterThan(0)
+    // 라벨도 함께 남아 있어야 한다 — 점이 전부를 밀어내도 곤란하다.
+    expect(shape.pill).toBeGreaterThan(0)
+  })
+
   test('요금 미공개·운영 종료는 라벨 없이 점으로 찍는다', async ({ page }) => {
     /*
      * 이 앱은 0원 주차장을 찾는 도구다. 답이 될 수 없는 곳이 '미공개'·'종료' 글자를 달고
