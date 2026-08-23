@@ -126,6 +126,7 @@ async function main() {
       path.join('public', 'data', 'emart.json'),
       path.join('public', 'data', 'outlets.json'),
       path.join('public', 'data', 'lotte.json'),
+      path.join('public', 'data', 'homeplus.json'),
     ]
     for (const supPath of supPaths) {
       if (!existsSync(supPath)) continue

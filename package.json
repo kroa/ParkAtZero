@@ -16,6 +16,7 @@
     "data:emart": "node scripts/fetch-emart.mjs",
     "data:outlets": "node scripts/fetch-outlets.mjs",
     "data:lotte": "node scripts/fetch-lotte.mjs",
+    "data:homeplus": "node scripts/fetch-homeplus.mjs",
     "data:seoul-fees": "node scripts/fetch-seoul-fees.mjs",
     "data:import": "node scripts/import-parking-file.mjs",
     "data:verify": "node scripts/verify-snapshot.mjs",

@@ -556,6 +556,50 @@ test.describe('조건부 혜택', () => {
     await expect(page.getByTestId('detail-perks')).toBeVisible()
     await expect(page.getByTestId('detail-perks')).toContainText('조건을 채우면 무료')
   })
+
+  test('시간제 무료는 그 시간까지만 0원이고 넘기면 요금을 모른다고 한다', async ({ page }) => {
+    /*
+     * 홈플러스 214곳의 안내는 '무료주차 가능/1시간' 처럼 무료 시간만 있고 초과 요금이 없다.
+     *
+     * 1시간까지는 확실히 0원이지만, 넘긴 뒤 얼마인지는 어디에도 적혀 있지 않다.
+     * 그 상태로 계속 0원이라고 하면 3시간 대고 와서 돈을 내게 된다. 모르는 건
+     * 모른다고 해야 한다.
+     */
+    await gotoApp(page)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const p = {
+        id: 'hp',
+        name: '홈플러스 개봉점',
+        type: '부설',
+        ownership: '민영',
+        address: '서울특별시 구로구',
+        lat: 37.4946,
+        lng: 126.8574,
+        capacity: 0,
+        chargeType: '유료' as const,
+        hours: {
+          weekday: { open: 600, close: 1380, allDay: false },
+          saturday: { open: 600, close: 1380, allDay: false },
+          holiday: { open: 600, close: 1380, allDay: false },
+        },
+        // 무료 시간은 특기사항에만 있고 요금표는 비어 있다 — 수집기가 만드는 모양 그대로다.
+        fee: { basicTime: 0, basicCharge: 0, addTime: 0, addCharge: 0 },
+        note: '최초 1시간 무료',
+      }
+      const at = '2026-09-15T14:00:00+09:00'
+      const hour = bridge.evaluate(p as never, at, 60) as { cost: number | null; status: string }
+      const three = bridge.evaluate(p as never, at, 180) as { cost: number | null; status: string }
+      return { hour, three }
+    })
+
+    // 1시간이면 무료 시간 안이라 0원.
+    expect(out.hour.cost).toBe(0)
+    // 3시간이면 초과분 요금을 모른다 — 0원으로 넘겨짚지 않는다.
+    expect(out.three.cost).toBeNull()
+    expect(out.three.status).toBe('unknown')
+  })
 })
 
 test.describe('다크 / 라이트 모드', () => {
