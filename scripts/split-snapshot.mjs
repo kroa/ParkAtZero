@@ -124,6 +124,47 @@ async function main() {
     console.log('요금 채움: ' + filled + '건 · 요일 정보 채움: ' + noted + '건 (' + file + ')')
   }
 
+  /*
+   * 기관 단위 조례 규정을 덮는다.
+   *
+   * 표준데이터에는 요금과 요일 규정이 통째로 빈 기관이 있다. 여수시 노외 32곳,
+   * 안산시 52곳이 그렇다. 그런 곳도 조례에는 요금표와 '공휴일은 무료를 원칙으로
+   * 한다' 같은 규정이 분명히 적혀 있다. 주차장마다 다른 것은 담지 않고, 기관 전체에
+   * 같게 적용되는 것만 담는다. excludeNames 는 조례의 예외로 확인된 주차장이다.
+   */
+  const RULES_FILE = path.join('public', 'data', 'institution-rules.json')
+  if (existsSync(RULES_FILE)) {
+    const { rules = [] } = JSON.parse(await readFile(RULES_FILE, 'utf-8'))
+    for (const rule of rules) {
+      let applied = 0
+      for (const r of rows) {
+        if (String(r.institutionNm ?? '').trim() !== rule.institution) continue
+        if (rule.types && !rule.types.includes(String(r.prkplceType ?? '').trim())) continue
+        const name = String(r.prkplceNm ?? '')
+        if ((rule.excludeNames ?? []).some((x) => name.includes(x))) continue
+        // 요금정보가 '무료'인 곳에 요금을 넣으면 무료 주차장이 유료로 뒤집힌다.
+        if (String(r.parkingchrgeInfo ?? '').trim() === '무료') continue
+
+        if (rule.note) r.spcmnt = [r.spcmnt, rule.note].filter(Boolean).join(' / ')
+        if (rule.fee) {
+          const money = (v) => Number(String(v ?? '').replace(/[^0-9.]/g, '')) || 0
+          // 이미 금액이 있으면 덮지 않는다. 조례는 기관 기본값이고 개별 등록이 우선이다.
+          if (money(r.basicCharge) === 0 && money(r.addUnitCharge) === 0) Object.assign(r, rule.fee)
+        }
+        /*
+         * 운영시간도 덮을 수 있게 한다.
+         *
+         * 여수 노외주차장은 20:00~08:00 이 '무료 운영'이다. 문을 닫는 게 아니라 열어 둔 채
+         * 요금만 받지 않는다. 그런데 표준데이터에는 운영시간이 08:00~20:00 으로 들어 있어
+         * 야간이 '운영 종료' 회색으로 묻힌다. 무료 시간대를 적어 봐야 소용이 없다.
+         */
+        if (rule.hours) Object.assign(r, rule.hours)
+        applied++
+      }
+      console.log('조례 보정: ' + applied + '건 (' + rule.institution + ' — ' + (rule.note ?? '요금') + ')')
+    }
+  }
+
   const seen = new Set(
     rows.map((r) => String(r.prkplceNm ?? '').trim() + '@' + Number(r.latitude).toFixed(4) + ',' + Number(r.longitude).toFixed(4)),
   )

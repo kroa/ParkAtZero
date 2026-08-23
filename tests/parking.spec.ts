@@ -1038,6 +1038,57 @@ test.describe('시간 판별 로직', () => {
     expect(out.sunday.status).toBe('free')
   })
 
+  test('조례로 채운 요금표와 무료 시간대가 서로를 갉아먹지 않는다', async ({ page }) => {
+    /*
+     * 표준데이터에 요금이 통째로 빈 기관은 조례로 메운다. 여수시 노외주차장이 그렇다.
+     *
+     *   「여수시 주차장 조례」[별표 1] 노외 1급지 소형
+     *     최초 1시간 무료, 초과 시 10분마다 200원, 1일 최대 5,000원
+     *   여수시도시관리공단 안내
+     *     "중식시간(12:00~14:00) 및 야간시간(20:00~08:00) 무료운영"
+     *
+     * 여기서 두 가지가 겹친다. 요금표의 '최초 1시간 0원' 과 특기사항에서 뽑은
+     * '최초 1시간 무료' 가 둘 다 살아 있으면 2시간이 통째로 공짜가 된다.
+     * 반대로 야간을 '운영 종료' 로 두면 무료 시간대를 적어도 회색으로 묻힌다.
+     * 세 시각을 함께 확인해 어느 쪽으로도 새지 않는지 못 박는다.
+     */
+    await gotoApp(page)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const p = {
+        id: 'ys',
+        name: '돌산공원 주차장',
+        type: '노외',
+        ownership: '공영',
+        address: '전라남도 여수시 돌산읍',
+        lat: 34.7361,
+        lng: 127.7487,
+        capacity: 100,
+        chargeType: '유료' as const,
+        // 야간이 '무료 운영' 이므로 문을 닫지 않는다 — 24시간 개방으로 덮는다.
+        hours: {
+          weekday: { open: 0, close: 1440, allDay: true },
+          saturday: { open: 0, close: 1440, allDay: true },
+          holiday: { open: 0, close: 1440, allDay: true },
+        },
+        fee: { basicTime: 60, basicCharge: 0, addTime: 10, addCharge: 200, dayTicket: 5000 },
+        note: '12:00~14:00 무료 / 20:00~08:00 무료',
+      }
+      const at = (h: string) => bridge.evaluate(p as never, '2026-09-15T' + h + ':00:00+09:00', 120) as { cost: number | null; status: string }
+      return { morning: at('10'), lunch: at('13'), night: at('22') }
+    })
+
+    // 10시 입차 2시간 — 최초 1시간 무료, 나머지 60분은 10분당 200원.
+    // 요금표와 특기사항이 이중으로 차감되면 여기가 0원이 된다.
+    expect(out.morning.cost).toBe(1200)
+    // 13시 입차 2시간 — 중식 무료가 걸쳐 0원.
+    expect(out.lunch.cost).toBe(0)
+    // 22시 입차 2시간 — 야간 무료. '운영 종료' 가 아니라 무료여야 한다.
+    expect(out.night.cost).toBe(0)
+    expect(out.night.status).toBe('free')
+  })
+
   test('월정기·거주자우선 구획을 이용 제한으로 읽는다', async ({ page }) => {
     /*
      * 시간 요금 칸이 비어 있어 '요금 미공개'로 분류되던 곳들이다. 사실은 금액을 모르는 게
