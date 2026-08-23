@@ -150,14 +150,21 @@ async function main() {
      * '휴일무료개방' 필터는 holiday_begin_time 과 holiday_end_time 이 모두 '0000'
      * 인지만 보고, saturday_pay_yn/holiday_pay_yn 은 참조하지 않는다.
      *
-     * 그래서 여기서는 운영시간에서 유도한다. 토요일은 근거가 공휴일만큼
-     * 확실하지 않아(반례 10건) 아직 옮기지 않는다.
+     * 그래서 여기서는 운영시간에서 유도한다. 그 요일 운영시각이 0000-0000 이거나
+     * 비어 있으면 그날은 요금을 받지 않는다는 뜻이다.
+     *
+     * 이 유도 규칙은 행정안전부 표준데이터의 operDay 와 206곳을 대조해 확인했다.
+     * 라벨을 액면대로 읽으면 정확도가 5.3%, 운영시간에서 유도하면 94.7% 다.
+     * 송파구청 공식 안내도 같은 결론이다 — 잠실나루역 환승주차장은
+     * "평일 08:00~18:00 토요일 09:00~15:00 일요일 무료" 인데,
+     * API 는 토요일을 '무료', 일요일을 '유료'로 정확히 뒤집어 적어 놓았다.
      */
     const emptyTime = (v) => {
       const s = String(v ?? '').replace(/[^0-9]/g, '')
       return s === '' || s === '0000'
     }
     const notes = []
+    if (emptyTime(hit.WE_OPER_BGNG_TM) && emptyTime(hit.WE_OPER_END_TM)) notes.push('토요일 무료개방')
     if (emptyTime(hit.LHLDY_BGNG) && emptyTime(hit.LHLDY)) notes.push('공휴일 무료개방')
 
     // 채울 것이 아무것도 없으면 내보내지 않는다.

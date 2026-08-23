@@ -36,6 +36,7 @@ const SUPPLEMENT_FILES = [
   path.join('public', 'data', 'homeplus.json'),
   path.join('public', 'data', 'seoul-lots.json'),
   path.join('public', 'data', 'daegu.json'),
+  path.join('public', 'data', 'bucheon.json'),
 ]
 const OUT_DIR = path.join('public', 'data', 'cells')
 /*
@@ -82,7 +83,7 @@ async function main() {
    * 새 주차장을 더하는 것이 아니라 이미 있는 레코드의 빈 칸만 채운다 —
    * 이미 금액이 있으면 손대지 않는다.
    */
-  const FEE_FILES = [path.join('public', 'data', 'seoul-fees.json')]
+  const FEE_FILES = [path.join('public', 'data', 'seoul-fees.json'), path.join('public', 'data', 'bucheon-fees.json')]
   for (const file of FEE_FILES) {
     if (!existsSync(file)) continue
     const fix = JSON.parse(await readFile(file, 'utf-8'))
