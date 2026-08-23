@@ -1,10 +1,10 @@
 import { memo } from 'react'
 import { motion } from 'framer-motion'
-import { CircleParking, Footprints, TriangleAlert } from 'lucide-react'
+import { CircleParking, Footprints, Tag, TriangleAlert } from 'lucide-react'
 import type { ResultItem } from '@/lib/query'
 import { cn } from '@/lib/cn'
 import { formatDistance } from '@/lib/geo'
-import { formatMoney } from '@/lib/freeCalc'
+import { formatMoney, summarizePerks } from '@/lib/freeCalc'
 import { statusStyle } from '@/lib/statusStyle'
 import { StatusBadge } from './StatusBadge'
 import { NaviQuickButton } from './NaviButtons'
@@ -24,6 +24,9 @@ interface Props {
 export const ParkingCard = memo(function ParkingCard({ item, selected, onSelect, index }: Props) {
   const { parking, evaluation, distanceKm } = item
   const style = statusStyle(evaluation.status)
+
+  // 이미 무료인 곳에 '구매 시 무료' 를 또 붙이면 소음이다. 유료·조건부일 때만 띄운다.
+  const perk = evaluation.status === 'free' ? null : summarizePerks(evaluation.targetedRules)
 
   const costLabel =
     evaluation.cost === null
@@ -66,6 +69,23 @@ export const ParkingCard = memo(function ParkingCard({ item, selected, onSelect,
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <StatusBadge status={evaluation.status} label={evaluation.badge} />
+            {perk && (
+              /*
+               * 조건부 혜택.
+               *
+               * "1만원 이상 구매시 2시간 무료" 는 누구에게나 적용되지 않아 요금 계산에서는
+               * 빼 두지만, 마트·카페 주차장에서는 이게 실제로 가장 쓸모 있는 정보다.
+               * 요금은 정직하게 매기고 조건은 따로 보여 준다.
+               */
+              <span
+                data-testid="card-perk"
+                className="pz-chip bg-brand-500/12 text-brand-700 dark:text-brand-300"
+                title="조건을 채우면 무료가 되는 혜택이 있습니다. 상세에서 조건을 확인하세요."
+              >
+                <Tag className="h-3 w-3" strokeWidth={2.4} />
+                {perk}
+              </span>
+            )}
             {evaluation.estimated && (
               <span className="pz-chip bg-ink/[0.06] text-ink-mute" title="원본 데이터가 불완전해 일부 값을 추정했습니다">
                 <TriangleAlert className="h-3 w-3" strokeWidth={2.4} />

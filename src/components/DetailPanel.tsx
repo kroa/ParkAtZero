@@ -9,6 +9,7 @@ import {
   TriangleAlert,
   Wallet,
   X,
+  Tag,
 } from 'lucide-react'
 import type { OperRange } from '@/types/parking'
 import type { ResultItem } from '@/lib/query'
@@ -37,6 +38,9 @@ function rangeLabel(range: OperRange | null): string {
 export function DetailPanel({ item, isSample, onClose, className }: Props) {
   const { parking, evaluation, distanceKm } = item
   const style = statusStyle(evaluation.status)
+
+  // 조건부 혜택 원문. 요금에는 반영하지 않고 그대로 옮겨 보여 준다.
+  const perks = evaluation.targetedRules.map((r) => r.label)
 
   const costLabel =
     evaluation.cost === null ? '계산 불가' : evaluation.cost === 0 ? '0원' : formatMoney(evaluation.cost)
@@ -111,6 +115,29 @@ export function DetailPanel({ item, isSample, onClose, className }: Props) {
             <Phone className="h-4 w-4" strokeWidth={2.6} />
             {parking.tel} 로 요금 문의
           </a>
+        )}
+
+        {perks.length > 0 && (
+          /*
+           * 조건부 혜택은 요금 계산에 넣지 않는다 — 아무것도 사지 않은 사람에게
+           * 공짜라고 말하게 되기 때문이다. 대신 조건을 그대로 옮겨 보여 준다.
+           */
+          <div data-testid="detail-perks" className="mt-3 rounded-xl bg-brand-500/[0.07] px-3 py-2.5">
+            <p className="flex items-center gap-1.5 text-[12px] font-bold text-brand-700 dark:text-brand-300">
+              <Tag className="h-3.5 w-3.5" strokeWidth={2.6} />
+              조건을 채우면 무료
+            </p>
+            <ul className="mt-1.5 space-y-1">
+              {perks.map((p) => (
+                <li key={p} className="text-[12.5px] leading-snug text-ink-soft">
+                  {p}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1.5 text-[11px] leading-snug text-ink-mute">
+              위 예상 요금에는 이 혜택이 반영되어 있지 않습니다.
+            </p>
+          </div>
         )}
 
         {evaluation.reasons.length > 0 && (

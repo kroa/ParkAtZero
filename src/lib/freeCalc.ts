@@ -193,6 +193,23 @@ function pickBadge(status: ParkingStatus): string {
   }
 }
 
+/**
+ * 조건부 혜택을 카드에 들어갈 한 줄로 줄인다.
+ *
+ * "1만원 이상 구매시 2시간 무료" 같은 안내는 누구에게나 적용되는 무료가 아니라서
+ * 요금 계산에서는 빼 두는데, 그렇다고 감춰 버리면 마트·카페에서 실제로 가장 쓸모
+ * 있는 정보가 사라진다. 요금은 정직하게 매기고, 조건은 따로 눈에 띄게 보여 준다.
+ */
+export function summarizePerks(rules: FreeRule[]): string | null {
+  const targets = rules.filter((r) => r.kind === 'targeted').map((r) => (r as { target: string }).target)
+  if (targets.length === 0) return null
+
+  const unique = [...new Set(targets)]
+  // 구매 조건은 다른 대상 조건보다 앞세운다 — 매장 주차장에서 가장 흔하고 실제로 쓰인다.
+  if (unique.includes('구매')) return '구매 시 무료'
+  return unique.slice(0, 3).join('·') + ' 무료'
+}
+
 export interface EvaluateInput {
   parking: Parking
   visitStart: Date

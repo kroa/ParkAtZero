@@ -270,7 +270,8 @@ export function extractFreeRules(p: Parking): FreeRule[] {
       rules.push({
         kind: 'targeted',
         target: '구매',
-        label: piece.trim().replace(/^[-*·■※]+/, '').trim().slice(0, 44),
+        // 상세 화면이 조건을 그대로 보여 주므로 넉넉히 남긴다.
+        label: piece.trim().replace(/^[-*·■※]+/, '').trim().slice(0, 140),
       })
       text = mask(text, start, piece.length)
     }

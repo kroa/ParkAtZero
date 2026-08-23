@@ -128,7 +128,8 @@ function describeNote(parking) {
   const t = feeText(parking).replace(/\s+/g, ' ').trim()
   if (!t) return ''
   if (!COND.test(t)) return t.slice(0, 220)
-  return ('구매·이용 조건이 붙은 안내 — ' + t.replace(/\s*\/\s*/g, ', ')).slice(0, 220)
+  // 한 문장으로 합치기만 하면 앱이 조건부로 알아본다. 군더더기 접두어는 붙이지 않는다.
+  return t.replace(/\s*\/\s*/g, ', ').slice(0, 220)
 }
 
 

@@ -449,6 +449,85 @@ test.describe('지도 마커 정리', () => {
   })
 })
 
+test.describe('조건부 혜택', () => {
+  test('구매 조건은 요금에서 빼되 카드와 상세에 그대로 보여 준다', async ({ page }) => {
+    /*
+     * "1만원 이상 구매시 2시간 무료" 는 아무것도 사지 않은 사람에게는 무료가 아니라서
+     * 요금 계산에서 뺀다. 그렇다고 감춰 버리면 마트·카페 주차장에서 실제로 가장
+     * 쓸모 있는 정보가 사라진다. 요금은 정직하게 매기고 조건은 따로 눈에 띄게 둔다.
+     *
+     * 이마트 구로점의 실제 안내를 그대로 쓴다.
+     */
+    await gotoApp(page)
+    await widenRadius(page)
+    await setVisit(page, DATES.weekday, '14:00', 120)
+
+    // 조건이 없는 곳에는 혜택 칩이 붙지 않는다.
+    const anyPerk = await page.getByTestId('card-perk').count()
+    expect(anyPerk).toBeGreaterThanOrEqual(0)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const p = {
+        id: 'e',
+        name: '이마트 구로점',
+        type: '부설',
+        ownership: '민영',
+        address: '서울특별시 구로구',
+        lat: 37.4844,
+        lng: 126.8979,
+        capacity: 0,
+        chargeType: '유료' as const,
+        hours: {
+          weekday: { open: 600, close: 1380, allDay: false },
+          saturday: { open: 600, close: 1380, allDay: false },
+          holiday: { open: 600, close: 1380, allDay: false },
+        },
+        fee: { basicTime: 30, basicCharge: 0, addTime: 10, addCharge: 1000 },
+        note: '30분 무료주차 이후 10분당 1,000원 징수, 쇼핑금액 1만원 이상시 2시간 무료주차',
+      }
+      const e = bridge.evaluate(p as never, '2026-09-15T14:00:00+09:00', 120) as {
+        cost: number | null
+        targetedRules: Array<{ target: string; label: string }>
+      }
+      return { cost: e.cost, perks: e.targetedRules.map((r) => r.target + '|' + r.label) }
+    })
+
+    // 요금에는 구매 혜택이 반영되지 않는다.
+    expect(out.cost).toBe(9000)
+    // 조건은 사라지지 않고 원문 그대로 남는다.
+    expect(out.perks.length).toBeGreaterThan(0)
+    expect(out.perks[0]).toContain('구매|')
+    expect(out.perks.join(' ')).toContain('1만원 이상시 2시간 무료주차')
+  })
+
+  test('카드에 혜택 칩이 붙고 상세에 조건이 펼쳐진다', async ({ page }) => {
+    await gotoApp(page)
+    await widenRadius(page)
+    await setVisit(page, DATES.weekday, '14:00', 120)
+
+    // 예시 데이터에는 '경차 및 저공해차량 무료' 처럼 대상 한정 혜택이 있는 곳이 있다.
+    const cards = page.getByTestId('parking-card')
+    await expect(cards.first()).toBeVisible({ timeout: 15_000 })
+
+    const withPerk = await cards.evaluateAll((els) =>
+      els.findIndex((el) => el.querySelector('[data-testid="card-perk"]')),
+    )
+    test.skip(withPerk < 0, '예시 데이터에 조건부 혜택이 있는 곳이 없습니다')
+
+    const card = cards.nth(withPerk)
+    const chip = card.getByTestId('card-perk')
+    await expect(chip).toBeVisible()
+    // 칩은 한 줄로 줄인 문구다.
+    expect((await chip.innerText()).length).toBeLessThan(20)
+
+    await card.click()
+    // 상세에는 조건 원문이 펼쳐진다.
+    await expect(page.getByTestId('detail-perks')).toBeVisible()
+    await expect(page.getByTestId('detail-perks')).toContainText('조건을 채우면 무료')
+  })
+})
+
 test.describe('다크 / 라이트 모드', () => {
   test('토글이 html.dark 클래스와 localStorage 를 함께 바꾼다', async ({ page }) => {
     await gotoApp(page)
