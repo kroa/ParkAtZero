@@ -395,7 +395,9 @@ export function extractFreeRules(p: Parking): FreeRule[] {
      * 평일 낮에도 초록 무료로 표시된다(실측 24곳). 실제로는 평일은 야간만 무료다.
      * 시각을 특정하지 못한 시간 한정어가 붙은 항목은 종일 무료로 승격하지 않는다.
      */
-    for (const item of clause.split(/[+\u00b7,]/)) {
+    // ' / ' 도 항목 구분자다. 마스킹된 안내문 옆에 붙은 깨끗한 규칙까지 함께
+    // 건너뛰지 않도록 잘라 준다.
+    for (const item of clause.split(/\s\/\s|[+\u00b7,]/)) {
       // 이미 시간대 규칙으로 해석돼 마스킹된 항목은 다시 세지 않는다.
       if (item.includes(MASK)) continue
       if (/(야간|심야|주간|오전|오후)/.test(item)) continue
