@@ -990,6 +990,54 @@ test.describe('시간 판별 로직', () => {
     expect(byNote['공휴일 무료 개방']).toEqual(['dayType|공휴일 무료'])
   })
 
+  test('서울 공영주차장의 공휴일 무료개방이 판정까지 이어진다', async ({ page }) => {
+    /*
+     * 서울시 공영주차장 API 의 요일별 유무료 라벨(SAT_CHGD_FREE_NM, LHLDY_NM)은
+     * 관리되지 않아 실제와 반대로 붙어 있다.
+     *
+     *   여의도공원 공영주차장: API 는 LHLDY_NM='유료', SAT_CHGD_FREE_NM='무료'.
+     *   서울시설공단 공식 안내는 "09:00~19:00(평일) 09:00~15:00(토요일)
+     *   무료개방(공휴일)", 5분당 370원 — 정확히 반대다.
+     *
+     * 그래서 라벨 대신 공휴일 운영시간이 비어 있는지로 판단해 '공휴일 무료개방'을
+     * 특기사항에 적는다. 그 문구가 요금 계산까지 살아 있는지 확인한다.
+     * 이걸 놓치면 유료 주차장이 공휴일에도 그대로 유료로 남는다.
+     */
+    await gotoApp(page)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const p = {
+        id: 'yd',
+        name: '여의도공원 공영주차장',
+        type: '노외',
+        ownership: '공영',
+        address: '서울특별시 영등포구 여의동로 330',
+        lat: 37.5265,
+        lng: 126.9245,
+        capacity: 300,
+        chargeType: '유료' as const,
+        hours: {
+          weekday: { open: 540, close: 1140, allDay: false },
+          saturday: { open: 540, close: 900, allDay: false },
+          holiday: { open: 0, close: 1440, allDay: true },
+        },
+        fee: { basicTime: 5, basicCharge: 370, addTime: 5, addCharge: 370 },
+        note: '공휴일 무료개방',
+      }
+      // 2026-09-15 화요일 / 2026-09-13 일요일
+      const weekday = bridge.evaluate(p as never, '2026-09-15T14:00:00+09:00', 120) as { cost: number | null; status: string }
+      const sunday = bridge.evaluate(p as never, '2026-09-13T14:00:00+09:00', 120) as { cost: number | null; status: string }
+      return { weekday, sunday }
+    })
+
+    // 평일은 그대로 유료다 — 5분당 370원이면 2시간에 8,880원.
+    expect(out.weekday.cost).toBe(8880)
+    // 공휴일(일요일)은 0원.
+    expect(out.sunday.cost).toBe(0)
+    expect(out.sunday.status).toBe('free')
+  })
+
   test('월정기·거주자우선 구획을 이용 제한으로 읽는다', async ({ page }) => {
     /*
      * 시간 요금 칸이 비어 있어 '요금 미공개'로 분류되던 곳들이다. 사실은 금액을 모르는 게

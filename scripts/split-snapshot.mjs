@@ -89,22 +89,37 @@ async function main() {
       (Array.isArray(fix?.rows) ? fix.rows : []).map((r) => [String(r.prkplceNo) + '|' + String(r.prkplceNm), r]),
     )
     let filled = 0
+    let noted = 0
     for (const r of rows) {
       const hit = byKey.get(String(r.prkplceNo ?? '') + '|' + String(r.prkplceNm ?? ''))
       if (!hit) continue
       const money = (v) => Number(String(v ?? '').replace(/[^0-9.]/g, '')) || 0
-      if (money(r.basicCharge) > 0 || money(r.addUnitCharge) > 0) continue
       // 요금정보가 '무료'면 빈 금액 칸이 맞는 값이다. 채우면 무료가 유료로 뒤집힌다.
       if (String(r.parkingchrgeInfo ?? '').trim() === '무료') continue
-      r.basicTime = hit.basicTime
-      r.basicCharge = hit.basicCharge
-      r.addUnitTime = hit.addUnitTime
-      r.addUnitCharge = hit.addUnitCharge
-      if (money(hit.dayCmmtkt) > 0) r.dayCmmtkt = hit.dayCmmtkt
-      if (hit.extraNote) r.spcmnt = [r.spcmnt, hit.extraNote].filter(Boolean).join(' / ')
+
+      /*
+       * 요일 정보는 금액이 이미 있어도 옮긴다.
+       *
+       * '공휴일 무료개방'은 표준데이터에 아예 없는 값이라, 금액이 적혀 있다고
+       * 건너뛰면 요금표가 제대로 든 유료 주차장은 영영 공휴일 무료로 판정되지 않는다.
+       * 금액 칸만 덮어쓰지 않으면 된다.
+       */
+      if (hit.extraNote) {
+        r.spcmnt = [r.spcmnt, hit.extraNote].filter(Boolean).join(' / ')
+        noted++
+      }
+
+      if (money(r.basicCharge) > 0 || money(r.addUnitCharge) > 0) continue
+      if (money(hit.basicCharge) > 0 || money(hit.addUnitCharge) > 0) {
+        r.basicTime = hit.basicTime
+        r.basicCharge = hit.basicCharge
+        r.addUnitTime = hit.addUnitTime
+        r.addUnitCharge = hit.addUnitCharge
+        if (money(hit.dayCmmtkt) > 0) r.dayCmmtkt = hit.dayCmmtkt
+      }
       filled++
     }
-    console.log('요금 채움: ' + filled + '건 (' + file + ')')
+    console.log('요금 채움: ' + filled + '건 · 요일 정보 채움: ' + noted + '건 (' + file + ')')
   }
 
   const seen = new Set(

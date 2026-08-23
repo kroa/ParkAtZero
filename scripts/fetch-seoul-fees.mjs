@@ -110,8 +110,12 @@ async function main() {
   for (const row of snapshot.data ?? []) {
     const addr = String(row.rdnmadr || row.lnmadr || '')
     if (!addr.startsWith('서울')) continue
-    // 이미 금액이 있는 레코드는 건드리지 않는다.
-    if (num(row.basicCharge) > 0 || num(row.addUnitCharge) > 0) continue
+    /*
+     * 이미 금액이 있는 레코드는 금액을 덮어쓰지 않는다. 다만 '공휴일 무료개방'
+     * 같은 요일 정보는 표준데이터에 아예 없는 값이라 금액이 있어도 옮겨야 한다.
+     * 그래야 요금이 적힌 유료 주차장도 공휴일에 0원으로 판정된다.
+     */
+    const hasFee = num(row.basicCharge) > 0 || num(row.addUnitCharge) > 0
     /*
      * 요금정보가 <무료>인 레코드도 건드리지 않는다.
      * 금액 칸이 비어 있는 것이 맞는 값이라서다. 여기에 요금을 채우면 무료 주차장이
@@ -126,20 +130,48 @@ async function main() {
 
     /*
      * 요일별 무료 정보도 함께 옮긴다. 표준데이터에는 없는 값이라 이것만으로도
-     * '토요일은 0원' 같은 판정이 살아난다.
+     * '공휴일은 0원' 같은 판정이 살아난다.
+     *
+     * ── SAT_CHGD_FREE_NM / LHLDY_NM 을 쓰지 않는 이유 ──────────────────
+     * 이 라벨들은 관리되지 않아 실제와 반대로 붙어 있다. 그대로 읽으면 공휴일에
+     * 돈을 받는 곳에 '공휴일 무료'를 적게 된다.
+     *
+     *   여의도공원 공영주차장: API 는 LHLDY_NM='유료', SAT_CHGD_FREE_NM='무료'.
+     *   서울시설공단 공식 안내는 정반대다 —
+     *   "09:00~19:00(평일) 09:00~15:00(토요일) 무료개방(공휴일)", 5분당 370원.
+     *   양재역 공영주차장: API 는 토·공휴일 모두 '무료'. 공식은 "24시간(연중무휴),
+     *   5분당 400원" 이다.
+     *
+     * 전체 2,189행을 다시 세어 보면 LHLDY_NM='유료' 1,372건은 예외 없이
+     * 공휴일 운영시간이 0000-0000(또는 빈값)인 행이다. 즉 이 라벨은 요금이 아니라
+     * '그 요일 운영시간이 비어 있는지'를 반영한다.
+     *
+     * 서울시 주차정보안내시스템(원본 시스템)도 같은 판단을 한다. 지도 스크립트의
+     * '휴일무료개방' 필터는 holiday_begin_time 과 holiday_end_time 이 모두 '0000'
+     * 인지만 보고, saturday_pay_yn/holiday_pay_yn 은 참조하지 않는다.
+     *
+     * 그래서 여기서는 운영시간에서 유도한다. 토요일은 근거가 공휴일만큼
+     * 확실하지 않아(반례 10건) 아직 옮기지 않는다.
      */
+    const emptyTime = (v) => {
+      const s = String(v ?? '').replace(/[^0-9]/g, '')
+      return s === '' || s === '0000'
+    }
     const notes = []
-    if (/무료/.test(String(hit.SAT_CHGD_FREE_NM ?? ''))) notes.push('토요일 무료')
-    if (/무료/.test(String(hit.LHLDY_NM ?? ''))) notes.push('공휴일 무료')
+    if (emptyTime(hit.LHLDY_BGNG) && emptyTime(hit.LHLDY)) notes.push('공휴일 무료개방')
+
+    // 채울 것이 아무것도 없으면 내보내지 않는다.
+    if (hasFee && notes.length === 0) continue
 
     rows.push({
       prkplceNo: String(row.prkplceNo ?? ''),
       prkplceNm: String(row.prkplceNm ?? ''),
-      basicTime: String(num(hit.PRK_HM)),
-      basicCharge: String(num(hit.PRK_CRG)),
-      addUnitTime: String(num(hit.ADD_UNIT_TM_MNT)),
-      addUnitCharge: String(num(hit.ADD_CRG)),
-      dayCmmtkt: String(num(hit.DLY_MAX_CRG)),
+      // 금액이 이미 있는 레코드는 요금 칸을 비워 보내서 split-snapshot 이 덮어쓰지 않게 한다.
+      basicTime: hasFee ? '' : String(num(hit.PRK_HM)),
+      basicCharge: hasFee ? '' : String(num(hit.PRK_CRG)),
+      addUnitTime: hasFee ? '' : String(num(hit.ADD_UNIT_TM_MNT)),
+      addUnitCharge: hasFee ? '' : String(num(hit.ADD_CRG)),
+      dayCmmtkt: hasFee ? '' : String(num(hit.DLY_MAX_CRG)),
       extraNote: notes.join(' / '),
       matchedName: String(hit.PKLT_NM ?? ''),
     })
