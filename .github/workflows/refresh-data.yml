@@ -113,6 +113,31 @@ jobs:
           set -o pipefail
           npm run data:homeplus 2>&1 | tee /tmp/step.log
 
+      # 대구광역시 통합주차정보의 무료 공영주차장 1,300여 곳.
+      - name: 대구 무료 공영주차장 수집
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run data:daegu 2>&1 | tee /tmp/step.log
+
+      # 부천도시공사 주차포털 — 부천 요금 미공개를 메운다.
+      # parking.bcits.go.kr 이 중간 인증서를 안 보내서 --use-system-ca 가 필요하다.
+      - name: 부천 주차 정보 수집
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run data:bucheon 2>&1 | tee /tmp/step.log
+
+      # 서울시 공영주차장 API 로 표준데이터에 빠진 곳을 더한다.
+      - name: 서울 공영주차장 수집
+        continue-on-error: true
+        env:
+          SEOUL_OPENAPI_KEY: ${{ secrets.SEOUL_OPENAPI_KEY }}
+        run: |
+          set -o pipefail
+          if [ -z "$SEOUL_OPENAPI_KEY" ]; then echo "::notice::인증키가 없어 건너뜁니다."; exit 0; fi
+          npm run data:seoul-lots 2>&1 | tee /tmp/step.log
+
       # 표준데이터의 빈 요금 칸을 서울시 공영주차장 API 로 채운다.
       - name: 서울 공영주차장 요금 보정
         continue-on-error: true
