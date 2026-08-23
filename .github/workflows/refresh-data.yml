@@ -106,6 +106,16 @@ jobs:
           set -o pipefail
           npm run data:lotte 2>&1 | tee /tmp/step.log
 
+      # 표준데이터의 빈 요금 칸을 서울시 공영주차장 API 로 채운다.
+      - name: 서울 공영주차장 요금 보정
+        continue-on-error: true
+        env:
+          SEOUL_OPENAPI_KEY: ${{ secrets.SEOUL_OPENAPI_KEY }}
+        run: |
+          set -o pipefail
+          if [ -z "$SEOUL_OPENAPI_KEY" ]; then echo "::notice::인증키가 없어 건너뜁니다."; exit 0; fi
+          npm run data:seoul-fees 2>&1 | tee /tmp/step.log
+
       # 스냅샷이 실제로 앱에서 동작하는지 확인한 뒤에만 커밋한다.
       # 원본 스키마가 바뀌었는데 그대로 밀어 넣으면 서비스가 빈 목록이 된다.
       - name: 스냅샷 검증

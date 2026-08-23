@@ -1,0 +1,196 @@
+{
+ "source": "서울특별시 공영주차장 정보 (GetParkInfo)",
+ "sourceUrl": "https://data.seoul.go.kr/dataList/OA-13122/S/1/datasetView.do",
+ "license": "공공누리 제1유형 (출처표시) · 서울특별시",
+ "fetchedOn": "2026-08-23",
+ "note": "표준데이터의 빈 요금 칸만 채운다. 새 주차장을 더하지 않는다.",
+ "rows": [
+  {
+   "prkplceNo": "109-2-000010",
+   "prkplceNm": "창1동제1공영주차장",
+   "basicTime": "5",
+   "basicCharge": "100",
+   "addUnitTime": "5",
+   "addUnitCharge": "100",
+   "dayCmmtkt": "0",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "창1동 1공영주차장(구)"
+  },
+  {
+   "prkplceNo": "109-2-000012",
+   "prkplceNm": "창3동제1공영주차장",
+   "basicTime": "5",
+   "basicCharge": "100",
+   "addUnitTime": "5",
+   "addUnitCharge": "100",
+   "dayCmmtkt": "0",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "창3동 1공영주차장(구)"
+  },
+  {
+   "prkplceNo": "109-2-000016",
+   "prkplceNm": "도깨비시장공영주차장",
+   "basicTime": "5",
+   "basicCharge": "100",
+   "addUnitTime": "5",
+   "addUnitCharge": "100",
+   "dayCmmtkt": "0",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "도깨비시장 공영주차장(구)"
+  },
+  {
+   "prkplceNo": "109-2-000022",
+   "prkplceNm": "도봉2동법조타운공영주차장",
+   "basicTime": "5",
+   "basicCharge": "100",
+   "addUnitTime": "5",
+   "addUnitCharge": "100",
+   "dayCmmtkt": "0",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "도봉2동 법조타운 공영주차장(구)"
+  },
+  {
+   "prkplceNo": "109-2-000025",
+   "prkplceNm": "도봉산 주차장",
+   "basicTime": "5",
+   "basicCharge": "170",
+   "addUnitTime": "5",
+   "addUnitCharge": "170",
+   "dayCmmtkt": "0",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "도봉산 공영주차장(시)"
+  },
+  {
+   "prkplceNo": "109-2-000026",
+   "prkplceNm": "도봉산역 환승주차장",
+   "basicTime": "5",
+   "basicCharge": "280",
+   "addUnitTime": "5",
+   "addUnitCharge": "280",
+   "dayCmmtkt": "0",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "도봉산역 공영주차장(시)"
+  },
+  {
+   "prkplceNo": "109-2-000031",
+   "prkplceNm": "창2동제4공영주차장",
+   "basicTime": "5",
+   "basicCharge": "100",
+   "addUnitTime": "5",
+   "addUnitCharge": "100",
+   "dayCmmtkt": "0",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "창2동 4공영주차장(구)"
+  },
+  {
+   "prkplceNo": "109-2-000040",
+   "prkplceNm": "도봉2동법조2타운공영주차장",
+   "basicTime": "5",
+   "basicCharge": "100",
+   "addUnitTime": "5",
+   "addUnitCharge": "100",
+   "dayCmmtkt": "0",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "도봉2동 법조타운 공영주차장(구)"
+  },
+  {
+   "prkplceNo": "112-1-000002",
+   "prkplceNm": "유진상가/인왕시장 앞 공영",
+   "basicTime": "5",
+   "basicCharge": "250",
+   "addUnitTime": "5",
+   "addUnitCharge": "250",
+   "dayCmmtkt": "0",
+   "extraNote": "토요일 무료",
+   "matchedName": "유진상가/인왕시장 앞(구)"
+  },
+  {
+   "prkplceNo": "112-2-000002",
+   "prkplceNm": "남가좌2동 제1공영",
+   "basicTime": "5",
+   "basicCharge": "150",
+   "addUnitTime": "5",
+   "addUnitCharge": "150",
+   "dayCmmtkt": "20000",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "남가좌2동 제1공영주차장(구)"
+  },
+  {
+   "prkplceNo": "112-2-000003",
+   "prkplceNm": "남가좌2동 제2공영",
+   "basicTime": "5",
+   "basicCharge": "150",
+   "addUnitTime": "5",
+   "addUnitCharge": "150",
+   "dayCmmtkt": "0",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "남가좌2동 제2공영주차장(구)"
+  },
+  {
+   "prkplceNo": "112-2-000013",
+   "prkplceNm": "연희동 제2공영",
+   "basicTime": "5",
+   "basicCharge": "150",
+   "addUnitTime": "5",
+   "addUnitCharge": "150",
+   "dayCmmtkt": "0",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "연희동 제2공영주차장(구)"
+  },
+  {
+   "prkplceNo": "112-2-000015",
+   "prkplceNm": "독립문문화공원 공영",
+   "basicTime": "5",
+   "basicCharge": "200",
+   "addUnitTime": "5",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "0",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "독립문문화공원 공영(구)"
+  },
+  {
+   "prkplceNo": "112-2-000016",
+   "prkplceNm": "연희동 제6공영",
+   "basicTime": "5",
+   "basicCharge": "150",
+   "addUnitTime": "5",
+   "addUnitCharge": "150",
+   "dayCmmtkt": "20000",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "연희동 제6공영주차장(구)"
+  },
+  {
+   "prkplceNo": "112-2-000018",
+   "prkplceNm": "충현동 제1공영",
+   "basicTime": "5",
+   "basicCharge": "150",
+   "addUnitTime": "5",
+   "addUnitCharge": "150",
+   "dayCmmtkt": "0",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "충현동 제1공영주차장(구)"
+  },
+  {
+   "prkplceNo": "112-2-000019",
+   "prkplceNm": "충현동 제2공영",
+   "basicTime": "5",
+   "basicCharge": "150",
+   "addUnitTime": "5",
+   "addUnitCharge": "150",
+   "dayCmmtkt": "20000",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "충현동 제2공영주차장(구)"
+  },
+  {
+   "prkplceNo": "122-2-000003",
+   "prkplceNm": "일원터널",
+   "basicTime": "5",
+   "basicCharge": "130",
+   "addUnitTime": "5",
+   "addUnitCharge": "130",
+   "dayCmmtkt": "0",
+   "extraNote": "토요일 무료 / 공휴일 무료",
+   "matchedName": "일원터널 공영주차장(시)"
+  }
+ ]
+}

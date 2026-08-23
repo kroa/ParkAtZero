@@ -71,6 +71,40 @@ async function main() {
    * 보완표의 행은 표준데이터와 같은 모양이라 normalize 가 그대로 읽는다.
    * 이름·좌표가 겹치면 표준데이터를 그대로 두고 보완 행을 버린다 — 원본이 우선이다.
    */
+  /*
+   * 빈 요금 칸을 채운다.
+   *
+   * 표준데이터에는 요금정보를 '유료'로 등록해 놓고 금액 칸은 비워 둔 레코드가 620곳
+   * 있다. 그중 서울 일부는 서울시 공영주차장 API 에 같은 주차장의 금액이 들어 있다.
+   * 새 주차장을 더하는 것이 아니라 이미 있는 레코드의 빈 칸만 채운다 —
+   * 이미 금액이 있으면 손대지 않는다.
+   */
+  const FEE_FILES = [path.join('public', 'data', 'seoul-fees.json')]
+  for (const file of FEE_FILES) {
+    if (!existsSync(file)) continue
+    const fix = JSON.parse(await readFile(file, 'utf-8'))
+    const byKey = new Map(
+      (Array.isArray(fix?.rows) ? fix.rows : []).map((r) => [String(r.prkplceNo) + '|' + String(r.prkplceNm), r]),
+    )
+    let filled = 0
+    for (const r of rows) {
+      const hit = byKey.get(String(r.prkplceNo ?? '') + '|' + String(r.prkplceNm ?? ''))
+      if (!hit) continue
+      const money = (v) => Number(String(v ?? '').replace(/[^0-9.]/g, '')) || 0
+      if (money(r.basicCharge) > 0 || money(r.addUnitCharge) > 0) continue
+      // 요금정보가 '무료'면 빈 금액 칸이 맞는 값이다. 채우면 무료가 유료로 뒤집힌다.
+      if (String(r.parkingchrgeInfo ?? '').trim() === '무료') continue
+      r.basicTime = hit.basicTime
+      r.basicCharge = hit.basicCharge
+      r.addUnitTime = hit.addUnitTime
+      r.addUnitCharge = hit.addUnitCharge
+      if (money(hit.dayCmmtkt) > 0) r.dayCmmtkt = hit.dayCmmtkt
+      if (hit.extraNote) r.spcmnt = [r.spcmnt, hit.extraNote].filter(Boolean).join(' / ')
+      filled++
+    }
+    console.log('요금 채움: ' + filled + '건 (' + file + ')')
+  }
+
   const seen = new Set(
     rows.map((r) => String(r.prkplceNm ?? '').trim() + '@' + Number(r.latitude).toFixed(4) + ',' + Number(r.longitude).toFixed(4)),
   )
