@@ -35,6 +35,7 @@ const SUPPLEMENT_FILES = [
   path.join('public', 'data', 'lotte.json'),
   path.join('public', 'data', 'homeplus.json'),
   path.join('public', 'data', 'seoul-lots.json'),
+  path.join('public', 'data', 'daegu.json'),
 ]
 const OUT_DIR = path.join('public', 'data', 'cells')
 /*
