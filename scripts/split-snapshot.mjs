@@ -32,6 +32,7 @@ const SUPPLEMENT_FILES = [
   path.join('public', 'data', 'hangang.json'),
   path.join('public', 'data', 'emart.json'),
   path.join('public', 'data', 'outlets.json'),
+  path.join('public', 'data', 'lotte.json'),
 ]
 const OUT_DIR = path.join('public', 'data', 'cells')
 /*

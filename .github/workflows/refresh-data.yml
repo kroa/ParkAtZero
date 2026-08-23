@@ -99,6 +99,13 @@ jobs:
           set -o pipefail
           npm run data:outlets 2>&1 | tee /tmp/step.log
 
+      # 롯데쇼핑 지점 39곳.
+      - name: 롯데 주차 정보 수집
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run data:lotte 2>&1 | tee /tmp/step.log
+
       # 스냅샷이 실제로 앱에서 동작하는지 확인한 뒤에만 커밋한다.
       # 원본 스키마가 바뀌었는데 그대로 밀어 넣으면 서비스가 빈 목록이 된다.
       - name: 스냅샷 검증
