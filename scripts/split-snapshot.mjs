@@ -150,9 +150,19 @@ async function main() {
         // 요금정보가 '무료'인 곳에 요금을 넣으면 무료 주차장이 유료로 뒤집힌다.
         if (String(r.parkingchrgeInfo ?? '').trim() === '무료') continue
 
+        /*
+         * onlyFeeEmpty 는 '금액이 비어 있는 레코드만' 이라는 뜻이다.
+         *
+         * 조례 요금표로 빈칸을 메우는 규칙(여수·경주)은 이미 금액이 든 레코드까지
+         * 건드리면 안 된다. 운영시간까지 덮어써서 멀쩡한 데이터를 망친다.
+         * 반대로 부산 구별 징수시간 규칙은 금액이 있는 레코드에 적용해야 하므로
+         * 이 플래그를 쓰지 않는다.
+         */
+        const money = (v) => Number(String(v ?? '').replace(/[^0-9.]/g, '')) || 0
+        if (rule.onlyFeeEmpty && (money(r.basicCharge) > 0 || money(r.addUnitCharge) > 0)) continue
+
         if (rule.note) r.spcmnt = [r.spcmnt, rule.note].filter(Boolean).join(' / ')
         if (rule.fee) {
-          const money = (v) => Number(String(v ?? '').replace(/[^0-9.]/g, '')) || 0
           // 이미 금액이 있으면 덮지 않는다. 조례는 기관 기본값이고 개별 등록이 우선이다.
           if (money(r.basicCharge) === 0 && money(r.addUnitCharge) === 0) Object.assign(r, rule.fee)
         }

@@ -2,7 +2,7 @@
  "source": "부천시 주차포털 (부천도시공사)",
  "sourceUrl": "https://parking.bcits.go.kr",
  "license": "부천도시공사 공개 주차장 정보",
- "fetchedOn": "2026-08-23",
+ "fetchedOn": "2026-08-24",
  "rows": [
   {
    "prkplceNo": "000-2-000037",
@@ -149,6 +149,18 @@
    "matchedMeters": 34
   },
   {
+   "prkplceNo": "000-1-000004",
+   "prkplceNm": "중동먹거리",
+   "basicTime": "30",
+   "basicCharge": "900",
+   "addUnitTime": "10",
+   "addUnitCharge": "400",
+   "dayCmmtkt": "9500",
+   "extraNote": "",
+   "matchedName": "중동먹거리",
+   "matchedMeters": 59
+  },
+  {
    "prkplceNo": "000-2-000052",
    "prkplceNm": "오정물류센터",
    "basicTime": "30",
@@ -159,6 +171,42 @@
    "extraNote": "",
    "matchedName": "오정물류센터",
    "matchedMeters": 1
+  },
+  {
+   "prkplceNo": "000-3-000024",
+   "prkplceNm": "호수공원1",
+   "basicTime": "30",
+   "basicCharge": "400",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "4000",
+   "extraNote": "",
+   "matchedName": "호수공원1(부설)",
+   "matchedMeters": 59
+  },
+  {
+   "prkplceNo": "000-3-000025",
+   "prkplceNm": "호수공원2",
+   "basicTime": "30",
+   "basicCharge": "400",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "4000",
+   "extraNote": "",
+   "matchedName": "호수공원2(부설)",
+   "matchedMeters": 59
+  },
+  {
+   "prkplceNo": "000-1-000005",
+   "prkplceNm": "중동먹자골목",
+   "basicTime": "30",
+   "basicCharge": "900",
+   "addUnitTime": "10",
+   "addUnitCharge": "400",
+   "dayCmmtkt": "9500",
+   "extraNote": "",
+   "matchedName": "중동먹자골목",
+   "matchedMeters": 59
   },
   {
    "prkplceNo": "000-3-000007",
@@ -173,6 +221,18 @@
    "matchedMeters": 0
   },
   {
+   "prkplceNo": "000-1-000003",
+   "prkplceNm": "롯데백화점일원",
+   "basicTime": "30",
+   "basicCharge": "900",
+   "addUnitTime": "10",
+   "addUnitCharge": "400",
+   "dayCmmtkt": "9500",
+   "extraNote": "",
+   "matchedName": "롯데백화점일원",
+   "matchedMeters": 59
+  },
+  {
    "prkplceNo": "000-2-000054",
    "prkplceNm": "원미지하(별빛공원)",
    "basicTime": "30",
@@ -185,6 +245,42 @@
    "matchedMeters": 1
   },
   {
+   "prkplceNo": "000-1-000002",
+   "prkplceNm": "로데오거리",
+   "basicTime": "30",
+   "basicCharge": "900",
+   "addUnitTime": "10",
+   "addUnitCharge": "400",
+   "dayCmmtkt": "9500",
+   "extraNote": "",
+   "matchedName": "로데오거리",
+   "matchedMeters": 59
+  },
+  {
+   "prkplceNo": "000-1-000006",
+   "prkplceNm": "투나백화점일원",
+   "basicTime": "30",
+   "basicCharge": "900",
+   "addUnitTime": "10",
+   "addUnitCharge": "400",
+   "dayCmmtkt": "9500",
+   "extraNote": "",
+   "matchedName": "투나백화점일원",
+   "matchedMeters": 59
+  },
+  {
+   "prkplceNo": "000-1-000001",
+   "prkplceNm": "구버스터미널일원",
+   "basicTime": "30",
+   "basicCharge": "900",
+   "addUnitTime": "10",
+   "addUnitCharge": "400",
+   "dayCmmtkt": "9500",
+   "extraNote": "",
+   "matchedName": "구버스터미널일원",
+   "matchedMeters": 59
+  },
+  {
    "prkplceNo": "000-2-000049",
    "prkplceNm": "안중근공원",
    "basicTime": "30",
@@ -195,6 +291,30 @@
    "extraNote": "",
    "matchedName": "안중근공원",
    "matchedMeters": 12
+  },
+  {
+   "prkplceNo": "000-2-000007",
+   "prkplceNm": "까치로노외",
+   "basicTime": "30",
+   "basicCharge": "300",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "4000",
+   "extraNote": "",
+   "matchedName": "까치로노외",
+   "matchedMeters": 59
+  },
+  {
+   "prkplceNo": "000-3-000013",
+   "prkplceNm": "수주도서관",
+   "basicTime": "60",
+   "basicCharge": "0",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "6000",
+   "extraNote": "",
+   "matchedName": "수주도서관(부설)",
+   "matchedMeters": 59
   },
   {
    "prkplceNo": "000-3-000008",
@@ -221,6 +341,30 @@
    "matchedMeters": 44
   },
   {
+   "prkplceNo": "000-3-000005",
+   "prkplceNm": "도당공원1",
+   "basicTime": "30",
+   "basicCharge": "400",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "4000",
+   "extraNote": "",
+   "matchedName": "도당공원1(부설)",
+   "matchedMeters": 59
+  },
+  {
+   "prkplceNo": "000-3-000023",
+   "prkplceNm": "자연생태공원",
+   "basicTime": "30",
+   "basicCharge": "400",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "6000",
+   "extraNote": "",
+   "matchedName": "자연생태공원(부설)",
+   "matchedMeters": 59
+  },
+  {
    "prkplceNo": "000-2-000027",
    "prkplceNm": "삼정3호",
    "basicTime": "30",
@@ -231,6 +375,18 @@
    "extraNote": "",
    "matchedName": "삼정동 제3호",
    "matchedMeters": 33
+  },
+  {
+   "prkplceNo": "000-1-000007",
+   "prkplceNm": "고강차고지진입로",
+   "basicTime": "30",
+   "basicCharge": "300",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "4000",
+   "extraNote": "",
+   "matchedName": "고강차고지진입로",
+   "matchedMeters": 59
   },
   {
    "prkplceNo": "000-2-000053",
@@ -293,6 +449,18 @@
    "matchedMeters": 2
   },
   {
+   "prkplceNo": "000-2-000071",
+   "prkplceNm": "여월",
+   "basicTime": "30",
+   "basicCharge": "300",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "4000",
+   "extraNote": "",
+   "matchedName": "여월",
+   "matchedMeters": 59
+  },
+  {
    "prkplceNo": "000-3-000026",
    "prkplceNm": "송내국민체육센터",
    "basicTime": "30",
@@ -303,6 +471,18 @@
    "extraNote": "",
    "matchedName": "송내국민체육센터",
    "matchedMeters": 42
+  },
+  {
+   "prkplceNo": "000-2-000022",
+   "prkplceNm": "부천역 남부 제2호",
+   "basicTime": "30",
+   "basicCharge": "700",
+   "addUnitTime": "10",
+   "addUnitCharge": "300",
+   "dayCmmtkt": "7000",
+   "extraNote": "",
+   "matchedName": "부천역 남부 제2호",
+   "matchedMeters": 59
   },
   {
    "prkplceNo": "000-2-000072",
@@ -497,6 +677,30 @@
    "matchedMeters": 0
   },
   {
+   "prkplceNo": "000-3-000028",
+   "prkplceNm": "종합운동장",
+   "basicTime": "30",
+   "basicCharge": "400",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "6000",
+   "extraNote": "",
+   "matchedName": "종합운동장",
+   "matchedMeters": 59
+  },
+  {
+   "prkplceNo": "000-2-000040",
+   "prkplceNm": "송내남부",
+   "basicTime": "30",
+   "basicCharge": "900",
+   "addUnitTime": "10",
+   "addUnitCharge": "400",
+   "dayCmmtkt": "9500",
+   "extraNote": "",
+   "matchedName": "송내남부",
+   "matchedMeters": 59
+  },
+  {
    "prkplceNo": "000-2-000034",
    "prkplceNm": "소사근린공원",
    "basicTime": "30",
@@ -519,6 +723,18 @@
    "extraNote": "",
    "matchedName": "구소사경찰서",
    "matchedMeters": 4
+  },
+  {
+   "prkplceNo": "000-3-000029",
+   "prkplceNm": "부천체육관",
+   "basicTime": "30",
+   "basicCharge": "400",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "6000",
+   "extraNote": "",
+   "matchedName": "부천체육관",
+   "matchedMeters": 59
   },
   {
    "prkplceNo": "000-2-000001",
@@ -567,6 +783,30 @@
    "extraNote": "",
    "matchedName": "시의회옆",
    "matchedMeters": 23
+  },
+  {
+   "prkplceNo": "000-2-000056",
+   "prkplceNm": "원종역",
+   "basicTime": "30",
+   "basicCharge": "900",
+   "addUnitTime": "10",
+   "addUnitCharge": "400",
+   "dayCmmtkt": "9500",
+   "extraNote": "",
+   "matchedName": "원종역 공영",
+   "matchedMeters": 59
+  },
+  {
+   "prkplceNo": "000-2-000006",
+   "prkplceNm": "구터미널",
+   "basicTime": "30",
+   "basicCharge": "900",
+   "addUnitTime": "10",
+   "addUnitCharge": "400",
+   "dayCmmtkt": "9500",
+   "extraNote": "",
+   "matchedName": "구터미널",
+   "matchedMeters": 59
   },
   {
    "prkplceNo": "000-2-000002",
@@ -677,6 +917,30 @@
    "matchedMeters": 15
   },
   {
+   "prkplceNo": "000-3-000016",
+   "prkplceNm": "아인스월드",
+   "basicTime": "30",
+   "basicCharge": "400",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "4000",
+   "extraNote": "",
+   "matchedName": "아인스월드(부설)",
+   "matchedMeters": 59
+  },
+  {
+   "prkplceNo": "000-3-000017",
+   "prkplceNm": "야인시대",
+   "basicTime": "30",
+   "basicCharge": "400",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "4000",
+   "extraNote": "",
+   "matchedName": "야인시대(부설)",
+   "matchedMeters": 59
+  },
+  {
    "prkplceNo": "000-3-000019",
    "prkplceNm": "오정구청",
    "basicTime": "60",
@@ -689,6 +953,18 @@
    "matchedMeters": 0
   },
   {
+   "prkplceNo": "000-3-000020",
+   "prkplceNm": "원미공원1",
+   "basicTime": "30",
+   "basicCharge": "400",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "4000",
+   "extraNote": "",
+   "matchedName": "원미공원1(부설)",
+   "matchedMeters": 59
+  },
+  {
    "prkplceNo": "000-2-000064",
    "prkplceNm": "호수로노외",
    "basicTime": "30",
@@ -699,6 +975,18 @@
    "extraNote": "",
    "matchedName": "호수로 임시(노외)",
    "matchedMeters": 2
+  },
+  {
+   "prkplceNo": "000-3-000021",
+   "prkplceNm": "원미공원2",
+   "basicTime": "30",
+   "basicCharge": "400",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "4000",
+   "extraNote": "",
+   "matchedName": "원미공원2(부설)",
+   "matchedMeters": 59
   },
   {
    "prkplceNo": "000-3-000022",
@@ -783,6 +1071,18 @@
    "extraNote": "",
    "matchedName": "삼정동 제2호",
    "matchedMeters": 18
+  },
+  {
+   "prkplceNo": "000-3-000016",
+   "prkplceNm": "아인스월드",
+   "basicTime": "30",
+   "basicCharge": "400",
+   "addUnitTime": "10",
+   "addUnitCharge": "200",
+   "dayCmmtkt": "4000",
+   "extraNote": "",
+   "matchedName": "아인스월드(캠핑카)",
+   "matchedMeters": 59
   },
   {
    "prkplceNo": "000-2-000029",

@@ -35,6 +35,17 @@ const OUT_FEES = path.join('public', 'data', 'bucheon-fees.json')
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36'
 /** 같은 주차장으로 볼 거리(m). 부천 노외주차장은 서로 충분히 떨어져 있다. */
 const MATCH_METERS = 60
+/** 이름까지 같을 때 허용할 거리(m). 노상은 길을 따라 늘어서 대표 좌표가 서로 다르다. */
+const NAME_MATCH_METERS = 500
+
+/** 이름 비교용 정규화 — 표기 차이('구 소새울어울마당' vs '구소새울어울마당')를 흡수한다. */
+function normName(s) {
+  return squash(s)
+    .replace(/\([^)]*\)/g, '')
+    .replace(/[\s·ㆍ_-]/g, '')
+    .replace(/공영주차장|주차장|공영|노외|노상/g, '')
+    .toLowerCase()
+}
 
 const squash = (s) => String(s ?? '').split(/[ \t\r\n]+/).join(' ').trim()
 const num = (v) => {
@@ -115,6 +126,12 @@ async function main() {
       continue
     }
 
+    // 공사중이라 못 대는 곳은 요금을 채워 봐야 소용이 없다.
+    if (/공사\s*중|이용\s*불가|폐쇄/.test(squash(r.PORTAL_PARKING_NM) + squash(r.PARKING_NM) + squash(r.NOTE))) {
+      bump('공사중·이용불가')
+      continue
+    }
+
     // 가장 가까운 기존 레코드를 찾는다.
     let best = null
     let bestD = Infinity
@@ -123,6 +140,28 @@ async function main() {
       if (d < bestD) {
         bestD = d
         best = s
+      }
+    }
+
+    /*
+     * 좌표가 멀어도 이름이 같으면 같은 주차장으로 본다.
+     *
+     * 노상주차장은 길을 따라 길게 늘어서서 두 자료가 서로 다른 지점을 대표 좌표로
+     * 잡는다. '중동먹거리'는 양쪽에 같은 이름으로 있는데 좌표가 196m 떨어져 있다.
+     * 이름이 같고 같은 시 안에서 500m 안이면 다른 주차장일 수 없다.
+     */
+    if (!best || bestD >= MATCH_METERS) {
+      const key = normName(r.PORTAL_PARKING_NM || r.PARKING_NM)
+      if (key) {
+        for (const s of nearby) {
+          if (normName(s.prkplceNm) !== key) continue
+          const d = metersBetween(lat, lng, Number(s.latitude), Number(s.longitude))
+          if (d < NAME_MATCH_METERS) {
+            best = s
+            bestD = MATCH_METERS - 1 // 아래 분기를 타게 한다
+            break
+          }
+        }
       }
     }
 
