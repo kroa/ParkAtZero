@@ -21,6 +21,7 @@
     "data:daegu": "node scripts/fetch-daegu.mjs",
     "data:bucheon": "node --use-system-ca scripts/fetch-bucheon.mjs",
     "data:gwangju": "node scripts/fetch-gwangju.mjs",
+    "data:region-tables": "node scripts/fetch-region-tables.mjs",
     "data:seoul-fees": "node scripts/fetch-seoul-fees.mjs",
     "data:import": "node scripts/import-parking-file.mjs",
     "data:verify": "node scripts/verify-snapshot.mjs",

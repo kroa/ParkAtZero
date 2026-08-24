@@ -27,7 +27,13 @@ const squash = (s) => String(s ?? '').split(/[ \t\r\n]+/).join(' ').trim()
  * 처럼 번지 뒤에 말이 붙는 경우가 흔하다. 그대로 두면 번지를 못 읽어 통째로 버려진다.
  */
 function trimSuffix(s) {
-  return squash(s).replace(/\s*(?:외\s*\d+\s*(?:필지|개소)?|일대|일원|부근|인근|앞|주변)\s*$/g, '').trim()
+  return squash(s)
+    // '연암동 1094-1 (경남은행앞)' 처럼 끝에 붙은 설명 괄호를 먼저 뗀다.
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .replace(/\s*(?:외\s*\d+\s*(?:필지|개소)?|일대|일원|부근|인근|앞|주변|등)\s*$/g, '')
+    // '매곡동 885-7, 891-3' 처럼 여러 필지를 나열한 경우 첫 필지만 쓴다.
+    .replace(/\s*,.*$/, '')
+    .trim()
 }
 
 /**
@@ -95,7 +101,13 @@ export async function geocode(addr, key) {
 
     const a = d.address
     if (wantJibun && a) {
-      const dongOk = !wantJibun.dong || String(a.region_3depth_name ?? '') === wantJibun.dong
+      /*
+       * 읍·면 지역은 카카오가 3depth 를 '언양읍 남부리' 처럼 두 단어로 준다.
+       * 통째로 비교하면 리 단위 주소가 전부 어긋나므로 마지막 낱말로 맞춘다.
+       * 부분 문자열이 아니라 낱말 단위로 봐야 '신동' 이 '봉신동' 에 걸리지 않는다.
+       */
+      const depth3 = String(a.region_3depth_name ?? '').split(/\s+/).pop() ?? ''
+      const dongOk = !wantJibun.dong || depth3 === wantJibun.dong
       const mainOk = String(a.main_address_no ?? '') === wantJibun.main
       const subOk = wantJibun.sub === '0' || String(a.sub_address_no ?? '') === wantJibun.sub
       if (dongOk && mainOk && subOk) return { lat, lng, matched: a.address_name }
