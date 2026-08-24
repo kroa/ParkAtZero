@@ -150,10 +150,26 @@ const DAYTYPE_WORD: Record<string, DayType[]> = {
   평일: ['weekday'],
   토요일: ['saturday'],
   주말: ['saturday', 'holiday'],
-  일요일: ['holiday'],
   법정공휴일: ['holiday'],
   공휴일: ['holiday'],
   휴일: ['holiday'],
+}
+
+/**
+ * '일요일'은 요일 규칙으로 따로 뽑는다.
+ *
+ * dayType 의 'holiday' 는 일요일과 공휴일을 함께 묶는다. 그래서 '일요일 무료'를
+ * holiday 로 읽으면 설·추석에도 무료라고 안내하게 된다. 조례에 "일요일은 운영하지
+ * 아니한다"면서 공휴일에는 요금을 받는 지자체가 실제로 있다
+ * (부산 영도구·부산진구·연제구). 특기사항에 '일요일'만 적힌 주차장이 전국 93곳이다.
+ */
+const WEEKDAY_WORD: Record<string, number[]> = {
+  일요일: [0],
+  월요일: [1],
+  화요일: [2],
+  수요일: [3],
+  목요일: [4],
+  금요일: [5],
 }
 
 const TARGET_WORDS = [
@@ -407,6 +423,13 @@ export function extractFreeRules(p: Parking): FreeRule[] {
       for (const word of words) for (const d of DAYTYPE_WORD[word] as DayType[]) days.add(d)
       if (days.size > 0) {
         rules.push({ kind: 'dayType', days: [...days], label: words.join('\u00b7') + ' 무료' })
+      }
+
+      const dowWords = pickWords(item, Object.keys(WEEKDAY_WORD))
+      const dow = new Set<number>()
+      for (const word of dowWords) for (const n of WEEKDAY_WORD[word] as number[]) dow.add(n)
+      if (dow.size > 0) {
+        rules.push({ kind: 'weekdays', days: [...dow], label: dowWords.join('·') + ' 무료' })
       }
     }
   }

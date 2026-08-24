@@ -106,6 +106,15 @@ export type FreeRule =
   | { kind: 'window'; from: number; to: number; days?: DayType[]; label: string; inferred?: boolean }
   /** 특정 요일 전일 무료 */
   | { kind: 'dayType'; days: DayType[]; label: string }
+  /**
+   * 특정 '요일' 전일 무료 (0=일 … 6=토).
+   *
+   * dayType 의 'holiday' 는 일요일과 공휴일을 함께 묶는다. 그런데 조례에는
+   * "일요일은 운영하지 아니한다"면서 공휴일에는 요금을 받는 곳이 있다
+   * (부산 영도구·부산진구·연제구). 특기사항에 '일요일'만 적힌 곳도 전국 93곳인데,
+   * 그것을 공휴일까지 무료로 읽으면 설·추석에 유료인 곳을 공짜라고 안내하게 된다.
+   */
+  | { kind: 'weekdays'; days: number[]; label: string }
   /** 특정 대상만 무료(경차/장애인/저공해 등) — 모두에게 적용되지 않음 */
   | { kind: 'targeted'; target: string; label: string }
 

@@ -1089,6 +1089,62 @@ test.describe('시간 판별 로직', () => {
     expect(out.night.status).toBe('free')
   })
 
+  test("'일요일 무료' 는 공휴일까지 무료로 만들지 않는다", async ({ page }) => {
+    /*
+     * dayType 의 'holiday' 는 일요일과 공휴일을 함께 묶는다. 그래서 '일요일 무료' 를
+     * holiday 로 읽으면 설·추석에도 무료라고 안내하게 된다.
+     *
+     * 조례에 "일요일은 운영하지 아니한다"면서 공휴일에는 요금을 받는 지자체가 실제로 있다.
+     *   부산 영도구 시행규칙: "가. 월요일부터 토요일까지 : 오전 8시부터 오후 8시까지
+     *   (공휴일 포함) 나. 일요일 : 운영하지 아니함"
+     * 특기사항에 '일요일' 만 적힌 주차장도 전국 90곳이다.
+     */
+    await gotoApp(page)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const mk = (note: string) => ({
+        id: 'x',
+        name: 'x',
+        type: '노상',
+        ownership: '공영',
+        address: '부산광역시 영도구',
+        lat: 35.09,
+        lng: 129.07,
+        capacity: 10,
+        chargeType: '유료' as const,
+        hours: {
+          weekday: { open: 480, close: 1200, allDay: false },
+          saturday: { open: 480, close: 1200, allDay: false },
+          holiday: { open: 480, close: 1200, allDay: false },
+        },
+        fee: { basicTime: 30, basicCharge: 500, addTime: 10, addCharge: 300 },
+        note,
+      })
+      // 2026-08-23 일요일 / 2026-09-25 추석 당일(금요일)
+      const at = (p: unknown, iso: string) =>
+        (bridge.evaluate(p as never, iso, 120) as { status: string; cost: number | null })
+      const sunday = mk('일요일 무료')
+      const holiday = mk('공휴일 무료')
+      return {
+        sundayRule: bridge.extractFreeRules(sunday as never).map((r) => r.kind),
+        sundayOnSun: at(sunday, '2026-08-23T14:00:00+09:00'),
+        sundayOnChuseok: at(sunday, '2026-09-25T14:00:00+09:00'),
+        holidayOnChuseok: at(holiday, '2026-09-25T14:00:00+09:00'),
+      }
+    })
+
+    // '일요일' 은 요일 규칙으로 잡힌다 — 공휴일 묶음이 아니다.
+    expect(out.sundayRule).toContain('weekdays')
+    // 일요일에는 무료.
+    expect(out.sundayOnSun.cost).toBe(0)
+    // 추석에는 유료다. 기본 30분 500원 + 남은 90분을 10분당 300원 = 3,200원.
+    // 여기가 0원이 되면 유료 주차장에 공짜라고 안내하게 된다.
+    expect(out.sundayOnChuseok.cost).toBe(3200)
+    // '공휴일 무료' 라고 적힌 곳은 추석에도 무료다.
+    expect(out.holidayOnChuseok.cost).toBe(0)
+  })
+
   test('명절에만 여는 주차장은 그 날짜에만 결과에 든다', async ({ page }) => {
     /*
      * 설·추석 연휴에만 개방하는 학교 운동장·공공기관 주차장이 전국에 1만 곳 있다

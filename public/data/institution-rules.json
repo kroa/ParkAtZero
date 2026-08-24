@@ -1,13 +1,17 @@
 {
  "source": "지자체 주차장 조례 및 관리기관 공식 안내",
  "license": "조례 원문(국가법령정보센터·자치법규정보시스템)과 관리기관 공식 페이지에서 확인한 값",
- "note": "표준데이터에 요금·요일 규정이 통째로 비어 있는 기관을 조례로 메운다. 기관 단위로 같은 규정이 적용되는 것만 담고, 주차장마다 다른 것은 담지 않는다.",
+ "note": "표준데이터에 요금·요일 규정이 통째로 비어 있는 기관을 조례로 메운다. 기관 단위로 같은 규정이 적용되는 것만 담고, 주차장마다 다른 것은 담지 않는다. 부산은 시 시행규칙이 '시장이 설치한' 주차장에만 적용되므로 16개 구·군 조례를 각각 확인했다. 규정이 없는 구(중구·북구·수영구·강서구·사하구·해운대구)와 공휴일에도 징수하는 구(동구·기장군)는 담지 않았다.",
  "fetchedOn": "2026-08-24",
  "rules": [
   {
    "institution": "전라남도 여수시",
-   "types": ["노외"],
-   "excludeNames": ["백야항"],
+   "types": [
+    "노외"
+   ],
+   "excludeNames": [
+    "백야항"
+   ],
    "note": "12:00~14:00 무료 / 20:00~08:00 무료",
    "fee": {
     "basicTime": "60",
@@ -51,6 +55,120 @@
    "note": "공휴일 무료",
    "evidence": "「안산시 주차장 조례」[별표 2] 공영유료주차장 주차요금표 <개정 2026. 4. 29.> 제10호 — '공휴일은 무료를 원칙으로 하되 주차장의 효율적 관리를 위하여 시장이 필요하다고 인정할 경우에는 유료로 운영할 수 있다.' 「관공서의 공휴일에 관한 규정」제2조제1호상 일요일도 공휴일이다. 안산도시공사 시설현황표에서 일요일에도 유료로 운영하는 것으로 확인된 15곳은 제외한다.",
    "sourceUrl": "https://www.elis.go.kr/allalr/selectAlrBdtOne?alrNo=41270125351003&histNo=028",
+   "verifiedOn": "2026-08-24"
+  },
+  {
+   "institution": "부산광역시 금정구청",
+   "types": [
+    "노상"
+   ],
+   "note": "",
+   "hours": {
+    "operDay": "매일",
+    "weekdayOperOpenHhmm": "0800",
+    "weekdayOperColseHhmm": "2000",
+    "satOperOperOpenHhmm": "0800",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "0000"
+   },
+   "evidence": "「부산광역시 금정구 주차장 설치 및 관리 조례 시행규칙」 노상주차장 운영시간 — 월~금 오전 8시부터 오후 8시까지, 토요일 오전 8시부터 오후 3시까지, 공휴일 운영하지 아니함. 국가법령정보센터/자치법규정보시스템 현행 조례·시행규칙 원문. 부산광역시 시행규칙 제2조는 「부산광역시 주차장 설치 및 관리 조례」 제3조제1항의 '시장이 설치한' 공영주차장에만 적용되므로 구·군마다 따로 확인했다.",
+   "sourceUrl": "https://www.elis.go.kr/",
+   "verifiedOn": "2026-08-24"
+  },
+  {
+   "institution": "부산광역시 동래구청",
+   "types": [
+    "노상"
+   ],
+   "note": "",
+   "hours": {
+    "operDay": "매일",
+    "weekdayOperOpenHhmm": "0800",
+    "weekdayOperColseHhmm": "2100",
+    "satOperOperOpenHhmm": "0800",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "0000"
+   },
+   "evidence": "「부산광역시 동래구 주차장 설치 및 관리 조례 시행규칙」 노상주차장 운영시간 — 월~금 오전 8시부터 오후 9시까지, 토요일 오전 8시부터 오후 3시까지, 공휴일 운영하지 아니함. 국가법령정보센터/자치법규정보시스템 현행 조례·시행규칙 원문. 부산광역시 시행규칙 제2조는 「부산광역시 주차장 설치 및 관리 조례」 제3조제1항의 '시장이 설치한' 공영주차장에만 적용되므로 구·군마다 따로 확인했다.",
+   "sourceUrl": "https://www.elis.go.kr/",
+   "verifiedOn": "2026-08-24"
+  },
+  {
+   "institution": "부산광역시 사상구청",
+   "types": [
+    "노상"
+   ],
+   "note": "",
+   "hours": {
+    "operDay": "매일",
+    "weekdayOperOpenHhmm": "0800",
+    "weekdayOperColseHhmm": "2000",
+    "satOperOperOpenHhmm": "0800",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "0000"
+   },
+   "evidence": "사상구는 조례·시행규칙에 운영시간 조문이 없다. 사상구청이 제공기관인 「전국주차장정보표준데이터」(기준일 2026-04-16)의 노상 공영 22개소가 평일 08:00~20:00, 토요일 08:00~15:00, 공휴일 미운영으로 등록돼 있어 그 값을 따른다.",
+   "sourceUrl": "https://www.data.go.kr/data/15012896/standard.do",
+   "verifiedOn": "2026-08-24"
+  },
+  {
+   "institution": "부산광역시 연제구청",
+   "types": [
+    "노상"
+   ],
+   "note": "일요일 무료",
+   "hours": {
+    "operDay": "매일",
+    "weekdayOperOpenHhmm": "0800",
+    "weekdayOperColseHhmm": "2000",
+    "satOperOperOpenHhmm": "0800",
+    "satOperCloseHhmm": "2000",
+    "holidayOperOpenHhmm": "0800",
+    "holidayCloseOpenHhmm": "2000"
+   },
+   "evidence": "「부산광역시 연제구 주차장 설치 및 관리 조례 시행규칙」 — 노상주차장은 월요일부터 토요일까지 오전 8시부터 오후 8시까지, 일요일은 운영하지 아니한다. 공휴일은 징수 대상이라 '공휴일 무료'로 적으면 안 된다. 국가법령정보센터/자치법규정보시스템 현행 조례·시행규칙 원문. 부산광역시 시행규칙 제2조는 「부산광역시 주차장 설치 및 관리 조례」 제3조제1항의 '시장이 설치한' 공영주차장에만 적용되므로 구·군마다 따로 확인했다.",
+   "sourceUrl": "https://www.elis.go.kr/",
+   "verifiedOn": "2026-08-24"
+  },
+  {
+   "institution": "부산광역시 영도구청",
+   "types": [
+    "노상"
+   ],
+   "note": "일요일 무료",
+   "hours": {
+    "operDay": "매일",
+    "weekdayOperOpenHhmm": "0800",
+    "weekdayOperColseHhmm": "2000",
+    "satOperOperOpenHhmm": "0800",
+    "satOperCloseHhmm": "2000",
+    "holidayOperOpenHhmm": "0800",
+    "holidayCloseOpenHhmm": "2000"
+   },
+   "evidence": "「부산광역시 영도구 주차장 설치 및 관리 조례 시행규칙」 — \"1. 노상주차장 가. 월요일부터 토요일까지 : 오전 8시부터 오후 8시까지(공휴일 포함) 나. 일요일 : 운영하지 아니함\". 공휴일에도 징수한다. 국가법령정보센터/자치법규정보시스템 현행 조례·시행규칙 원문. 부산광역시 시행규칙 제2조는 「부산광역시 주차장 설치 및 관리 조례」 제3조제1항의 '시장이 설치한' 공영주차장에만 적용되므로 구·군마다 따로 확인했다.",
+   "sourceUrl": "https://www.elis.go.kr/",
+   "verifiedOn": "2026-08-24"
+  },
+  {
+   "institution": "부산광역시 부산진구청",
+   "types": [
+    "노상"
+   ],
+   "note": "일요일 무료",
+   "hours": {
+    "operDay": "매일",
+    "weekdayOperOpenHhmm": "0800",
+    "weekdayOperColseHhmm": "2100",
+    "satOperOperOpenHhmm": "0800",
+    "satOperCloseHhmm": "2100",
+    "holidayOperOpenHhmm": "0800",
+    "holidayCloseOpenHhmm": "2100"
+   },
+   "evidence": "「부산광역시 부산진구 주차장 설치 및 관리 조례 시행규칙」 — \"1. 노상주차장 가. 평일, 토요일, 공휴일 : 오전 8시부터 오후 9시까지 나. 일요일 : 운영하지 아니함\". 공휴일에도 징수한다. 국가법령정보센터/자치법규정보시스템 현행 조례·시행규칙 원문. 부산광역시 시행규칙 제2조는 「부산광역시 주차장 설치 및 관리 조례」 제3조제1항의 '시장이 설치한' 공영주차장에만 적용되므로 구·군마다 따로 확인했다.",
+   "sourceUrl": "https://www.elis.go.kr/",
    "verifiedOn": "2026-08-24"
   }
  ]

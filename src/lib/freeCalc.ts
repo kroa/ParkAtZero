@@ -165,6 +165,14 @@ function buildRuleIntervals(
         continue
       }
 
+      if (rule.kind === 'weekdays') {
+        // 공휴일과 섞지 않고 실제 요일만 본다. '일요일 무료'가 설·추석까지 덮지 않게.
+        const dow = new Date(startOfDay(visitStart).getTime() + offset * DAY_MINUTES * 60_000).getDay()
+        if (!rule.days.includes(dow)) continue
+        intervals.push({ start: base, end: base + DAY_MINUTES })
+        continue
+      }
+
       // window
       if (rule.days && !rule.days.includes(dt)) continue
       const from = base + rule.from
