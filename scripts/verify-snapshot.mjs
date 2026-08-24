@@ -132,6 +132,7 @@ async function main() {
       path.join('public', 'data', 'bucheon.json'),
       path.join('public', 'data', 'gwangju.json'),
       path.join('public', 'data', 'region-lots.json'),
+      path.join('public', 'data', 'gyeonggi.json'),
     ]
     for (const supPath of supPaths) {
       if (!existsSync(supPath)) continue
