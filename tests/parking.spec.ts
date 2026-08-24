@@ -1089,6 +1089,66 @@ test.describe('시간 판별 로직', () => {
     expect(out.night.status).toBe('free')
   })
 
+  test('명절에만 여는 주차장은 그 날짜에만 결과에 든다', async ({ page }) => {
+    /*
+     * 설·추석 연휴에만 개방하는 학교 운동장·공공기관 주차장이 전국에 1만 곳 있다
+     * (행정안전부 「전국 명절 무료주차장 현황」).
+     *
+     * 평소에는 일반인이 못 대는 곳이라 연중 지도에 띄우면 '가 봤더니 막혀 있다' 가 된다.
+     * 그건 요금을 틀리는 것만큼 나쁘다. 그래서 방문 날짜가 개방일일 때만 결과에 넣는다.
+     */
+    await gotoApp(page)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const base = {
+        type: '노외',
+        ownership: '공영',
+        address: '서울특별시 중구',
+        lat: 37.5665,
+        lng: 126.978,
+        capacity: 50,
+        chargeType: '무료' as const,
+        hours: {
+          weekday: { open: 0, close: 1440, allDay: true },
+          saturday: { open: 0, close: 1440, allDay: true },
+          holiday: { open: 0, close: 1440, allDay: true },
+        },
+        fee: { basicTime: 0, basicCharge: 0, addTime: 0, addCharge: 0 },
+      }
+      const lots = [
+        { ...base, id: 'always', name: '상시 무료 주차장' },
+        { ...base, id: 'holiday', name: '설 연휴 개방 학교', openDates: ['2026-02-16', '2026-02-17'] },
+      ]
+      const query = {
+        keyword: '',
+        durationMin: 120,
+        center: { lat: 37.5665, lng: 126.978 },
+        radiusKm: 10,
+        status: 'all',
+        ownership: 'all',
+        vehicle: 'car',
+        sort: 'smart',
+      }
+      const names = (iso: string) =>
+        (bridge.run(lots as never, { ...query, visitIso: iso } as never) as { items: Array<{ id: string }> }).items
+          .map((r) => r.id)
+          .sort()
+      return {
+        onDate: names('2026-02-16T14:00:00+09:00'),
+        offDate: names('2026-08-24T14:00:00+09:00'),
+        dayAfter: names('2026-02-18T14:00:00+09:00'),
+      }
+    })
+
+    // 개방일에는 둘 다 나온다.
+    expect(out.onDate).toEqual(['always', 'holiday'])
+    // 평소에는 명절 주차장이 빠진다.
+    expect(out.offDate).toEqual(['always'])
+    // 연휴라도 그 주차장의 개방일이 아니면 빠진다 — 날짜마다 여는 곳이 다르다.
+    expect(out.dayAfter).toEqual(['always'])
+  })
+
   test('월정기·거주자우선 구획을 이용 제한으로 읽는다', async ({ page }) => {
     /*
      * 시간 요금 칸이 비어 있어 '요금 미공개'로 분류되던 곳들이다. 사실은 금액을 모르는 게

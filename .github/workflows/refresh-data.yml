@@ -140,6 +140,14 @@ jobs:
           if [ -z "$SEOUL_OPENAPI_KEY" ]; then echo "::notice::인증키가 없어 건너뜁니다."; exit 0; fi
           npm run data:seoul-lots 2>&1 | tee /tmp/step.log
 
+      # 설·추석 연휴에만 개방하는 주차장. 행안부가 명절마다 새 파일을 올리므로
+      # 내려받기 링크를 매번 다시 찾는다. 개방일에만 앱에 노출된다.
+      - name: 명절 무료주차장 수집
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run data:holiday 2>&1 | tee /tmp/step.log
+
       # 표준데이터의 빈 요금 칸을 서울시 공영주차장 API 로 채운다.
       - name: 서울 공영주차장 요금 보정
         continue-on-error: true

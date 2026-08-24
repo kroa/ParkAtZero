@@ -33,6 +33,14 @@ export interface CellIndex {
    * 데이터가 바뀌면 이름이 바뀌고, 색인만 새로 받으면 곧바로 반영된다.
    */
   cells: Record<string, { count: number; file: string }>
+  /**
+   * 명절 연휴에만 개방하는 주차장 묶음.
+   *
+   * 전국 1만 곳인데 1년에 닷새만 쓸 수 있다. 격자에 섞으면 360일 동안 아무도
+   * 못 쓰는 데이터를 매번 내려받게 되므로 따로 두고, 방문 날짜가 dates 에 들어
+   * 있을 때만 받는다.
+   */
+  holiday?: { dates: string[]; cells: Record<string, { count: number; file: string }>; count: number }
 }
 
 async function fetchJson(url: string, signal?: AbortSignal): Promise<unknown> {
@@ -63,8 +71,39 @@ export async function loadCellIndex(signal?: AbortSignal): Promise<CellIndex | n
  * 반경 원을 감싸는 사각형이 걸치는 칸을 모두 고른다. 원 대신 사각형으로 잡는 편이
  * 계산이 단순하고, 몇 칸 더 받아도 어차피 반경 필터가 걸러 준다.
  */
-export function cellKeysFor(center: LatLng, radiusKm: number, index: CellIndex): string[] {
-  const size = index.cellSize
+/**
+ * 명절 주차장을 받는다. 해당 날짜가 아니면 아무것도 받지 않는다.
+ *
+ * 전국 1만 곳을 한 파일로 두면 8MB 가 넘어 연휴에 첫 화면이 멈춘다.
+ * 평소 칸과 같은 격자로 쪼개 두고 보고 있는 곳 주변만 받는다.
+ */
+export async function loadHolidayLots(
+  index: CellIndex,
+  visitYmd: string,
+  center: LatLng,
+  radiusKm: number,
+  signal?: AbortSignal,
+): Promise<Parking[]> {
+  const h = index.holiday
+  if (!h || !h.dates.includes(visitYmd)) return []
+  const keys = keysInRange(center, radiusKm, index.cellSize, h.cells)
+  const results = await Promise.all(
+    keys.map((k) => tryJson(CONFIG.cellBaseUrl + '/' + h.cells[k].file, signal)),
+  )
+  const merged: Parking[] = []
+  for (const payload of results) {
+    if (payload) merged.push(...normalizeAll(payload))
+  }
+  return merged
+}
+
+/** 반경 안에 걸치는 격자 칸 이름들. 평소 칸과 명절 칸이 같은 격자를 쓴다. */
+function keysInRange(
+  center: LatLng,
+  radiusKm: number,
+  size: number,
+  cells: Record<string, unknown>,
+): string[] {
   const dLat = radiusKm / 110.574
   const dLng = radiusKm / (111.32 * Math.cos((center.lat * Math.PI) / 180) || 1)
 
@@ -78,10 +117,14 @@ export function cellKeysFor(center: LatLng, radiusKm: number, index: CellIndex):
     for (let lo = lngFrom; lo <= lngTo; lo++) {
       const key = la + '_' + lo
       // 빈 칸(바다·산)은 파일 자체가 없다. 404 를 만들지 않는다.
-      if (index.cells[key]) keys.push(key)
+      if (cells[key]) keys.push(key)
     }
   }
   return keys
+}
+
+export function cellKeysFor(center: LatLng, radiusKm: number, index: CellIndex): string[] {
+  return keysInRange(center, radiusKm, index.cellSize, index.cells)
 }
 
 /** 격자 칸 여러 개를 병렬로 받아 하나로 합친다. 실패한 칸은 건너뛴다. */

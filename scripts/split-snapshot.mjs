@@ -57,6 +57,8 @@ export function cellKey(lat, lng, size = CELL_SIZE) {
   return Math.floor(lat / size) + '_' + Math.floor(lng / size)
 }
 
+const kbOf = (json) => Math.round(Buffer.byteLength(json) / 1024).toLocaleString('ko-KR') + 'KB'
+
 async function main() {
   if (!existsSync(SOURCE)) {
     console.log('스냅샷이 없어 격자 분할을 건너뜁니다 (' + SOURCE + ')')
@@ -233,6 +235,51 @@ async function main() {
     await writeFile(path.join(OUT_DIR, file), json, 'utf-8')
     index.cells[key] = { count: list.length, file }
     biggest = Math.max(biggest, Buffer.byteLength(json))
+  }
+
+  /*
+   * 명절 연휴에만 개방하는 주차장은 격자에 섞지 않고 따로 낸다.
+   *
+   * 전국 1만 곳인데 1년에 닷새만 쓸 수 있다. 칸 파일에 넣으면 360일 동안 아무도
+   * 못 쓰는 데이터를 매번 내려받게 된다. 앱은 색인의 holiday.dates 를 보고
+   * 그 날짜를 골랐을 때만 이 파일을 받는다.
+   */
+  const HOLIDAY_FILE = path.join('public', 'data', 'holiday-parking.json')
+  if (existsSync(HOLIDAY_FILE)) {
+    const h = JSON.parse(await readFile(HOLIDAY_FILE, 'utf-8'))
+    const hRows = Array.isArray(h?.rows) ? h.rows : []
+    if (hRows.length > 0) {
+      /*
+       * 평소 칸과 같은 격자로 쪼갠다.
+       * 한 파일로 두면 8MB 가 넘어 연휴에 첫 화면이 멈춘다.
+       */
+      const hCells = new Map()
+      for (const row of hRows) {
+        const la = Number(row.latitude)
+        const ln = Number(row.longitude)
+        if (!Number.isFinite(la) || !Number.isFinite(ln)) continue
+        const key = cellKey(la, ln)
+        if (!hCells.has(key)) hCells.set(key, [])
+        hCells.get(key).push(row)
+      }
+      const cells = {}
+      let biggestH = 0
+      for (const [key, list] of hCells) {
+        const json = JSON.stringify({ data: list })
+        const hash = createHash('sha256').update(json).digest('hex').slice(0, 8)
+        const file = 'holiday.' + key + '.' + hash + '.json'
+        await writeFile(path.join(OUT_DIR, file), json, 'utf-8')
+        cells[key] = { count: list.length, file }
+        biggestH = Math.max(biggestH, Buffer.byteLength(json))
+      }
+      const dates = [...new Set(hRows.flatMap((r) => r.pzOpenDates ?? []))].sort()
+      index.holiday = { dates, cells, count: hRows.length }
+      console.log(
+        '명절 주차장: ' + hRows.length.toLocaleString('ko-KR') + '건 → ' + hCells.size +
+          '칸 (가장 큰 칸 ' + Math.round(biggestH / 1024).toLocaleString('ko-KR') + 'KB) — ' +
+          dates.length + '일: ' + dates.join(', '),
+      )
+    }
   }
 
   const indexJson = JSON.stringify(index)

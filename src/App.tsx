@@ -28,6 +28,7 @@ import {
   type SortKey,
   type StatusFilter,
   type VehicleFilter,
+  ymd,
 } from '@/lib/query'
 import { haversineKm, SEOUL_CITY_HALL, type LatLng } from '@/lib/geo'
 import { formatVisitLabel, snapToFiveMinutes } from '@/lib/format'
@@ -50,20 +51,26 @@ export default function App() {
   const [origin, setOrigin] = useState<LatLng>(SEOUL_CITY_HALL)
   const [radiusKm, setRadiusKm] = useState(10)
 
+  const [visitStart, setVisitStart] = useState(() => snapToFiveMinutes(new Date()))
+  const [durationMin, setDurationMin] = useState(120)
+
   /*
    * 데이터는 기준점 주변 격자 칸만 받는다.
    * 전국 스냅샷을 통째로 읽으면 저사양 단말에서 파싱만 2초가 걸리고, 그동안 사용자는
    * 예시(가짜) 데이터를 보고 있어야 했다.
+   *
+   * 방문 날짜도 넘긴다 — 설·추석 연휴에만 여는 주차장은 그날에만 따로 받는다.
    */
-  const { parkings, loading, refreshing, source, totalCount, referenceDate } = useParkingData(origin, radiusKm)
+  const { parkings, loading, refreshing, source, totalCount, referenceDate } = useParkingData(
+    origin,
+    radiusKm,
+    ymd(visitStart),
+  )
   const isSample = source !== 'remote'
   const geo = useGeolocation()
 
   const [keyword, setKeyword] = useState('')
   const debouncedKeyword = useDebounced(keyword, 160)
-
-  const [visitStart, setVisitStart] = useState(() => snapToFiveMinutes(new Date()))
-  const [durationMin, setDurationMin] = useState(120)
 
   /**
    * origin  : 거리·반경의 기준점. 검색과 '내 위치'로만 움직인다.

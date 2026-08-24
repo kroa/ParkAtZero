@@ -62,6 +62,7 @@ const FIELD = {
   note: ['spcmnt', '특기사항'],
   tel: ['phoneNumber', '전화번호'],
   managedBy: ['institutionNm', '관리기관명'],
+  openDates: ['pzOpenDates'],
   lat: ['latitude', '위도', 'lat'],
   lng: ['longitude', '경도', 'lng'],
   updatedAt: ['referenceDate', '데이터기준일자'],
@@ -166,10 +167,25 @@ export function normalizeParking(row: Raw, index: number): Parking | null {
     tel: str(pick(row, FIELD.tel)) || undefined,
     sourceUrl: str(pick(row, FIELD.sourceUrl)) || undefined,
     sourceVerifiedOn: str(pick(row, FIELD.sourceVerifiedOn)) || undefined,
+    openDates: readOpenDates(pick(row, FIELD.openDates)),
     payment: str(pick(row, FIELD.payment)) || undefined,
     managedBy,
     updatedAt: str(pick(row, FIELD.updatedAt)) || undefined,
   }
+}
+
+/**
+ * 특정 날짜에만 여는 주차장의 개방일 목록을 읽는다.
+ *
+ * 설·추석 연휴에만 개방하는 곳이라 값이 있으면 그 날짜에만 결과에 넣는다.
+ * 배열로도, 쉼표로 이어 붙인 문자열로도 올 수 있다.
+ */
+function readOpenDates(raw: unknown): string[] | undefined {
+  const list = Array.isArray(raw) ? raw : String(raw ?? '').split(',')
+  const dates = list
+    .map((d) => String(d).trim())
+    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))
+  return dates.length > 0 ? [...new Set(dates)].sort() : undefined
 }
 
 /** 배열/odcloud 응답({data:[]})/공공API 응답({response:{body:{items:[]}}}) 어느 형태든 받아낸다. */

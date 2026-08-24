@@ -76,6 +76,15 @@ export interface Parking {
   sourceUrl?: string
   /** 그 출처를 확인한 날짜 (YYYY-MM-DD) */
   sourceVerifiedOn?: string
+  /**
+   * 특정 날짜에만 여는 주차장. 'YYYY-MM-DD' 목록.
+   *
+   * 설·추석 연휴에만 개방하는 학교 운동장·공공기관 주차장이 전국에 1만 곳 있다
+   * (행정안전부 「전국 명절 무료주차장 현황」). 평소에는 일반인이 못 대는 곳이라
+   * 연중 지도에 띄우면 안 되고, 연휴에는 가장 쓸모 있는 정보다.
+   * 이 값이 있으면 방문 날짜가 목록에 있을 때만 결과에 넣는다.
+   */
+  openDates?: string[]
   payment?: string
   managedBy?: string
   updatedAt?: string

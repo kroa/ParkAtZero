@@ -23,6 +23,7 @@
     "data:gwangju": "node scripts/fetch-gwangju.mjs",
     "data:region-tables": "node scripts/fetch-region-tables.mjs",
     "data:gyeonggi": "node scripts/fetch-gyeonggi-csv.mjs",
+    "data:holiday": "node scripts/fetch-holiday-parking.mjs",
     "data:seoul-fees": "node scripts/fetch-seoul-fees.mjs",
     "data:import": "node scripts/import-parking-file.mjs",
     "data:verify": "node scripts/verify-snapshot.mjs",

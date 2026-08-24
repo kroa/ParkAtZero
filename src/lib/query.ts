@@ -60,6 +60,17 @@ export interface ResultSummary {
   closed: number
 }
 
+/** 로컬 기준 'YYYY-MM-DD'. toISOString 은 UTC 라 자정 근처에서 하루가 밀린다. */
+export function ymd(d: Date): string {
+  return (
+    d.getFullYear() +
+    '-' +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(d.getDate()).padStart(2, '0')
+  )
+}
+
 function matchesKeyword(p: Parking, key: string): boolean {
   if (!key) return true
   return (
@@ -91,7 +102,18 @@ export function buildResults(parkings: Parking[], q: QueryState): ResultItem[] {
   const key = searchKey(q.keyword)
   const items: ResultItem[] = []
 
+  const visitYmd = ymd(q.visitStart)
+
   for (const p of parkings) {
+    /*
+     * 특정 날짜에만 여는 주차장은 그날에만 보여 준다.
+     *
+     * 설·추석 연휴에만 개방하는 학교 운동장·공공기관 주차장이 전국에 1만 곳 있다.
+     * 평소에는 일반인이 못 대는 곳이라 연중 지도에 띄우면 '가 봤더니 막혀 있다'가 되고,
+     * 정작 연휴에는 가장 쓸모 있는 정보다. 그래서 날짜로 켜고 끈다.
+     */
+    if (p.openDates && !p.openDates.includes(visitYmd)) continue
+
     const distanceKm = haversineKm(q.center, p)
     // 키워드 검색 중에는 반경을 넓게 본다 — "속초"를 검색했는데 반경 3㎞로 잘리면 곤란하다.
     const withinRadius = key ? distanceKm <= Math.max(q.radiusKm, 400) : distanceKm <= q.radiusKm
