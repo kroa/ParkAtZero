@@ -63,9 +63,17 @@ function hhmm(v) {
  * 지오코딩 결과가 같은 번지인지 확인하는 데 쓴다.
  */
 export function readBunji(addr) {
-  const m = /(\d+)(?:\s*-\s*(\d+))?\s*(?:번지)?\s*$/.exec(squash(addr).replace(/\s*일대\s*$/, ''))
+  const clean = squash(addr).replace(/\s*일대\s*$/, '')
+  const m = /(\d+)(?:\s*-\s*(\d+))?\s*(?:번지)?\s*$/.exec(clean)
   if (!m) return null
-  return { main: m[1], sub: m[2] ?? '0' }
+  /*
+   * 법정동 이름도 함께 본다. 같은 번지가 다른 동에도 있어서 번지만 맞춰선 안 된다.
+   * 뒤쪽 번지만 떼어 내고 마지막 낱말을 쓴다. '남산동2가' 처럼 숫자가 이름의 일부인
+   * 동이 있어서, 숫자를 기준으로 자르면 '남산동' 이 되어 엉뚱하게 어긋난다.
+   */
+  const head = clean.replace(/\s*(?:산\s*)?\d+(?:\s*-\s*\d+)?\s*(?:번지)?\s*$/, '')
+  const last = head.split(/\s+/).pop() ?? ''
+  return { main: m[1], sub: m[2] ?? '0', dong: /[동리가]$/.test(last) ? last : '' }
 }
 
 /**
@@ -92,6 +100,8 @@ export async function geocode(addr, key) {
     if (want) {
       if (String(a.main_address_no ?? '') !== want.main) continue
       if (want.sub !== '0' && String(a.sub_address_no ?? '') !== want.sub) continue
+      // 동까지 맞아야 한다. 같은 번지가 다른 동에도 있으면 몇 킬로미터 떨어진 곳이 나온다.
+      if (want.dong && String(a.region_3depth_name ?? '') !== want.dong) continue
     } else if (!a.main_address_no) continue
     return { lat, lng }
   }
