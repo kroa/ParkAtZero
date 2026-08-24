@@ -23,10 +23,15 @@
  * 그래서 여기서는 평일 요금·운영시간·좌표만 옮긴다. 주말 무료 여부는 자치구
  * 조례로 따로 확인해서 채운다. 잘못 넣으면 유료 주차장 2,000곳이 '완전 무료'가 된다.
  *
- * 좌표가 없는 733곳도 넣지 않는다. 지도에 못 찍는 주차장은 이 앱에서 쓸모가 없고,
- * 동 중심점으로 대충 찍으면 수백 미터 떨어진 곳으로 안내하게 된다.
+ * ── 좌표 없는 733곳 ────────────────────────────────────────
+ * API 가 좌표를 주지 않는 주차장이 733곳이다. 지번주소는 있으므로 지오코딩으로 채운다.
+ * 다만 번지까지 정확히 맞은 것만 쓴다. OSM Nominatim 은 '성동구 마장동 463-2' 를
+ * 마장동 중심점으로 돌려주는데, 그러면 수백 미터 떨어진 곳으로 안내하게 된다.
+ * 없는 것보다 나쁘므로, 번지가 어긋나면 그 주차장은 버린다.
  *
- * 필요한 환경변수: SEOUL_OPENAPI_KEY
+ * KAKAO_REST_API_KEY 가 없으면 이 단계를 건너뛰고 좌표가 있는 것만 담는다.
+ *
+ * 필요한 환경변수: SEOUL_OPENAPI_KEY, (선택) KAKAO_REST_API_KEY
  * 사용: node scripts/fetch-seoul-lots.mjs [출력경로]
  */
 import path from 'node:path'
@@ -44,12 +49,53 @@ const num = (v) => {
   const n = Number(String(v ?? '').replace(/[^0-9.-]/g, ''))
   return Number.isFinite(n) && n > 0 ? n : 0
 }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const squash = (s) => String(s ?? '').split(/[ \t\r\n]+/).join(' ').trim()
 
 /** hhmm 문자열 정리. 0000-0000 이나 빈 값은 '운영 정보 없음'으로 본다. */
 function hhmm(v) {
   const s = String(v ?? '').replace(/[^0-9]/g, '')
   return s.length === 4 ? s : ''
+}
+
+/**
+ * 지번주소에서 '본번-부번' 을 뽑는다. '성동구 마장동 463-2' → { main: '463', sub: '2' }
+ * 지오코딩 결과가 같은 번지인지 확인하는 데 쓴다.
+ */
+export function readBunji(addr) {
+  const m = /(\d+)(?:\s*-\s*(\d+))?\s*(?:번지)?\s*$/.exec(squash(addr).replace(/\s*일대\s*$/, ''))
+  if (!m) return null
+  return { main: m[1], sub: m[2] ?? '0' }
+}
+
+/**
+ * 카카오 로컬 API 로 지번주소를 좌표로 바꾼다.
+ *
+ * 번지가 요청한 것과 다르면 null 을 돌려준다. 카카오는 번지를 못 찾으면 동 단위로
+ * 넓혀서 답을 주는데, 그걸 그대로 받으면 주차장이 엉뚱한 데 찍힌다.
+ */
+export async function geocode(addr, key) {
+  const want = readBunji(addr)
+  const res = await fetch(
+    'https://dapi.kakao.com/v2/local/search/address.json?analyze_type=exact&size=5&query=' + encodeURIComponent(addr),
+    { headers: { Authorization: 'KakaoAK ' + key } },
+  )
+  if (!res.ok) throw new Error('지오코딩 HTTP ' + res.status)
+  const docs = (await res.json()).documents ?? []
+  for (const d of docs) {
+    const a = d.address
+    if (!a) continue
+    const lat = Number(d.y)
+    const lng = Number(d.x)
+    if (!(lat > 33 && lat < 39 && lng > 124 && lng < 132)) continue
+    // 번지를 아는데 결과가 다른 번지면 쓰지 않는다.
+    if (want) {
+      if (String(a.main_address_no ?? '') !== want.main) continue
+      if (want.sub !== '0' && String(a.sub_address_no ?? '') !== want.sub) continue
+    } else if (!a.main_address_no) continue
+    return { lat, lng }
+  }
+  return null
 }
 
 function metersBetween(aLat, aLng, bLat, bLng) {
@@ -123,18 +169,51 @@ async function main() {
    * 한 주차장을 한 점으로 줄이되, 구획들의 중심을 써서 위치를 최대한 맞춘다.
    */
   const groups = new Map()
+  const needGeocode = []
   for (const r of api) {
     const lat = Number(r.LAT)
     const lng = Number(r.LOT)
+    const id = String(r.PKLT_CD ?? '') || squash(r.PKLT_NM)
     if (!(lat > 33 && lat < 39 && lng > 124 && lng < 132)) {
-      bump('좌표 없음')
+      if (!groups.has(id) && !needGeocode.some((x) => x.id === id)) needGeocode.push({ id, row: r })
       continue
     }
-    const id = String(r.PKLT_CD ?? '') || squash(r.PKLT_NM)
     if (!groups.has(id)) groups.set(id, { first: r, pts: [] })
     groups.get(id).pts.push([lat, lng])
   }
   console.log('관리번호로 묶음: ' + groups.size.toLocaleString() + '곳 (구획 ' + api.length.toLocaleString() + '행)')
+
+  /*
+   * 좌표가 없는 곳은 지번주소로 찾는다. 번지까지 맞은 것만 쓴다.
+   * 카카오 로컬 API 는 초당 요청 제한이 있어 간격을 둔다.
+   */
+  const kakaoKey = process.env.KAKAO_REST_API_KEY
+  if (needGeocode.length > 0) {
+    if (!kakaoKey) {
+      console.log('좌표 없는 ' + needGeocode.length + '곳: KAKAO_REST_API_KEY 가 없어 건너뜁니다.')
+      tally['좌표 없음'] = needGeocode.length
+    } else {
+      console.log('좌표 없는 ' + needGeocode.length + '곳을 지번주소로 찾습니다...')
+      let found = 0
+      let done = 0
+      for (const { id, row } of needGeocode) {
+        const addr = '서울특별시 ' + squash(row.ADDR)
+        try {
+          const hit = await geocode(addr, kakaoKey)
+          if (hit) {
+            groups.set(id, { first: row, pts: [[hit.lat, hit.lng]] })
+            found++
+          } else bump('번지가 안 맞아 버림')
+        } catch (err) {
+          console.warn('  ! ' + addr + ': ' + err.message)
+          bump('지오코딩 실패')
+        }
+        await sleep(60)
+        if (++done % 100 === 0) console.log('  ' + done + '/' + needGeocode.length + ' (찾음 ' + found + ')')
+      }
+      console.log('지오코딩: ' + found + '/' + needGeocode.length + '곳 좌표 확보')
+    }
+  }
 
   for (const [, { first: r, pts }] of groups) {
     const lat = pts.reduce((s, p) => s + p[0], 0) / pts.length
