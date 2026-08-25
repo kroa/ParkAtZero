@@ -148,6 +148,14 @@ jobs:
           set -o pipefail
           npm run data:holiday 2>&1 | tee /tmp/step.log
 
+      # 서울시가 고시한 주차장별 요일 운영시간(평일·토요일·공휴일).
+      # 표준데이터가 공휴일 칸에 토요일 시간을 복사해 둔 곳을 바로잡는다.
+      - name: 서울시 고시 운영시간 반영
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          npm run data:seoul-official 2>&1 | tee /tmp/step.log
+
       # 표준데이터의 빈 요금 칸을 서울시 공영주차장 API 로 채운다.
       - name: 서울 공영주차장 요금 보정
         continue-on-error: true

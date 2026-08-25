@@ -1,0 +1,1170 @@
+{
+ "source": "서울특별시 교통운영관 주차계획과 — 서울시 공영주차장 현황",
+ "sourceUrl": "https://news.seoul.go.kr/traffic/archives/26877",
+ "license": "서울특별시가 고시한 주차장별 요일 운영시간(평일·토요일·공휴일)",
+ "fetchedOn": "2026-08-25",
+ "rows": [
+  {
+   "prkplceNo": "115-2-000001",
+   "prkplceNm": "개화산역",
+   "officialName": "개화산역",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "115-2-000002",
+   "prkplceNm": "개화역",
+   "officialName": "개화역",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "111-2-000001",
+   "prkplceNm": "구파발역",
+   "officialName": "구파발역",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "115-2-000003",
+   "prkplceNm": "가양라이품",
+   "officialName": "가양라이품",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "109-2-000002",
+   "prkplceNm": "도봉산역",
+   "officialName": "도봉산역",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "116-2-000002",
+   "prkplceNm": "동구로",
+   "officialName": "동구로",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "101-2-000004",
+   "prkplceNm": "동대문",
+   "officialName": "동대문",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "123-2-000002",
+   "prkplceNm": "복정역",
+   "officialName": "복정역",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "121-2-000001",
+   "prkplceNm": "사당노외",
+   "officialName": "사당노외",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "100-2-000007",
+   "prkplceNm": "서울글로벌센터",
+   "officialName": "서울글로벌센터",
+   "hours": {
+    "operDay": "평일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1800",
+    "satOperOperOpenHhmm": "",
+    "satOperCloseHhmm": "",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "100-2-000006",
+   "prkplceNm": "세종로",
+   "officialName": "세종로",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "122-2-000001",
+   "prkplceNm": "수서역",
+   "officialName": "수서역",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "120-2-000001",
+   "prkplceNm": "신대방역",
+   "officialName": "신대방역",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "115-2-000010",
+   "prkplceNm": "신방화역",
+   "officialName": "신방화역",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "105-2-000002",
+   "prkplceNm": "신설동",
+   "officialName": "신설동",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1900",
+    "holidayOperOpenHhmm": "0900",
+    "holidayCloseOpenHhmm": "1900"
+   }
+  },
+  {
+   "prkplceNo": "114-2-000003",
+   "prkplceNm": "신월4동",
+   "officialName": "신월4동",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "123-2-000003",
+   "prkplceNm": "신천유수지",
+   "officialName": "신천유수지",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "124-2-000003",
+   "prkplceNm": "볕우물",
+   "officialName": "볕우물",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "121-2-000003",
+   "prkplceNm": "양재역",
+   "officialName": "양재역",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "102-2-000003",
+   "prkplceNm": "용산주차빌딩",
+   "officialName": "용산주차빌딩",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "114-2-000001",
+   "prkplceNm": "웃우물",
+   "officialName": "웃우물",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "122-2-000003",
+   "prkplceNm": "일원터널",
+   "officialName": "일원터널",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "105-2-000003",
+   "prkplceNm": "장안1동",
+   "officialName": "장안1동",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "105-2-000001",
+   "prkplceNm": "장안2동",
+   "officialName": "장안2동",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "100-2-000004",
+   "prkplceNm": "종묘",
+   "officialName": "종묘",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "104-2-000017",
+   "prkplceNm": "중곡1동",
+   "officialName": "중곡1동",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "116-2-000002",
+   "prkplceNm": "천왕역",
+   "officialName": "천왕역",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "124-2-000001",
+   "prkplceNm": "천호역",
+   "officialName": "천호역",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "102-2-000001",
+   "prkplceNm": "한강진역",
+   "officialName": "한강진역",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "101-2-000005",
+   "prkplceNm": "훈련원공원",
+   "officialName": "훈련원공원",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "101-2-000016",
+   "prkplceNm": "남산예장",
+   "officialName": "남산예장",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0600",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0600",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0600",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "111-1-000002",
+   "prkplceNm": "진흥로",
+   "officialName": "진흥로",
+   "hours": {
+    "operDay": "평일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1800",
+    "satOperOperOpenHhmm": "",
+    "satOperCloseHhmm": "",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "115-2-000004",
+   "prkplceNm": "가양3동",
+   "officialName": "가양3동",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "114-2-000002",
+   "prkplceNm": "목동체비지",
+   "officialName": "목동체비지",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0800",
+    "weekdayOperColseHhmm": "2100",
+    "satOperOperOpenHhmm": "0800",
+    "satOperCloseHhmm": "2100",
+    "holidayOperOpenHhmm": "0800",
+    "holidayCloseOpenHhmm": "2100"
+   }
+  },
+  {
+   "prkplceNo": "115-2-000009",
+   "prkplceNm": "가양역",
+   "officialName": "가양역",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0800",
+    "weekdayOperColseHhmm": "2100",
+    "satOperOperOpenHhmm": "0800",
+    "satOperCloseHhmm": "2100",
+    "holidayOperOpenHhmm": "0800",
+    "holidayCloseOpenHhmm": "2100"
+   }
+  },
+  {
+   "prkplceNo": "116-1-000001",
+   "prkplceNm": "대림역2",
+   "officialName": "대림역2",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "116-1-000002",
+   "prkplceNm": "가마산고가밑",
+   "officialName": "가마산고가밑",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "117-1-000001",
+   "prkplceNm": "가산동 금천교",
+   "officialName": "가산동 금천교",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "117-1-000002",
+   "prkplceNm": "독산동 금천교",
+   "officialName": "독산동 금천교",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "116-1-000007",
+   "prkplceNm": "온수역(남)",
+   "officialName": "온수역(남)",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "118-1-000001",
+   "prkplceNm": "당산고가밑",
+   "officialName": "당산고가밑",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "118-2-000004",
+   "prkplceNm": "당산노외",
+   "officialName": "당산노외",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0800",
+    "weekdayOperColseHhmm": "2100",
+    "satOperOperOpenHhmm": "0800",
+    "satOperCloseHhmm": "2100",
+    "holidayOperOpenHhmm": "0800",
+    "holidayCloseOpenHhmm": "2100"
+   }
+  },
+  {
+   "prkplceNo": "116-2-000003",
+   "prkplceNm": "대림노외",
+   "officialName": "대림노외",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1900",
+    "holidayOperOpenHhmm": "0900",
+    "holidayCloseOpenHhmm": "1900"
+   }
+  },
+  {
+   "prkplceNo": "118-1-000002",
+   "prkplceNm": "대림역",
+   "officialName": "대림역",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "118-1-000003",
+   "prkplceNm": "문래1동",
+   "officialName": "문래1동",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "118-1-000005",
+   "prkplceNm": "양평동(동)",
+   "officialName": "양평동(동)",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1900",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "120-1-000001",
+   "prkplceNm": "봉천복개3",
+   "officialName": "봉천복개3",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "118-1-000006",
+   "prkplceNm": "여의서로",
+   "officialName": "여의서로",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "118-1-000004",
+   "prkplceNm": "원효대교 남단",
+   "officialName": "원효대교 남단",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "118-1-000008",
+   "prkplceNm": "해군본부앞",
+   "officialName": "해군본부앞",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "119-2-000003",
+   "prkplceNm": "보라매상업",
+   "officialName": "보라매상업",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "2100",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "2100",
+    "holidayOperOpenHhmm": "0900",
+    "holidayCloseOpenHhmm": "2100"
+   }
+  },
+  {
+   "prkplceNo": "118-1-000007",
+   "prkplceNm": "여의도공원",
+   "officialName": "여의도공원",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "122-1-000004",
+   "prkplceNm": "동호대교(남)",
+   "officialName": "동호대교(남)",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1900",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "124-1-000002",
+   "prkplceNm": "명일파출소",
+   "officialName": "명일파출소",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "2000",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "123-1-000001",
+   "prkplceNm": "성내역(잠실나루역)",
+   "officialName": "성내역 (잠실나루역)",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0800",
+    "weekdayOperColseHhmm": "1800",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "122-1-000002",
+   "prkplceNm": "압구정고가1",
+   "officialName": "압구정고가1",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0800",
+    "weekdayOperColseHhmm": "2100",
+    "satOperOperOpenHhmm": "0800",
+    "satOperCloseHhmm": "2100",
+    "holidayOperOpenHhmm": "0800",
+    "holidayCloseOpenHhmm": "2100"
+   }
+  },
+  {
+   "prkplceNo": "122-1-000003",
+   "prkplceNm": "압구정고가2",
+   "officialName": "압구정고가2",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0800",
+    "weekdayOperColseHhmm": "2100",
+    "satOperOperOpenHhmm": "0800",
+    "satOperCloseHhmm": "2100",
+    "holidayOperOpenHhmm": "0800",
+    "holidayCloseOpenHhmm": "2100"
+   }
+  },
+  {
+   "prkplceNo": "122-1-000001",
+   "prkplceNm": "영동6교밑",
+   "officialName": "영동6교밑",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "0900",
+    "holidayCloseOpenHhmm": "1500"
+   }
+  },
+  {
+   "prkplceNo": "103-1-000002",
+   "prkplceNm": "옥수역",
+   "officialName": "옥수역",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "122-2-000004",
+   "prkplceNm": "일원역",
+   "officialName": "일원역",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "117-2-000001",
+   "prkplceNm": "남부여성발전센터",
+   "officialName": "남부여성발전센터",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "118-2-000003",
+   "prkplceNm": "영남",
+   "officialName": "영남",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "101-1-000026",
+   "prkplceNm": "남대문 화물",
+   "officialName": "남대문화물",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1900",
+    "holidayOperOpenHhmm": "0900",
+    "holidayCloseOpenHhmm": "1900"
+   }
+  },
+  {
+   "prkplceNo": "101-1-000009",
+   "prkplceNm": "소파길노상",
+   "officialName": "소파길노상",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "2100",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "2100",
+    "holidayOperOpenHhmm": "0900",
+    "holidayCloseOpenHhmm": "2100"
+   }
+  },
+  {
+   "prkplceNo": "101-1-000020",
+   "prkplceNm": "남산파출소",
+   "officialName": "남산파출소",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "2100",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "2100",
+    "holidayOperOpenHhmm": "0900",
+    "holidayCloseOpenHhmm": "2100"
+   }
+  },
+  {
+   "prkplceNo": "101-1-000001",
+   "prkplceNm": "남산한옥마을",
+   "officialName": "남산한옥마을",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "2000",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "2000",
+    "holidayOperOpenHhmm": "0900",
+    "holidayCloseOpenHhmm": "2000"
+   }
+  },
+  {
+   "prkplceNo": "101-1-000015",
+   "prkplceNm": "동국제강",
+   "officialName": "동국제강",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1900",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "100-1-000012",
+   "prkplceNm": "청계1(북)",
+   "officialName": "청계1",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "100-1-000016",
+   "prkplceNm": "청계7",
+   "officialName": "청계7",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "101-1-000018",
+   "prkplceNm": "돈화문로",
+   "officialName": "돈화문로",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "101-1-000021",
+   "prkplceNm": "마른내길",
+   "officialName": "마른내길",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "101-1-000016",
+   "prkplceNm": "배오개길",
+   "officialName": "배오개길",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "101-1-000017",
+   "prkplceNm": "을지로",
+   "officialName": "을지로",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "101-1-000030",
+   "prkplceNm": "청계8가",
+   "officialName": "청계8가",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1900",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1500",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "110-1-000001",
+   "prkplceNm": "당고개위",
+   "officialName": "당고개위",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "2200",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "2200",
+    "holidayOperOpenHhmm": "0900",
+    "holidayCloseOpenHhmm": "2200"
+   }
+  },
+  {
+   "prkplceNo": "108-1-000001",
+   "prkplceNm": "도봉로 15길",
+   "officialName": "도봉로 15길",
+   "hours": {
+    "operDay": "평일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1800",
+    "satOperOperOpenHhmm": "",
+    "satOperCloseHhmm": "",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "110-2-000002",
+   "prkplceNm": "석계역",
+   "officialName": "석계역",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "109-2-000004",
+   "prkplceNm": "창동역(서)",
+   "officialName": "창동역(서)",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "100-1-000017",
+   "prkplceNm": "관철동",
+   "officialName": "관철동",
+   "hours": {
+    "operDay": "평일+토요일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "2200",
+    "satOperOperOpenHhmm": "0900",
+    "satOperCloseHhmm": "1400",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "101-1-000024",
+   "prkplceNm": "마른내로",
+   "officialName": "마른내로",
+   "hours": {
+    "operDay": "평일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1800",
+    "satOperOperOpenHhmm": "",
+    "satOperCloseHhmm": "",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   }
+  },
+  {
+   "prkplceNo": "112-2-000004",
+   "prkplceNm": "미근동 공영",
+   "officialName": "미근동",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "116-1-000007",
+   "prkplceNm": "온수역(남)",
+   "officialName": "온수역(북)",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  },
+  {
+   "prkplceNo": "106-2-000020",
+   "prkplceNm": "면목유수지",
+   "officialName": "면목유수지",
+   "hours": {
+    "operDay": "평일+토요일+공휴일",
+    "weekdayOperOpenHhmm": "0000",
+    "weekdayOperColseHhmm": "2400",
+    "satOperOperOpenHhmm": "0000",
+    "satOperCloseHhmm": "2400",
+    "holidayOperOpenHhmm": "0000",
+    "holidayCloseOpenHhmm": "2400"
+   }
+  }
+ ]
+}

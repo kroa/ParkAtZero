@@ -18,6 +18,7 @@
     "data:lotte": "node scripts/fetch-lotte.mjs",
     "data:homeplus": "node scripts/fetch-homeplus.mjs",
     "data:seoul-lots": "node scripts/fetch-seoul-lots.mjs",
+    "data:seoul-official": "node scripts/fetch-seoul-official.mjs",
     "data:daegu": "node scripts/fetch-daegu.mjs",
     "data:bucheon": "node --use-system-ca scripts/fetch-bucheon.mjs",
     "data:gwangju": "node scripts/fetch-gwangju.mjs",

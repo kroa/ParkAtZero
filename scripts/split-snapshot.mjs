@@ -88,7 +88,11 @@ async function main() {
    * 새 주차장을 더하는 것이 아니라 이미 있는 레코드의 빈 칸만 채운다 —
    * 이미 금액이 있으면 손대지 않는다.
    */
-  const FEE_FILES = [path.join('public', 'data', 'seoul-fees.json'), path.join('public', 'data', 'bucheon-fees.json')]
+  const FEE_FILES = [
+    path.join('public', 'data', 'seoul-fees.json'),
+    path.join('public', 'data', 'bucheon-fees.json'),
+    path.join('public', 'data', 'seoul-official-hours.json'),
+  ]
   for (const file of FEE_FILES) {
     if (!existsSync(file)) continue
     const fix = JSON.parse(await readFile(file, 'utf-8'))
@@ -113,6 +117,18 @@ async function main() {
        */
       if (hit.extraNote) {
         r.spcmnt = [r.spcmnt, hit.extraNote].filter(Boolean).join(' / ')
+        noted++
+      }
+
+      /*
+       * 요일별 운영시간을 관리기관 고시로 덮는다.
+       *
+       * 표준데이터는 공휴일 칸에 토요일 시간을 그대로 복사해 놓은 경우가 많다.
+       * 여의도공원 노상은 표준데이터가 공휴일 09:00-15:00 인데 서울시 고시는
+       * '무료개방' 이다. 금액과 무관하므로 요금이 이미 있어도 덮는다.
+       */
+      if (hit.hours) {
+        Object.assign(r, hit.hours)
         noted++
       }
 
