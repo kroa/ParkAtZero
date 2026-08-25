@@ -236,12 +236,33 @@ async function main() {
     }
 
     const charge = r.CHGD_FREE_NM === '무료' ? '무료' : '유료'
+
+    /*
+     * 그 요일 운영시각이 0000-0000 이면 요금을 받지 않는 날이다.
+     *
+     * 서울시설공단 여의도공원 공영주차장으로 확인했다 — 이 API 는 LHLDY 를
+     * 0000-0000 으로 주는데, 공단 공식 안내는 "09:00~19:00(평일) 09:00~15:00(토요일)
+     * 무료개방(공휴일)" 이다. 서울시 주차정보안내시스템의 지도도 '휴일무료개방'을
+     * holiday_begin_time 과 end_time 이 모두 '0000' 인지로만 판정한다.
+     *
+     * 시각을 비우는 것만으로는 부족하다. 운영요일이 그날을 포함하면 시각이 비어도
+     * '그날 24시간 운영'으로 읽힌다. 운영요일도 함께 좁혀야 한다.
+     */
+    const closed = (a, b) => {
+      const x = hhmm(a)
+      const y = hhmm(b)
+      return (x === '' && y === '') || (x === '0000' && y === '0000')
+    }
+    const satClosed = closed(r.WE_OPER_BGNG_TM, r.WE_OPER_END_TM)
+    const holClosed = closed(r.LHLDY_BGNG, r.LHLDY)
+
     const wdOpen = hhmm(r.WD_OPER_BGNG_TM)
     const wdClose = hhmm(r.WD_OPER_END_TM)
-    const weOpen = hhmm(r.WE_OPER_BGNG_TM)
-    const weClose = hhmm(r.WE_OPER_END_TM)
-    const hoOpen = hhmm(r.LHLDY_BGNG)
-    const hoClose = hhmm(r.LHLDY)
+    const weOpen = satClosed ? '' : hhmm(r.WE_OPER_BGNG_TM)
+    const weClose = satClosed ? '' : hhmm(r.WE_OPER_END_TM)
+    const hoOpen = holClosed ? '' : hhmm(r.LHLDY_BGNG)
+    const hoClose = holClosed ? '' : hhmm(r.LHLDY)
+    const operDay = ['평일', satClosed ? '' : '토요일', holClosed ? '' : '공휴일'].filter(Boolean).join('+')
 
     const restriction = readRestriction(r.OPER_SE_NM)
     bump(restriction ? '제한 있음' : charge === '무료' ? '무료' : '유료')
@@ -255,7 +276,7 @@ async function main() {
       latitude: String(lat),
       longitude: String(lng),
       parkingchrgeInfo: charge,
-      operDay: '매일',
+      operDay,
       weekdayOperOpenHhmm: wdOpen,
       weekdayOperColseHhmm: wdClose,
       satOperOperOpenHhmm: weOpen,
