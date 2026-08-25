@@ -1089,6 +1089,62 @@ test.describe('시간 판별 로직', () => {
     expect(out.night.status).toBe('free')
   })
 
+  test('00:00-00:00 은 운영요일이 빼면 24시간이 아니라 미운영이다', async ({ page }) => {
+    /*
+     * 00:00-00:00 은 두 가지 뜻으로 쓰인다.
+     *
+     * 시작과 끝이 같으면 '24시간 개방'이 표준데이터 관례다(0900-0900 이 실제로 그 뜻).
+     * 그런데 지자체 상당수는 '그날은 운영하지 않는다'를 00:00-00:00 으로 적는다.
+     * 성남도시개발공사 노상 66곳이 그렇다 — 운영요일은 '평일'인데 토요일·공휴일 칸이
+     * 00:00-00:00 이고, 공사 안내는 "평일 09:00~18:00, 토·일·공휴일 무료개방"이다.
+     *
+     * 두 뜻을 가르는 신호는 운영요일이다. 그대로 두면 전국 1,369곳이 쉬는 날에도
+     * 24시간 유료로 안내된다.
+     */
+    await gotoApp(page)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const base = {
+        prkplceNm: '성남 노상',
+        prkplceSe: '공영',
+        prkplceType: '노상',
+        rdnmadr: '경기도 성남시',
+        latitude: '37.42',
+        longitude: '127.12',
+        parkingchrgeInfo: '유료',
+        weekdayOperOpenHhmm: '0900',
+        weekdayOperColseHhmm: '1800',
+        satOperOperOpenHhmm: '0000',
+        satOperCloseHhmm: '0000',
+        holidayOperOpenHhmm: '0000',
+        holidayCloseOpenHhmm: '0000',
+        basicTime: '30',
+        basicCharge: '400',
+        addUnitTime: '10',
+        addUnitCharge: '200',
+      }
+      const closed = bridge.normalize({ ...base, operDay: '평일' } as never)
+      const always = bridge.normalize({ ...base, operDay: '매일' } as never)
+      const at = (p: unknown, iso: string) =>
+        (bridge.evaluate(p as never, iso, 120) as { status: string; cost: number | null })
+      return {
+        // 2026-08-22 토요일 / 2026-08-24 월요일
+        closedSat: at(closed, '2026-08-22T14:00:00+09:00'),
+        closedWeekday: at(closed, '2026-08-24T14:00:00+09:00'),
+        alwaysSat: at(always, '2026-08-22T14:00:00+09:00'),
+      }
+    })
+
+    // 운영요일이 '평일' 이면 토요일 00:00-00:00 은 미운영 — 노상이므로 요금을 받지 않는다.
+    expect(out.closedSat.status).toBe('free')
+    expect(out.closedSat.cost).toBe(0)
+    // 평일에는 그대로 유료. 30분 400원 + 남은 90분을 10분당 200원 = 2,200원.
+    expect(out.closedWeekday.cost).toBe(2200)
+    // 운영요일이 '매일' 이면 00:00-00:00 은 종래대로 24시간 개방이다.
+    expect(out.alwaysSat.cost).toBe(2200)
+  })
+
   test("'일요일 무료' 는 공휴일까지 무료로 만들지 않는다", async ({ page }) => {
     /*
      * dayType 의 'holiday' 는 일요일과 공휴일을 함께 묶는다. 그래서 '일요일 무료' 를

@@ -1,5 +1,5 @@
-import type { Parking } from '@/types/parking'
-import { buildRange, extractRestriction, parseHhmm } from './timeRules'
+import type { DayType, Parking } from '@/types/parking'
+import { buildRange, extractRestriction, operatesOn, parseHhmm } from './timeRules'
 import { findCorrection } from '@/data/corrections'
 
 /**
@@ -91,9 +91,32 @@ export function normalizeParking(row: Raw, index: number): Parking | null {
   const name = str(pick(row, FIELD.name))
   if (!name) return null
 
-  const weekday = buildRange(parseHhmm(pick(row, FIELD.weekdayOpen)), parseHhmm(pick(row, FIELD.weekdayClose)))
-  const saturday = buildRange(parseHhmm(pick(row, FIELD.satOpen)), parseHhmm(pick(row, FIELD.satClose)))
-  const holiday = buildRange(parseHhmm(pick(row, FIELD.holOpen)), parseHhmm(pick(row, FIELD.holClose)))
+  const operDayRaw = str(pick(row, FIELD.operDay)) || undefined
+
+  /*
+   * 00:00-00:00 은 두 가지 뜻으로 쓰인다.
+   *
+   * buildRange 는 시작과 끝이 같으면 '24시간 개방'으로 읽는다(0900-0900 같은 표기가
+   * 실제로 그 뜻이다). 그런데 지자체 상당수는 '그날은 운영하지 않는다'를 00:00-00:00
+   * 으로 적는다. 성남도시개발공사 노상 66곳이 그렇다 — 운영요일은 '평일'인데
+   * 토요일·공휴일 칸이 00:00-00:00 이고, 공사 안내는 "토·일·공휴일 무료개방"이다.
+   *
+   * 두 뜻을 가르는 신호는 운영요일이다. 운영요일이 그날을 빼고 있으면 미운영이 맞다.
+   * 그대로 두면 전국 1,369곳이 쉬는 날에도 24시간 유료로 안내된다(공휴일 1,358곳).
+   */
+  const closedByOperDay = (open: number | null, close: number | null, dayType: DayType) =>
+    open === 0 && close === 0 && Boolean(operDayRaw) && !operatesOn(operDayRaw, dayType)
+
+  const range = (openRaw: unknown, closeRaw: unknown, dayType: DayType) => {
+    const open = parseHhmm(openRaw)
+    const close = parseHhmm(closeRaw)
+    if (closedByOperDay(open, close, dayType)) return null
+    return buildRange(open, close)
+  }
+
+  const weekday = range(pick(row, FIELD.weekdayOpen), pick(row, FIELD.weekdayClose), 'weekday')
+  const saturday = range(pick(row, FIELD.satOpen), pick(row, FIELD.satClose), 'saturday')
+  const holiday = range(pick(row, FIELD.holOpen), pick(row, FIELD.holClose), 'holiday')
 
   const dayTicket = num(pick(row, FIELD.dayTicket))
   const monthTicket = num(pick(row, FIELD.monthTicket))
