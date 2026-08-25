@@ -205,6 +205,30 @@
    "sourceUrl": "https://www.law.go.kr/",
    "verifiedOn": "2026-08-24",
    "onlyFeeEmpty": true
+  },
+  {
+   "institution": "청주도시공사",
+   "types": [
+    "노상"
+   ],
+   "excludeNames": [
+    "환승",
+    "농수산물",
+    "도매시장"
+   ],
+   "note": "",
+   "hours": {
+    "operDay": "평일",
+    "weekdayOperOpenHhmm": "0900",
+    "weekdayOperColseHhmm": "1830",
+    "satOperOperOpenHhmm": "",
+    "satOperCloseHhmm": "",
+    "holidayOperOpenHhmm": "",
+    "holidayCloseOpenHhmm": ""
+   },
+   "evidence": "청주시 교통행정포털(차차차) 「주차장운영시간」 표 — 머리글이 '주차장별 | 월~금 | 토요일 | 일요(공휴)일' 이고, 노상주차장 16곳이 모두 월~금 09:00~18:30 이며 토요일·일요(공휴)일 칸은 '무료' 다. 표준데이터에는 토요일·공휴일이 00:00~23:59 로 등록돼 있어 종일 유료로 읽히던 것을 바로잡는다. 농수산물 도매시장(월~금 09:00~18:00, 토 05:00~18:00)과 환승주차장(연중무휴 24시간)은 규정이 달라 제외한다.",
+   "sourceUrl": "https://parking.cheongju.go.kr/travis/ext/chachacha/menu2/menu5_2.do",
+   "verifiedOn": "2026-08-25"
   }
  ]
 }

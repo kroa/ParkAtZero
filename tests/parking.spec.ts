@@ -1124,8 +1124,8 @@ test.describe('시간 판별 로직', () => {
         addUnitTime: '10',
         addUnitCharge: '200',
       }
-      const closed = bridge.normalize({ ...base, operDay: '평일' } as never)
-      const always = bridge.normalize({ ...base, operDay: '매일' } as never)
+      const closed = bridge.normalize({ ...base, operDay: '평일' } as never, 0)
+      const always = bridge.normalize({ ...base, operDay: '매일' } as never, 1)
       const at = (p: unknown, iso: string) =>
         (bridge.evaluate(p as never, iso, 120) as { status: string; cost: number | null })
       return {
