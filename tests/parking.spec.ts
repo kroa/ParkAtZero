@@ -1897,3 +1897,40 @@ async function dragBy(page: Page, x: number, y: number, dx: number, dy: number):
   }
   await page.mouse.up()
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ *  개방주차장 수집기 (scripts/fetch-open-facility.mjs)
+ * ═══════════════════════════════════════════════════════════════ */
+test.describe('개방주차장 수집기', () => {
+  test('휴관일에 적힌 요일을 빠짐없이 읽는다', async () => {
+    const { closedDayTypes } = await import('../scripts/fetch-open-facility.mjs')
+
+    /*
+     * 자바스크립트의 \b 는 한글에 걸리지 않는다. '매주 토+일+공휴일' 에서 '토\b' 는
+     * 토와 + 가 둘 다 비단어 문자라 경계가 없어 매칭에 실패했다. 그 탓에 토요일에
+     * 문을 닫는 청사가 토요일 무료 주차장으로 올라갔다(포항시청사 등 11곳).
+     */
+    expect([...closedDayTypes('매주 토+일+공휴일')].sort()).toEqual(['공휴일', '토요일'])
+    expect([...closedDayTypes('월+법정 공휴일')]).toEqual(['공휴일'])
+    expect([...closedDayTypes('주말')].sort()).toEqual(['공휴일', '토요일'])
+
+    // 문 여는 날은 하나도 빼면 안 된다.
+    expect([...closedDayTypes('연중무휴')]).toEqual([])
+    expect([...closedDayTypes('')]).toEqual([])
+    // '월요일' 의 '일' 을 일요일로 읽으면 멀쩡한 주말 개방이 사라진다.
+    expect([...closedDayTypes('매주 월요일')]).toEqual([])
+    // '평일' 안의 '일' 도 마찬가지다.
+    expect([...closedDayTypes('평일 휴관')]).toEqual([])
+  })
+
+  test('시각 표기를 네 자리로 맞추고, 시작과 끝이 같으면 미개방으로 본다', async () => {
+    const { hhmm } = await import('../scripts/fetch-open-facility.mjs')
+
+    expect(hhmm('09:00')).toBe('0900')
+    expect(hhmm('9시')).toBe('0900')
+    expect(hhmm('0730')).toBe('0730')
+    expect(hhmm('23:59')).toBe('2359')
+    expect(hhmm('')).toBe(null)
+    expect(hhmm('상시')).toBe(null)
+  })
+})
