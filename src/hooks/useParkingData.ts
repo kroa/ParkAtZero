@@ -3,10 +3,12 @@ import type { Parking } from '@/types/parking'
 import type { LatLng } from '@/lib/geo'
 import {
   cellKeysFor,
+  cellKeysForKeyword,
   loadCellIndex,
   loadCells,
   loadHolidayLots,
   loadSample,
+  loadSearchIndex,
   type CellIndex,
   type DataSource,
 } from '@/lib/dataSource'
@@ -43,7 +45,12 @@ const INITIAL: ParkingDataState = {
  *
  * 받아 둔 칸은 버리지 않고 쌓는다. 지도를 옮겼다가 돌아와도 다시 받지 않는다.
  */
-export function useParkingData(origin: LatLng, radiusKm: number, visitYmd: string): ParkingDataState {
+export function useParkingData(
+  origin: LatLng,
+  radiusKm: number,
+  visitYmd: string,
+  keyword: string,
+): ParkingDataState {
   const [state, setState] = useState<ParkingDataState>(INITIAL)
   const indexRef = useRef<CellIndex | null>(null)
   const loadedRef = useRef(new Set<string>())
@@ -152,6 +159,39 @@ export function useParkingData(origin: LatLng, radiusKm: number, visitYmd: strin
     return () => controller.abort()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [indexReady, visitYmd, origin.lat, origin.lng, radiusKm])
+
+  /*
+   * 검색할 때는 보고 있는 곳 밖의 칸도 받는다.
+   *
+   * buildResults 는 검색 중에 반경을 400km 로 넓혀 보지만, 앱이 들고 있는 것은
+   * 주변 격자뿐이었다. 그래서 '스타필드'를 검색해도 이미 받아 둔 칸 안의 하남·고양만
+   * 나오고 안성·명지는 나오지 않았다.
+   *
+   * 전국 칸을 다 받으면 13MB 라, 이름 색인(gzip 135KB)으로 걸리는 칸만 골라 받는다.
+   */
+  useEffect(() => {
+    if (!indexReady) return
+    const index = indexRef.current
+    if (!index?.search) return
+    const key = keyword.trim()
+    if (key.replace(/\s+/g, '').length < 2) return
+
+    const controller = new AbortController()
+    void (async () => {
+      const searchIndex = await loadSearchIndex(index, controller.signal)
+      if (!searchIndex || controller.signal.aborted) return
+      const needed = cellKeysForKeyword(key, searchIndex).filter((k) => !loadedRef.current.has(k))
+      if (needed.length === 0) return
+
+      setState((prev) => ({ ...prev, refreshing: true }))
+      const rows = await loadCells(needed, index, controller.signal)
+      if (controller.signal.aborted) return
+      for (const k of needed) loadedRef.current.add(k)
+      for (const p of rows) byIdRef.current.set(p.id, p)
+      setState((prev) => ({ ...prev, parkings: [...byIdRef.current.values()], refreshing: false }))
+    })()
+    return () => controller.abort()
+  }, [indexReady, keyword])
 
   return state
 }

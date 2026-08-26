@@ -472,7 +472,11 @@ function splitClauses(text: string): string[] {
   return out
 }
 
-const LIST_WORDS = [...Object.keys(DAYTYPE_WORD), ...TARGET_WORDS].sort((a, b) => b.length - a.length)
+// 요일 단어(일요일 등)도 목록 항목이 될 수 있다. 빠뜨리면 "일요일+공휴일 무료개방"
+// 에서 앞 항목이 버려져 규칙이 '공휴일'만 남는다.
+const LIST_WORDS = [...Object.keys(DAYTYPE_WORD), ...Object.keys(WEEKDAY_WORD), ...TARGET_WORDS].sort(
+  (a, b) => b.length - a.length,
+)
 
 /** 사전 단어와 이음말로만 이뤄진 조각인가 — "일요일", "경차ㆍ장애인" 같은 목록의 한 항목. */
 function isBareListItem(fragment: string): boolean {

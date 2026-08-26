@@ -41,7 +41,17 @@ export interface CellIndex {
    * 있을 때만 받는다.
    */
   holiday?: { dates: string[]; cells: Record<string, { count: number; file: string }>; count: number }
+  /**
+   * 이름·주소 검색용 색인 파일.
+   *
+   * 검색은 전국을 봐야 하는데 격자를 다 받으면 13MB 다. '어느 칸에 어떤 이름이
+   * 있는지'만 담은 색인(gzip 135KB)을 검색할 때 한 번 받고 걸리는 칸만 더 받는다.
+   */
+  search?: { file: string }
 }
+
+/** 검색 색인 — 칸마다 이름 목록(n)과 주소·기관 토큰(a). */
+export type SearchIndex = Record<string, { n: string[]; a: string[] }>
 
 async function fetchJson(url: string, signal?: AbortSignal): Promise<unknown> {
   const res = await fetch(url, { signal, headers: { Accept: 'application/json' } })
@@ -119,6 +129,32 @@ function keysInRange(
       // 빈 칸(바다·산)은 파일 자체가 없다. 404 를 만들지 않는다.
       if (cells[key]) keys.push(key)
     }
+  }
+  return keys
+}
+
+let searchIndexCache: SearchIndex | null = null
+
+/** 검색 색인을 받는다. 한 번 받으면 들고 있는다. */
+export async function loadSearchIndex(index: CellIndex, signal?: AbortSignal): Promise<SearchIndex | null> {
+  if (searchIndexCache) return searchIndexCache
+  if (!index.search) return null
+  const raw = (await tryJson(CONFIG.cellBaseUrl + '/' + index.search.file, signal)) as SearchIndex | null
+  if (raw) searchIndexCache = raw
+  return searchIndexCache
+}
+
+/**
+ * 검색어가 걸릴 만한 칸 이름들.
+ *
+ * 색인은 후보를 좁히는 용도다. 실제 판정은 칸을 받은 뒤 buildResults 가 그대로 한다.
+ */
+export function cellKeysForKeyword(keyword: string, searchIndex: SearchIndex): string[] {
+  const key = keyword.replace(/\s+/g, '').toLowerCase()
+  if (key.length < 2) return []
+  const keys: string[] = []
+  for (const [cell, entry] of Object.entries(searchIndex)) {
+    if (entry.n.some((n) => n.includes(key)) || entry.a.some((a) => a.includes(key))) keys.push(cell)
   }
   return keys
 }

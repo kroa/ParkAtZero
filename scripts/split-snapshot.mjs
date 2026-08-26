@@ -308,6 +308,41 @@ async function main() {
     }
   }
 
+  /*
+   * 이름·주소 검색용 색인을 만든다.
+   *
+   * 검색은 반경을 400km 로 넓혀 보지만, 앱이 실제로 들고 있는 것은 보고 있는 곳
+   * 주변 격자뿐이다. 그래서 '스타필드'를 검색해도 이미 받아 둔 칸 안에 있는
+   * 하남·고양만 나오고 안성·명지는 나오지 않았다.
+   *
+   * 전국 칸을 다 받으면 13MB 라 쓸 수 없다. 대신 '어느 칸에 어떤 이름이 있는지'만
+   * 담은 색인(gzip 135KB)을 검색할 때 한 번 받고, 걸리는 칸만 추가로 받는다.
+   * 색인은 후보를 좁히는 용도이고 최종 판정은 buildResults 가 그대로 한다.
+   */
+  const searchIndex = {}
+  for (const [key, list] of cells) {
+    const names = new Set()
+    const places = new Set()
+    for (const row of list) {
+      const nm = String(row.prkplceNm ?? '').trim()
+      if (nm) names.add(nm.replace(/\s+/g, '').toLowerCase())
+      // 주소는 '시도 시군구' 까지만. '속초', '강남' 같은 지역 검색을 받는다.
+      const addr = String(row.rdnmadr ?? row.lnmadr ?? '').trim().split(/\s+/).slice(0, 2).join('')
+      if (addr) places.add(addr.toLowerCase())
+      const inst = String(row.institutionNm ?? '').trim()
+      if (inst) places.add(inst.replace(/\s+/g, '').toLowerCase())
+    }
+    searchIndex[key] = { n: [...names], a: [...places] }
+  }
+  {
+    const json = JSON.stringify(searchIndex)
+    const hash = createHash('sha256').update(json).digest('hex').slice(0, 8)
+    const file = 'search.' + hash + '.json'
+    await writeFile(path.join(OUT_DIR, file), json, 'utf-8')
+    index.search = { file }
+    console.log('검색 색인: ' + Object.keys(searchIndex).length + '칸 (' + kbOf(json) + ')')
+  }
+
   const indexJson = JSON.stringify(index)
   await writeFile(INDEX_FILE, indexJson, 'utf-8')
 

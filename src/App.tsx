@@ -61,16 +61,17 @@ export default function App() {
    *
    * 방문 날짜도 넘긴다 — 설·추석 연휴에만 여는 주차장은 그날에만 따로 받는다.
    */
+  const [keyword, setKeyword] = useState('')
+  const debouncedKeyword = useDebounced(keyword, 160)
+
   const { parkings, loading, refreshing, source, totalCount, referenceDate } = useParkingData(
     origin,
     radiusKm,
     ymd(visitStart),
+    debouncedKeyword,
   )
   const isSample = source !== 'remote'
   const geo = useGeolocation()
-
-  const [keyword, setKeyword] = useState('')
-  const debouncedKeyword = useDebounced(keyword, 160)
 
   /**
    * origin  : 거리·반경의 기준점. 검색과 '내 위치'로만 움직인다.
