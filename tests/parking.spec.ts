@@ -1934,3 +1934,116 @@ test.describe('개방주차장 수집기', () => {
     expect(hhmm('상시')).toBe(null)
   })
 })
+
+/* ═══════════════════════════════════════════════════════════════
+ *  조례 요금표 채굴기 (scripts/fetch-ordinance-rules.mjs)
+ * ═══════════════════════════════════════════════════════════════ */
+test.describe('조례 요금표 채굴기', () => {
+  test('못을 박은 조항만 규칙으로 올린다', async () => {
+    const { classify } = await import('../scripts/fetch-ordinance-rules.mjs')
+
+    /*
+     * 조례 문장은 세 갈래다. 이걸 구분하지 않고 적용하면 유료 주차장을 무료로 안내한다.
+     * 그래서 단서가 하나라도 붙으면 확정으로 올리지 않는다.
+     */
+    expect(classify('「관공서의 공휴일에 관한 규정」에 따른 공휴일 및 대체공휴일에는 주차요금을 무료로 한다.')).toBe('확정')
+    expect(classify('주차장 유료 시간은 주간 09:00 ~ 18:00으로 하며, 주간 시간 외 야간은 무료로 운영한다.')).toBe('확정')
+
+    // '원칙으로 하되 … 유료로 운영할 수 있다' 는 언제든 뒤집힌다.
+    expect(
+      classify('공휴일은 무료를 원칙으로 하되 주차장의 효율적 관리를 위하여 시장이 필요하다고 인정할 경우에는 유료로 운영할 수 있다.'),
+    ).toBe('원칙')
+    // '무료로 하되 … 제외할 수 있다' 도 마찬가지다.
+    expect(classify('일요일과 법적 공휴일의 주차요금은 무료로 하되, 필요한 경우 토요일을 적용할 수 있다.')).toBe('원칙')
+
+    // 통째로 재량인 문장은 근거가 못 된다.
+    expect(classify('전통시장 인근의 노상주차장도 최초 30분 미만일 경우 무료로 하며, 일요일은 무료로 운영할 수 있다.')).toBe('재량')
+
+    // 판단이 안 서면 확정이 아니라 원칙으로 떨어뜨린다.
+    expect(classify('야간 주차에 관하여는 따로 정한다')).toBe('원칙')
+  })
+
+  test('요금표에서 뜯겨 나온 숫자 덩어리를 조항으로 읽지 않는다', async () => {
+    const { looksLikeSentence } = await import('../scripts/fetch-ordinance-rules.mjs')
+
+    /*
+     * 요금표에는 마침표가 거의 없어 문장 자르기가 통하지 않는다. 걸러 내지 않으면
+     * '1급지 무료 600 300 9,000' 같은 요금 칸이 '무료 조항'으로 올라온다.
+     */
+    expect(looksLikeSentence('1급지 무료 600 300 9,000 80,000 50,000 2급지 500 200 7,000 60,000')).toBe(false)
+    expect(looksLikeSentence('야간 주차요금은 무료로 한다.')).toBe(true)
+    expect(looksLikeSentence('무료')).toBe(false)
+  })
+
+  test('지자체 이름에서 시·군·구 꼬리를 떼지 않는다', async () => {
+    const { matchInstitutions } = await import('../scripts/fetch-ordinance-rules.mjs')
+
+    // '양구군' 에서 '양구' 만 남기면 '계양구' 가 걸린다.
+    expect(matchInstitutions('강원특별자치도 양구군', ['인천광역시 계양구 시설관리공단', '강원특별자치도 양구군청'])).toEqual([
+      '강원특별자치도 양구군청',
+    ])
+    // 이름이 짧아 흔한 것은 시도까지 맞아야 인정한다.
+    expect(matchInstitutions('서울특별시 중구', ['대구광역시 중구청', '서울특별시 중구청 교통행정과'])).toEqual([
+      '서울특별시 중구청 교통행정과',
+    ])
+  })
+
+  test('조항에서 무료인 요일과 시간대를 읽는다', async () => {
+    const { readScope } = await import('../scripts/fetch-ordinance-rules.mjs')
+
+    const a = readScope('11월∼3월 - 09:00 ∼ 19:30 ※ 야간, 일요일, 공휴일 및 임시공휴일은 무료로 운영한다.')
+    expect(a.days).toEqual(['일요일', '공휴일'])
+    expect(a.night).toBe(true)
+
+    const b = readScope('단, 일요일은 무료로 운영한다.')
+    expect(b.days).toEqual(['일요일'])
+    expect(b.night).toBe(false)
+  })
+})
+
+/* ═══════════════════════════════════════════════════════════════
+ *  특기사항 파싱 — 절 구분
+ * ═══════════════════════════════════════════════════════════════ */
+test.describe('특기사항 절 구분', () => {
+
+  test('할인과 무료를 슬래시로 이어 적어도 뒤쪽 요일 무료를 잃지 않는다', async ({ page }) => {
+    /*
+     * "장애인 차량 50프로 할인 / 일요일 무료" 가 한 절로 묶여 두 가지 잘못을 냈다.
+     *  1) 앞의 '장애인'이 대상 한정으로 잡히고 같은 절의 '무료'와 붙어 '장애인 무료'라는
+     *     없는 규칙을 만들었다. 실제로는 50퍼센트 할인이다.
+     *  2) 대상 한정이 있는 절은 통째로 건너뛰므로 뒤의 '일요일 무료'가 사라졌다.
+     * 공주시 공영주차장 10곳이 이 때문에 일요일에 유료로 안내됐다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const kinds = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const rulesFor = (spcmnt: string) => {
+        const p = bridge.normalize(
+          { prkplceNm: 'T', latitude: '36.4', longitude: '127.1', parkingchrgeInfo: '유료', spcmnt },
+          0,
+        )
+        return p ? bridge.extractFreeRules(p).map((r) => r.kind + ':' + r.label) : []
+      }
+      return {
+        경차할인: rulesFor('경차 50프로 할인 / 일요일 무료'),
+        장애인할인: rulesFor('장애인 차량 50프로 할인 / 일요일 무료'),
+        둘다: rulesFor('경차 50프로 할인+장애인 차량 50프로 할인 / 일요일 무료'),
+        진짜대상무료: rulesFor('경차 및 저공해차량 무료'),
+        시간과요일: rulesFor('1시간무료/주말+공휴일무료'),
+      }
+    })
+
+    // 할인은 무료가 아니다 — 대상 한정 규칙이 생기면 안 된다.
+    expect(kinds.경차할인).toEqual(['weekdays:일요일 무료'])
+    expect(kinds.장애인할인).toEqual(['weekdays:일요일 무료'])
+    expect(kinds.둘다).toEqual(['weekdays:일요일 무료'])
+
+    // 진짜로 대상이 무료인 문구는 그대로 대상 한정으로 남아야 한다.
+    expect(kinds.진짜대상무료).toEqual(['targeted:경차 무료', 'targeted:저공해 무료'])
+
+    // 슬래시로 이은 시간·요일 규칙은 둘 다 살아야 한다.
+    expect(kinds.시간과요일).toEqual(['grace:최초 1시간 무료', 'dayType:주말·공휴일 무료'])
+  })
+})
