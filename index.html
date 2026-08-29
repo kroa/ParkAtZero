@@ -118,5 +118,17 @@
       </div>
     </noscript>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!--
+      Cloudflare Web Analytics.
+      쿠키도 localStorage 도 쓰지 않아 동의 배너가 필요 없다. 모든 요금제에서 무료다.
+      토큰은 브라우저에 그대로 노출되는 공개 값이라 비밀이 아니다.
+      본문 뒤에 두어 첫 페인트를 막지 않게 한다.
+    -->
+    <script
+      type="module"
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "a096757e336a4c7ebb9773babfc9cc92"}'
+    ></script>
   </body>
 </html>

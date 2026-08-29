@@ -26,6 +26,8 @@ export async function blockExternal(page: Page): Promise<void> {
   await page.route('**/*.tile.openstreetmap.org/**', kill)
   await page.route(/ezoic|ezojs|gatekeeperconsent|doubleclick|googlesyndication|googletagservices/i, kill)
   await page.route('**/cdn.jsdelivr.net/**', kill)
+  // 방문자 집계 비콘. 이것까지 막아야 '외부망이 전부 막혀도 뜬다' 는 말이 성립한다.
+  await page.route('**/static.cloudflareinsights.com/**', kill)
 }
 
 /** 첫 카드가 그려질 때까지 대기 — Local-First 라 네트워크 없이도 즉시 떠야 한다. */
