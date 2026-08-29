@@ -9,8 +9,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc --noEmit && node scripts/split-snapshot.mjs && vite build",
-    "build:only": "node scripts/split-snapshot.mjs && vite build",
+    "build": "tsc --noEmit && node scripts/split-snapshot.mjs && vite build && node scripts/build-sitemap.mjs",
+    "build:only": "node scripts/split-snapshot.mjs && vite build && node scripts/build-sitemap.mjs",
     "data:fetch": "node scripts/fetch-parking-data.mjs",
     "data:hangang": "node scripts/fetch-hangang.mjs",
     "data:emart": "node scripts/fetch-emart.mjs",
