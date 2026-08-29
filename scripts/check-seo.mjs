@@ -1,0 +1,125 @@
+#!/usr/bin/env node
+/**
+ * 배포된 사이트의 검색 노출 배관을 점검한다.
+ *
+ * 데이터를 갱신하고 다시 배포할 때마다 사이트맵·소유확인 태그·지역 페이지가 그대로
+ * 살아 있는지 확인할 곳이 필요하다. 검색 콘솔은 며칠 뒤에야 결과를 보여 주므로,
+ * 그 전에 우리 쪽 잘못을 먼저 걸러 낸다.
+ *
+ * 검색엔진이 <색인을 했는지> 는 여기서 알 수 없다. 그건 콘솔에서 봐야 한다.
+ * 이 스크립트가 보는 것은 <색인할 수 있게 해 뒀는지> 다.
+ *
+ * 사용: node scripts/check-seo.mjs [사이트주소]
+ */
+const SITE = (process.argv[2] || process.env.SITE_ORIGIN || 'https://parkatzero.pages.dev').replace(/\/$/, '')
+const BOT = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+/** 개별 주소를 몇 개씩 동시에 확인할지. 너무 높이면 상대 서버에 부담이 된다. */
+const CONC = 12
+
+let failed = 0
+const ok = (cond, label, detail = '') => {
+  if (!cond) failed++
+  console.log('  ' + (cond ? '✓' : '✗') + ' ' + label + (detail ? ' — ' + detail : ''))
+}
+
+const get = async (url) => {
+  const res = await fetch(url, { headers: { 'User-Agent': BOT } })
+  return { status: res.status, type: res.headers.get('content-type') ?? '', body: await res.text() }
+}
+
+async function main() {
+  console.log('점검 대상: ' + SITE + '\n')
+
+  /* 1) 홈 — 소유확인 태그와 크롤 경로 */
+  console.log('홈')
+  const home = await get(SITE + '/')
+  ok(home.status === 200, '응답 200', 'HTTP ' + home.status)
+  ok(/name="google-site-verification"/.test(home.body), 'Google 소유확인 태그')
+  ok(/name="naver-site-verification"/.test(home.body), '네이버 소유확인 태그')
+  ok(/application\/ld\+json/.test(home.body), '구조화 데이터(WebApplication)')
+  // <noscript> 안의 지역 목록 링크가 크롤러에게 유일한 내부 경로다.
+  ok(/href="\/지역\/"/.test(home.body), '지역 목록으로 가는 크롤 가능한 링크')
+  ok(!/<meta[^>]+name="robots"[^>]+noindex/i.test(home.body), 'noindex 없음')
+
+  /* 2) robots.txt */
+  console.log('\nrobots.txt')
+  const robots = await get(SITE + '/robots.txt')
+  ok(robots.status === 200 && robots.body.length < 2000, '응답 200', String(robots.body.trim().length) + 'B')
+  ok(/Sitemap:\s*\S+sitemap\.xml/i.test(robots.body), 'Sitemap 줄 있음')
+  ok(!/Disallow:\s*\/\s*$/m.test(robots.body), '전체 차단 아님')
+
+  /* 3) sitemap.xml */
+  console.log('\nsitemap.xml')
+  const sm = await get(SITE + '/sitemap.xml')
+  ok(sm.status === 200, '응답 200', 'HTTP ' + sm.status)
+  ok(/xml/.test(sm.type), 'XML 로 응답', sm.type)
+  // 없는 파일에 SPA 폴백이 오면 200 + HTML 이라 조용히 통과한다. 내용을 봐야 안다.
+  ok(!/<!doctype html>/i.test(sm.body), 'SPA 폴백이 아님')
+
+  const urls = [...sm.body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1].trim())
+  ok(urls.length > 1, '주소 ' + urls.length + '개', urls.length > 50_000 ? '상한 초과!' : '')
+  const dup = urls.filter((u, i) => urls.indexOf(u) !== i)
+  ok(dup.length === 0, '중복 주소 없음', dup.length ? dup.length + '건: ' + dup[0] : '')
+  ok(
+    urls.every((u) => u.startsWith(SITE + '/')),
+    '모두 같은 호스트',
+  )
+  const lastmods = [...sm.body.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => m[1].trim())
+  ok(
+    lastmods.every((d) => /^\d{4}-\d{2}-\d{2}(T[\d:+\-.Z]+)?$/.test(d)),
+    'lastmod 형식',
+  )
+
+  /* 4) IndexNow 키 */
+  console.log('\nIndexNow')
+  const keyName = /\/([0-9a-f]{8,128})\.txt/.exec(robots.body)?.[1]
+  const { readdir, readFile } = await import('node:fs/promises')
+  let key = keyName
+  if (!key) {
+    for (const f of await readdir('public')) {
+      const m = /^([0-9a-f]{8,128})\.txt$/.exec(f)
+      if (m) key = m[1]
+    }
+  }
+  if (key) {
+    const kf = await get(SITE + '/' + key + '.txt')
+    ok(kf.status === 200 && kf.body.trim() === key, '키 파일이 배포돼 있음', key.slice(0, 8) + '…')
+    void readFile
+  } else {
+    ok(false, 'public/ 에서 키 파일을 찾지 못함')
+  }
+
+  /* 5) 사이트맵의 모든 주소가 실제로 열리는지 */
+  console.log('\n주소 전수 확인 (' + urls.length + '개)')
+  const bad = []
+  let good = 0
+  for (let i = 0; i < urls.length; i += CONC) {
+    await Promise.all(
+      urls.slice(i, i + CONC).map(async (u) => {
+        try {
+          const r = await get(u)
+          /*
+           * 지역 페이지 자리에 SPA 폴백이 오면 200 이라도 실패다.
+           * 파일이 사라졌는데 Cloudflare 가 index.html 을 대신 주는 상황을 잡는다.
+           */
+          const fallback = /JavaScript 가 필요합니다/.test(r.body) && !/무료 주차장/.test(r.body)
+          if (r.status === 200 && (u === SITE + '/' || !fallback)) good++
+          else bad.push(u.replace(SITE, '') + ' → ' + r.status + (fallback ? ' (SPA 폴백)' : ''))
+        } catch (e) {
+          bad.push(u.replace(SITE, '') + ' → ' + String(e.message).slice(0, 40))
+        }
+      }),
+    )
+  }
+  ok(bad.length === 0, good + '/' + urls.length + ' 정상 응답')
+  for (const b of bad.slice(0, 10)) console.log('      ' + b)
+
+  console.log('\n' + (failed === 0 ? '모두 정상' : '문제 ' + failed + '건'))
+  console.log('색인 여부는 여기서 알 수 없습니다 — Search Console·서치어드바이저에서 확인하세요.')
+  process.exitCode = failed === 0 ? 0 : 1
+}
+
+main().catch((err) => {
+  console.error('✗ 실패:', err.message)
+  process.exit(1)
+})
