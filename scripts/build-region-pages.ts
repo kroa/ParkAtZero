@@ -321,7 +321,11 @@ ${sibs ? `<h2>${esc(r.sido)}의 다른 지역</h2><ul class="links">${sibs}</ul>
     })
 
   return shell({
-    title: `${name} 무료 주차장 ${r.lots.length}곳 — ${r.sido} | 0원 주차`,
+    // 세종처럼 시군구가 없는 곳은 name 과 sido 가 같아 '세종 — 세종' 이 된다.
+    title:
+      name === r.sido
+        ? `${name} 무료 주차장 ${r.lots.length}곳 | 0원 주차`
+        : `${name} 무료 주차장 ${r.lots.length}곳 — ${r.sido} | 0원 주차`,
     description: desc,
     canonical: SITE + regionPath(r.sido, r.sgg),
     h1: `${where} 무료 주차장`,
@@ -396,7 +400,13 @@ async function main() {
 
   await write('/지역/', indexPage(bySido, referenceDate), '0.9')
   for (const [sido, rs] of bySido) {
-    await write(regionPath(sido, ''), sidoPage(sido, rs, referenceDate), '0.8')
+    /*
+     * 세종특별자치시는 아래에 시·군·구가 없다. 그래서 시도 페이지와 지역 페이지의
+     * 경로가 /지역/세종특별자치시/ 로 똑같아져 사이트맵에 같은 주소가 두 번 실렸다.
+     * 이럴 때는 목차 격인 시도 페이지를 건너뛴다 — 주차장 목록이 든 쪽이 쓸모 있다.
+     */
+    const collides = rs.some((r) => r.sgg === '')
+    if (!collides) await write(regionPath(sido, ''), sidoPage(sido, rs, referenceDate), '0.8')
     for (const r of rs) await write(regionPath(r.sido, r.sgg), regionPage(r, rs, referenceDate), '0.7')
   }
 
