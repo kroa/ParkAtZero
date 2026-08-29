@@ -29,9 +29,10 @@ export async function blockExternal(page: Page): Promise<void> {
 }
 
 /** 첫 카드가 그려질 때까지 대기 — Local-First 라 네트워크 없이도 즉시 떠야 한다. */
-export async function gotoApp(page: Page): Promise<void> {
+export async function gotoApp(page: Page, search = ''): Promise<void> {
   await blockExternal(page)
-  await page.goto('/')
+  // search 로 '?lat=...' 같은 딥링크를 붙여 열 수 있다.
+  await page.goto('/' + search)
   // 30초는 앱의 목표치가 아니라 경합 여유다. 빌드·데이터 수집과 겹치면 첫 페인트가 밀린다.
   // 실제 로딩 성능은 별도 실측으로 확인하며, 여기서는 '결국 뜨는가'만 본다.
   await expect(page.getByTestId('parking-card').first()).toBeVisible({ timeout: 30_000 })

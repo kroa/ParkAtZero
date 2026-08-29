@@ -12,7 +12,7 @@
  * 사용: node scripts/build-sitemap.mjs [dist경로]
  */
 import path from 'node:path'
-import { readFile, writeFile } from 'node:fs/promises'
+import { readFile, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 
 const DEFAULT_DIST = 'dist'
@@ -74,6 +74,8 @@ async function main() {
   if (existsSync(listFile)) {
     const pages = JSON.parse(await readFile(listFile, 'utf-8'))
     for (const p of pages) entries.push({ path: p.path, lastmod, changefreq: 'weekly', priority: p.priority ?? '0.7' })
+    // 목록은 사이트맵을 만들려고 주고받는 쪽지다. 배포물에 남길 이유가 없다.
+    await rm(listFile, { force: true })
   }
 
   const xml = buildSitemap(entries)

@@ -31,6 +31,7 @@ import {
   ymd,
 } from '@/lib/query'
 import { haversineKm, SEOUL_CITY_HALL, type LatLng } from '@/lib/geo'
+import { readDeepLink } from '@/lib/deepLink'
 import { formatVisitLabel, snapToFiveMinutes } from '@/lib/format'
 import { formatDurationShort } from '@/lib/timeRules'
 import { CONFIG } from '@/lib/env'
@@ -48,7 +49,13 @@ const DETAIL_WIDTH = 392
 export default function App() {
   const { isDark, toggle } = useTheme()
   const isDesktop = useIsDesktop()
-  const [origin, setOrigin] = useState<LatLng>(SEOUL_CITY_HALL)
+  /*
+   * 지역 랜딩 페이지에서 ?lat=&lng=&z= 로 넘어온다. 한 번만 읽는다 —
+   * 렌더마다 다시 읽으면 사용자가 지도를 옮긴 뒤에도 주소창 좌표로 되돌아간다.
+   */
+  const [deepLink] = useState(readDeepLink)
+  const startCenter = deepLink?.center ?? SEOUL_CITY_HALL
+  const [origin, setOrigin] = useState<LatLng>(startCenter)
   const [radiusKm, setRadiusKm] = useState(10)
 
   const [visitStart, setVisitStart] = useState(() => snapToFiveMinutes(new Date()))
@@ -80,9 +87,9 @@ export default function App() {
    * 둘을 하나로 합치면 카드를 누를 때마다 기준점이 그 주차장으로 옮겨가
    * 모든 거리가 0m 이 되고 반경 안에 드는 목록까지 통째로 바뀐다.
    */
-  const [mapView, setMapView] = useState({ center: SEOUL_CITY_HALL, zoom: 14, token: 0 })
+  const [mapView, setMapView] = useState({ center: startCenter, zoom: deepLink?.zoom ?? 14, token: 0 })
   /** 사용자가 실제로 보고 있는 지도 중심. 팬·줌으로도 바뀌며 마커 선택 기준이 된다. */
-  const [viewCenter, setViewCenter] = useState<LatLng>(SEOUL_CITY_HALL)
+  const [viewCenter, setViewCenter] = useState<LatLng>(startCenter)
 
   const [status, setStatus] = useState<StatusFilter>('all')
   const [ownership, setOwnership] = useState<OwnershipFilter>('all')

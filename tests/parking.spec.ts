@@ -2133,3 +2133,40 @@ test.describe('공휴일 표', () => {
     expect(missing).toEqual([])
   })
 })
+
+/* ═══════════════════════════════════════════════════════════════
+ *  지역 페이지에서 넘어오는 딥링크
+ * ═══════════════════════════════════════════════════════════════ */
+test.describe('딥링크', () => {
+  test('주소창 좌표를 읽고, 못 믿을 값은 버린다', async () => {
+    const { parseDeepLink } = await import('../src/lib/deepLink')
+
+    /*
+     * 지역 랜딩 페이지(/지역/경상북도/포항시/)의 '지도에서 보기' 가 이걸 쓴다.
+     * 없으면 어디서 들어오든 서울시청이 떠서, 포항 페이지를 보고 온 사람이
+     * 엉뚱한 목록을 마주한다.
+     */
+    expect(parseDeepLink('?lat=36.019&lng=129.344&z=13')).toEqual({
+      center: { lat: 36.019, lng: 129.344 },
+      zoom: 13,
+    })
+
+    // 주소창은 누구나 고칠 수 있다. 한반도 밖 좌표를 그대로 믿으면
+    // 격자 칸을 못 찾아 빈 화면이 된다 — 무시하고 기본 위치로 간다.
+    expect(parseDeepLink('?lat=48.8584&lng=2.2945')).toBeNull()
+    expect(parseDeepLink('?lat=abc&lng=129.3')).toBeNull()
+    expect(parseDeepLink('')).toBeNull()
+
+    // 배율은 범위를 벗어나면 잘라 낸다. 너무 넓으면 격자 칸을 잔뜩 받는다.
+    expect(parseDeepLink('?lat=37.5&lng=127&z=99')?.zoom).toBe(18)
+    expect(parseDeepLink('?lat=37.5&lng=127&z=1')?.zoom).toBe(10)
+    // 배율이 없으면 기본값
+    expect(parseDeepLink('?lat=37.5&lng=127')?.zoom).toBe(14)
+  })
+
+  test('믿을 수 없는 좌표로 열어도 앱은 평소대로 뜬다', async ({ page }) => {
+    await gotoApp(page, '?lat=48.8584&lng=2.2945&z=13')
+    // 기본 위치(서울시청)로 떨어져 목록이 정상적으로 나와야 한다.
+    await expect(page.getByTestId('parking-card').first()).toBeVisible({ timeout: 15_000 })
+  })
+})
