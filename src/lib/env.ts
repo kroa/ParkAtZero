@@ -30,6 +30,18 @@ function urlPath(value: unknown, fallback: string): string {
   return fallback
 }
 
+/**
+ * 타일 주소에 CARTO 키를 붙인다. 키가 없으면 주소를 그대로 둔다.
+ *
+ * 직접 만든 주소(VITE_MAP_TILE_LIGHT)를 쓰는 사람은 자기 주소에 키를 이미 적어 넣었을
+ * 테니 건드리지 않는다. 기본 주소일 때만 붙인다.
+ */
+export function withTileKey(url: string, source: Record<string, unknown> = env): string {
+  const key = typeof source.VITE_MAP_TILE_KEY === 'string' ? source.VITE_MAP_TILE_KEY.trim() : ''
+  if (!key || url.includes('key=')) return url
+  return url + (url.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(key)
+}
+
 export const CONFIG = {
   /**
    * 격자 색인. 빌드 때 만들어지며, 앱은 이걸 먼저 읽고 필요한 칸만 골라 받는다.
@@ -52,13 +64,25 @@ export const CONFIG = {
   /** 카카오 로컬 API(장소 검색). 없으면 내장 랜드마크 사전으로 동작한다. */
   kakaoRestKey: (env.VITE_KAKAO_REST_KEY as string) || '',
 
-  /** 지도 타일 (기본: CARTO 무료 베이스맵 — API 키 불필요) */
+  /*
+   * 지도 타일 — CARTO 베이스맵.
+   *
+   * 오랫동안 키 없이 쓸 수 있었지만 CARTO 가 정책을 바꿨다. 키 없이 부르면 응답은
+   * 200 이고 그림도 멀쩡히 들어 있는데 그 위에 'API KEY REQUIRED' 워터마크를 합성해
+   * 보낸다. 오류가 아니라서 콘솔에 아무것도 안 뜨고, 캐시된 옛 타일과 섞여 지도 일부에만
+   * 글씨가 보인다.
+   *
+   * VITE_MAP_TILE_KEY 를 넣으면 ?key= 로 붙는다. 없으면 워터마크가 찍힌 채로 나온다.
+   * 키는 https://carto.com/basemaps/apikey 에서 무료로 받는다(월 500만 요청).
+   * 무료 조건에 저작자 표시 유지가 있어 tileAttribution 을 지우면 안 된다.
+   */
+  tileKey: (env.VITE_MAP_TILE_KEY as string) || '',
   tileLight:
     (env.VITE_MAP_TILE_LIGHT as string) ||
-    'https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    withTileKey('https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png', env),
   tileDark:
     (env.VITE_MAP_TILE_DARK as string) ||
-    'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    withTileKey('https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png', env),
   tileAttribution:
     (env.VITE_MAP_ATTRIBUTION as string) ||
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',

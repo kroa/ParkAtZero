@@ -65,6 +65,10 @@ jobs:
           VITE_ADS_ENABLED: ${{ vars.VITE_ADS_ENABLED || 'false' }}
           VITE_EZOIC_PLACEHOLDER_LIST: ${{ vars.VITE_EZOIC_PLACEHOLDER_LIST || '101' }}
           VITE_EZOIC_PLACEHOLDER_BOTTOM: ${{ vars.VITE_EZOIC_PLACEHOLDER_BOTTOM || '102' }}
+          # CARTO 베이스맵 키. 없으면 지도에 'API KEY REQUIRED' 워터마크가 찍힌다.
+          # https://carto.com/basemaps/apikey 에서 무료로 받아 MAP_TILE_KEY 시크릿에 넣는다.
+          # 브라우저 번들에 그대로 박히는 공개 키다(비공개 키가 아니다).
+          VITE_MAP_TILE_KEY: ${{ secrets.MAP_TILE_KEY }}
         run: npm run build:only
 
       - name: Cloudflare Pages 배포
