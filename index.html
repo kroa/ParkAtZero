@@ -50,6 +50,32 @@
         }
       })()
     </script>
+
+    <!--
+      구조화 데이터.
+      이 페이지는 자바스크립트로 그려지는 앱이라 크롤러가 보는 본문이 거의 없다.
+      무엇을 하는 사이트인지와 지역별 목록으로 가는 길을 여기서 알려 준다.
+    -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "0원 주차 (ParkAtZero)",
+        "url": "https://parkatzero.pages.dev/",
+        "applicationCategory": "TravelApplication",
+        "operatingSystem": "Web",
+        "inLanguage": "ko-KR",
+        "description": "방문할 날짜와 시간을 고르면 그 시간에 0원으로 주차할 수 있는 주차장만 골라 보여줍니다.",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "KRW" },
+        "areaServed": { "@type": "Country", "name": "대한민국" },
+        "hasPart": {
+          "@type": "WebPage",
+          "name": "지역별 무료 주차장",
+          "url": "https://parkatzero.pages.dev/%EC%A7%80%EC%97%AD/"
+        }
+      }
+    </script>
   </head>
   <body class="h-full">
     <div id="root" class="h-full"></div>

@@ -27,6 +27,13 @@ const CELLS = path.join('public', 'data', 'cells')
 const MIN_LOTS = 5
 /** 한 페이지에 싣는 최대 개수. 제주시는 1,400곳이 넘어 그대로 실으면 문서가 너무 커진다. */
 const MAX_ROWS = 300
+/*
+ * 구조화 데이터에 담을 최대 개수.
+ * ParkingFacility 노드 하나가 표의 한 줄보다 네 배쯤 무겁다. 300개를 다 담으면
+ * 문서가 268KB 까지 부풀어 모바일 지표에 손해다. 사람이 읽는 표는 그대로 두고
+ * 구조화 데이터만 줄인다 — 검색엔진에는 앞쪽 100개로도 이 페이지가 무엇인지 충분하다.
+ */
+const MAX_LD = 100
 
 const esc = (s: unknown) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
@@ -119,6 +126,80 @@ th{color:var(--mute);font-weight:600;white-space:nowrap}
 footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);color:var(--mute);font-size:13px}
 .scroll{overflow-x:auto}
 `
+
+/**
+ * JSON-LD 를 <script> 로 감싼다.
+ * 본문에 </script> 가 섞여 들어가 문서를 깨뜨리지 않도록 슬래시를 이스케이프한다.
+ */
+function jsonLd(data: unknown): string {
+  return '\n<script type="application/ld+json">' + JSON.stringify(data).replace(/</g, '\\u003c') + '</script>'
+}
+
+/** 빵부스러기 — 검색결과에 경로가 함께 노출된다. */
+function breadcrumb(trail: Array<{ name: string; path: string }>) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: trail.map((t, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: t.name,
+      item: SITE + t.path,
+    })),
+  }
+}
+
+/*
+ * 운영시간을 schema.org 형식으로.
+ * 평일 칸은 월~금, 토요일 칸은 토요일, 공휴일 칸은 일요일과 공휴일에 대응한다
+ * — 이 앱의 요일 구분(weekday/saturday/holiday)이 원래 그런 뜻이다.
+ */
+const DAY_MAP: Record<string, string[]> = {
+  weekday: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+  saturday: ['Saturday'],
+  holiday: ['Sunday', 'PublicHolidays'],
+}
+
+function openingHours(p: Parking) {
+  const out: Array<Record<string, unknown>> = []
+  for (const key of ['weekday', 'saturday', 'holiday'] as const) {
+    const r = p.hours[key]
+    if (!r) continue
+    const hh = (m: number) =>
+      String(Math.floor((m % 1440) / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0')
+    out.push({
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: DAY_MAP[key],
+      opens: r.allDay ? '00:00' : hh(r.open),
+      closes: r.allDay ? '23:59' : hh(r.close),
+    })
+  }
+  return out
+}
+
+function parkingFacility(l: Lot, sido: string, sgg: string) {
+  const node: Record<string, unknown> = {
+    '@type': 'ParkingFacility',
+    name: l.p.name,
+    address: {
+      '@type': 'PostalAddress',
+      addressCountry: 'KR',
+      addressRegion: sido,
+      addressLocality: sgg || sido,
+      streetAddress: l.p.address,
+    },
+    geo: { '@type': 'GeoCoordinates', latitude: l.p.lat, longitude: l.p.lng },
+  }
+  /*
+   * isAccessibleForFree 는 조건 없이 늘 공짜일 때만 붙인다.
+   * '토요일만 무료' 인 곳에 이걸 달면 검색결과가 언제나 무료라고 말하게 된다.
+   */
+  if (l.always && !l.p.restriction) node.isAccessibleForFree = true
+  if (l.p.capacity > 0) node.maximumAttendeeCapacity = l.p.capacity
+  const hours = openingHours(l.p)
+  if (hours.length > 0) node.openingHoursSpecification = hours
+  return node
+}
 
 function shell(opts: {
   title: string
@@ -218,12 +299,34 @@ ${rows}
 ${sibs ? `<h2>${esc(r.sido)}의 다른 지역</h2><ul class="links">${sibs}</ul>` : ''}
 <p class="lead" style="margin-top:24px">데이터 기준 ${esc(referenceDate)}</p>
 `
+  const ld =
+    jsonLd(
+      breadcrumb([
+        { name: '0원 주차', path: '/' },
+        { name: '지역별', path: '/지역/' },
+        { name: r.sido, path: regionPath(r.sido, '') },
+        { name: name, path: regionPath(r.sido, r.sgg) },
+      ]),
+    ) +
+    jsonLd({
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: `${where} 무료 주차장`,
+      numberOfItems: Math.min(shown.length, MAX_LD),
+      itemListElement: shown.slice(0, MAX_LD).map((l, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        item: parkingFacility(l, r.sido, r.sgg),
+      })),
+    })
+
   return shell({
     title: `${name} 무료 주차장 ${r.lots.length}곳 — ${r.sido} | 0원 주차`,
     description: desc,
     canonical: SITE + regionPath(r.sido, r.sgg),
     h1: `${where} 무료 주차장`,
     body,
+    extraHead: ld,
   })
 }
 
@@ -239,6 +342,13 @@ function sidoPage(sido: string, regions: Region[], referenceDate: string): strin
     description: desc,
     canonical: SITE + regionPath(sido, ''),
     h1: `${sido} 무료 주차장`,
+    extraHead: jsonLd(
+      breadcrumb([
+        { name: '0원 주차', path: '/' },
+        { name: '지역별', path: '/지역/' },
+        { name: sido, path: regionPath(sido, '') },
+      ]),
+    ),
     body: `<p class="lead">${esc(desc)}</p><h2>시·군·구</h2><ul class="links">${items}</ul>
 <p class="lead" style="margin-top:24px">데이터 기준 ${esc(referenceDate)}</p>`,
   })
