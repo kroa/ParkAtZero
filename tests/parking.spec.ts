@@ -2056,3 +2056,80 @@ test.describe('특기사항 절 구분', () => {
     expect(kinds.시간과요일).toEqual(['grace:최초 1시간 무료', 'dayType:주말·공휴일 무료'])
   })
 })
+
+/* ═══════════════════════════════════════════════════════════════
+ *  공휴일 표
+ * ═══════════════════════════════════════════════════════════════ */
+test.describe('공휴일 표', () => {
+  test('토·일과 겹치는 공휴일의 대체공휴일이 빠지지 않는다', async ({ page }) => {
+    /*
+     * 2026년 광복절(8/15)이 토요일인데 대체공휴일 8/17(월)이 표에 없었다.
+     * 그날 공휴일 무료인 주차장을 평일 유료로 안내하게 된다.
+     * 손으로 적는 표라 이런 누락이 생긴다 — 규칙으로 검산한다.
+     *
+     * 「관공서의 공휴일에 관한 규정」제3조: 삼일절·어린이날·부처님오신날·광복절·
+     * 개천절·한글날·성탄절이 토요일이나 일요일과 겹치면 그 다음 비공휴일이 대체공휴일이 된다.
+     * 현충일은 대체 대상이 아니다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const missing = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      const isHoliday = (iso: string) => {
+        const p = bridge.normalize(
+          { prkplceNm: 'T', latitude: '37.5', longitude: '127.0', parkingchrgeInfo: '유료' },
+          0,
+        )!
+        // 공휴일 판정은 evaluate 의 dayType 을 통해서만 노출되므로 규칙을 직접 못 부른다.
+        // 대신 '공휴일 무료' 규칙을 단 주차장이 그날 무료로 나오는지로 확인한다.
+        const holidayLot = bridge.normalize(
+          {
+            prkplceNm: 'T',
+            latitude: '37.5',
+            longitude: '127.0',
+            parkingchrgeInfo: '유료',
+            basicTime: '30',
+            basicCharge: '1000',
+            spcmnt: '공휴일 무료',
+            operDay: '평일+토요일+공휴일',
+            weekdayOperOpenHhmm: '0000',
+            weekdayOperColseHhmm: '2400',
+            satOperOperOpenHhmm: '0000',
+            satOperCloseHhmm: '2400',
+            holidayOperOpenHhmm: '0000',
+            holidayCloseOpenHhmm: '2400',
+          },
+          1,
+        )!
+        void p
+        const r = bridge.evaluate(holidayLot, iso + 'T14:00:00+09:00', 60)
+        return r.status === 'free'
+      }
+
+      // 대체공휴일 대상 공휴일(양력 고정분)
+      const FIXED: Record<string, string> = {
+        '03-01': '삼일절',
+        '05-05': '어린이날',
+        '08-15': '광복절',
+        '10-03': '개천절',
+        '10-09': '한글날',
+        '12-25': '성탄절',
+      }
+      const out: string[] = []
+      for (const year of [2025, 2026, 2027]) {
+        for (const md of Object.keys(FIXED)) {
+          const base = new Date(year + '-' + md + 'T12:00:00Z')
+          const dow = base.getUTCDay()
+          if (dow !== 0 && dow !== 6) continue
+          const alt = new Date(base.getTime() + (dow === 6 ? 2 : 1) * 86_400_000)
+          const key = alt.toISOString().slice(0, 10)
+          if (!isHoliday(key)) out.push(year + ' ' + FIXED[md] + ' 대체 ' + key)
+        }
+      }
+      return out
+    })
+
+    expect(missing).toEqual([])
+  })
+})
