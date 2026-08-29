@@ -1,10 +1,15 @@
 /**
- * 대한민국 법정공휴일(대체공휴일 포함) 정적 테이블.
+ * 대한민국 법정공휴일(대체공휴일 포함) 표.
  *
- * 설날/추석/부처님오신날은 음력 기준이라 계산식으로 뽑을 수 없어 연도별로 고정 테이블을 둔다.
- * 매년 관보 확정 후 갱신이 필요하며, 테이블에 없는 연도는 '일요일 = 공휴일' 규칙만 적용된다.
- * (공공데이터포털 '특일 정보' API 로 교체하고 싶다면 setHolidaySource() 로 주입하면 된다.)
+ * 설날·추석·부처님오신날은 음력이라 계산식으로 뽑을 수 없고, 임시공휴일·선거일은 그때그때
+ * 정해진다. 그래서 한국천문연구원 특일 정보를 빌드 전에 받아 src/data/holidays.json 에
+ * 박아 두고 앱은 그 파일만 읽는다 (npm run data:holidays).
+ *
+ * 앱은 Local-First 라 런타임에 외부를 부르지 않는다. 갱신은 빌드 때만 일어난다.
+ * 받아온 표에 없는 해는 아래 예비 표로 메우고, 그마저 없으면 '일요일 = 공휴일' 만 남는다.
  */
+import FETCHED from '@/data/holidays.json'
+
 const HOLIDAYS_2025 = [
   '2025-01-01', // 신정
   '2025-01-28', '2025-01-29', '2025-01-30', // 설날 연휴
@@ -46,7 +51,23 @@ const HOLIDAYS_2027 = [
   '2027-12-25', '2027-12-27', // 성탄절(토) + 대체공휴일
 ]
 
-let holidaySet = new Set<string>([...HOLIDAYS_2025, ...HOLIDAYS_2026, ...HOLIDAYS_2027])
+/*
+ * 위 표는 이제 <받아온 표에 없는 해>를 메우는 예비용이다.
+ *
+ * 손으로 적으니 틀렸다. 2026년 광복절(8/15 토)의 대체공휴일 8/17 이 빠졌고,
+ * 2027-06-07 은 있지도 않은 현충일 대체공휴일이었다(현충일은 대체 대상이 아니다).
+ * 임시공휴일·선거일도 알 길이 없었다.
+ *
+ * 그래서 한국천문연구원 특일 정보를 빌드 전에 받아 src/data/holidays.json 에 박아 둔다
+ * (scripts/fetch-holidays.mjs). 받아온 해는 그 값만 쓰고, 받지 못한 해에만 위 표가 나선다.
+ * 두 출처를 섞으면 어느 쪽이 맞는지 알 수 없어지므로 해 단위로 가른다.
+ */
+const fetchedYears = new Set(FETCHED.dates.map((d) => d.slice(0, 4)))
+const fallback = [...HOLIDAYS_2025, ...HOLIDAYS_2026, ...HOLIDAYS_2027].filter(
+  (d) => !fetchedYears.has(d.slice(0, 4)),
+)
+
+let holidaySet = new Set<string>([...FETCHED.dates, ...fallback])
 
 /** 외부(공공데이터포털 특일정보 API 등)에서 받아온 공휴일 목록으로 교체 */
 export function setHolidaySource(dates: string[]): void {
