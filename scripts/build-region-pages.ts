@@ -75,9 +75,10 @@ function freeLabelOf(p: Parking): { label: string; always: boolean } {
   return { label: rules.map((r) => r.label).join(' · '), always }
 }
 
-async function collect(): Promise<{ regions: Map<string, Region>; referenceDate: string }> {
+async function collect(): Promise<{ regions: Map<string, Region>; referenceDate: string; totalLots: number }> {
   const regions = new Map<string, Region>()
   let referenceDate = ''
+  let totalLots = 0
 
   for (const f of await readdir(CELLS)) {
     if (f.startsWith('holiday.') || !f.endsWith('.json')) continue
@@ -90,6 +91,7 @@ async function collect(): Promise<{ regions: Map<string, Region>; referenceDate:
       if (!region) continue
       const p = normalizeParking(raw, 0)
       if (!p) continue
+      totalLots++
 
       const { label, always } = freeLabelOf(p)
       if (!label) continue // 무료 요소가 없는 곳은 이 페이지의 주제가 아니다
@@ -99,7 +101,7 @@ async function collect(): Promise<{ regions: Map<string, Region>; referenceDate:
       regions.get(key)!.lots.push({ p, freeLabel: label, always })
     }
   }
-  return { regions, referenceDate: referenceDate || new Date().toISOString().slice(0, 10) }
+  return { regions, referenceDate: referenceDate || new Date().toISOString().slice(0, 10), totalLots }
 }
 
 const STYLE = `
@@ -376,11 +378,52 @@ function indexPage(bySido: Map<string, Region[]>, referenceDate: string): string
   })
 }
 
+/**
+ * 홈(index.html)의 #root 안에 들어갈 정적 소개.
+ *
+ * 앱은 자바스크립트로 그려져서 크롤러가 보는 본문이 <noscript> 몇 줄뿐이었다.
+ * React 는 첫 렌더에서 #root 를 비우므로, 여기에 글을 넣어 두면 사용자에게는 앱이
+ * 보이고 자바스크립트를 실행하지 않는 크롤러에게는 이 글이 보인다.
+ *
+ * 숫자는 데이터에서 뽑는다 — 손으로 적으면 다음 갱신에 바로 낡는다.
+ */
+function homeStatic(bySido: Map<string, Region[]>, totalLots: number, freeLots: number, referenceDate: string): string {
+  const sidoLinks = [...bySido.entries()]
+    .map(([sido, rs]) => ({ sido, n: rs.reduce((s, r) => s + r.lots.length, 0) }))
+    .sort((a, b) => b.n - a.n)
+    .map((x) => `<li><a href="${regionPath(x.sido, '')}">${esc(x.sido)} ${x.n}곳</a></li>`)
+    .join('')
+
+  return `<div class="pz-static" style="max-width:820px;margin:0 auto;padding:28px 20px 56px;font:16px/1.7 system-ui,-apple-system,'Segoe UI',sans-serif">
+<h1 style="font-size:26px;line-height:1.3;margin:0 0 10px">0원 주차 — 지금 무료로 댈 수 있는 주차장</h1>
+<p style="margin:0 0 14px">방문할 날짜와 시간을 고르면 <b>그 시간에 요금을 받지 않는 주차장만</b> 골라 보여줍니다. 회원가입도, 앱 설치도 필요 없습니다.</p>
+<p style="margin:0 0 14px">전국 공영·민영 주차장 <b>${totalLots.toLocaleString('ko-KR')}곳</b>을 담고 있으며, 그중 <b>${freeLots.toLocaleString('ko-KR')}곳</b>은 시간대나 요일에 따라 요금을 받지 않습니다. 데이터 기준일 ${esc(referenceDate)}.</p>
+
+<h2 style="font-size:19px;margin:28px 0 8px">어떻게 판단하나요</h2>
+<p style="margin:0 0 10px">'무료'라고 적힌 것만 모으지 않습니다. 주차장마다 요일별 운영시간과 요금표를 읽어 <b>방문하려는 그 시각에 실제로 0원인지</b> 계산합니다.</p>
+<ul style="margin:0 0 10px;padding-left:20px">
+<li>노상주차장은 징수시간이 끝나면 요금을 받지 않습니다 — 그 시간대를 따로 계산합니다.</li>
+<li>일요일·공휴일 무료는 한국천문연구원 특일 정보의 공휴일표로 판단합니다. 대체공휴일도 포함합니다.</li>
+<li>지자체 조례의 주차요금표에 적힌 야간·공휴일 면제 조항을 반영합니다.</li>
+<li>'최초 30분 무료'처럼 조건이 붙은 곳과 관광버스·거주자 전용처럼 이용 대상이 정해진 곳은 따로 구분해 표시합니다.</li>
+</ul>
+
+<h2 style="font-size:19px;margin:28px 0 8px">지역별로 보기</h2>
+<ul style="margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px 16px">${sidoLinks}</ul>
+<p style="margin:12px 0 0"><a href="/지역/">전체 지역 목록 보기</a></p>
+
+<p style="margin:28px 0 0;color:#6b7280;font-size:13px">
+출처: 공공데이터포털 「전국주차장정보표준데이터」, 서울 열린데이터광장, 지자체 조례 및 관리기관 안내 · 공공누리 제1유형.<br>
+요금·운영시간은 관리기관 고시를 따르며 현장과 다를 수 있습니다. 방문 전 확인하세요.
+</p>
+</div>`
+}
+
 async function main() {
   const dist = process.argv[2] ?? 'dist'
   if (!existsSync(dist)) throw new Error(dist + ' 이 없습니다. vite build 뒤에 실행하세요.')
 
-  const { regions, referenceDate } = await collect()
+  const { regions, referenceDate, totalLots } = await collect()
 
   const kept = [...regions.values()].filter((r) => r.lots.length >= MIN_LOTS)
   const dropped = regions.size - kept.length
@@ -410,11 +453,29 @@ async function main() {
     for (const r of rs) await write(regionPath(r.sido, r.sgg), regionPage(r, rs, referenceDate), '0.7')
   }
 
+  /*
+   * 홈의 자리 표시를 실제 글로 바꾼다. 자리 표시가 없으면(구조가 바뀌었으면) 조용히
+   * 넘어가지 않고 알린다 — 모르는 사이에 홈이 다시 빈 페이지가 되면 안 된다.
+   */
+  const indexFile = path.join(dist, 'index.html')
+  const freeLots = [...regions.values()].reduce((s, r) => s + r.lots.length, 0)
+  const html = await readFile(indexFile, 'utf-8')
+  if (html.includes('<!--HOME_STATIC-->')) {
+    await writeFile(
+      indexFile,
+      html.replace('<!--HOME_STATIC-->', homeStatic(bySido, totalLots, freeLots, referenceDate)),
+      'utf-8',
+    )
+    console.log('홈 정적 소개 주입: 전국 ' + totalLots + '곳 / 무료 요소 ' + freeLots + '곳')
+  } else {
+    console.warn('  ! index.html 에 <!--HOME_STATIC--> 자리 표시가 없습니다 — 홈은 그대로 둡니다')
+  }
+
   await writeFile(path.join(dist, 'region-pages.json'), JSON.stringify(written, null, 1), 'utf-8')
-  const totalLots = kept.reduce((s, r) => s + r.lots.length, 0)
+  const listedLots = kept.reduce((s, r) => s + r.lots.length, 0)
   console.log(
     '지역 페이지 ' + written.length + '개 (시도 ' + bySido.size + ' · 시군구 ' + kept.length + ')' +
-      ' · 실린 주차장 ' + totalLots + '곳 · ' + MIN_LOTS + '곳 미만이라 건너뛴 지역 ' + dropped + '개',
+      ' · 실린 주차장 ' + listedLots + '곳 · ' + MIN_LOTS + '곳 미만이라 건너뛴 지역 ' + dropped + '개',
   )
 }
 

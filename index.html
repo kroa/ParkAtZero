@@ -93,7 +93,13 @@
     </script>
   </head>
   <body class="h-full">
-    <div id="root" class="h-full"></div>
+    <!--
+      빌드 때 scripts/build-region-pages.ts 가 이 자리에 정적 소개를 넣는다.
+      React 는 첫 렌더에서 #root 를 비우므로 사용자에게는 앱이 보이고, 자바스크립트를
+      실행하지 않는 크롤러에게는 이 글이 보인다. 숫자를 손으로 적으면 곧 낡으므로
+      데이터에서 뽑아 넣는다.
+    -->
+    <div id="root" class="h-full"><!--HOME_STATIC--></div>
     <!--
       자바스크립트가 없으면 지도와 시간 판별을 쓸 수 없다. 그래도 빈 화면을 주지는 않는다 —
       지역별 목록은 빌드 때 만들어 둔 정적 페이지라 자바스크립트 없이도 그대로 열린다.
