@@ -85,6 +85,17 @@ async function main() {
      * 나머지는 그대로 드러낸다 — 조용히 실패하면 제출된 줄 알고 넘어가게 된다.
      */
     console.log('  ' + chunk.length + '개 → HTTP ' + res.status + (text ? ' ' + text.slice(0, 120) : ''))
+
+    /*
+     * 처음 제출하면 403 SiteVerificationNotCompleted 가 온다. 실패가 아니라
+     * '키 파일을 아직 가져가 보지 않았으니 잠시 뒤 다시 보내라' 는 뜻이다.
+     * 영구 실패와 구분해서 알려 주지 않으면 다시 시도할 생각을 못 하게 된다.
+     */
+    if (res.status === 403 && /SiteVerificationNotCompleted/i.test(text)) {
+      console.log('    → 키 검증 대기 중입니다. 몇 분 뒤 다시 실행하세요.')
+      process.exitCode = 75 // EX_TEMPFAIL — 나중에 다시
+      return
+    }
     if (res.status !== 200 && res.status !== 202) {
       throw new Error('제출 실패 HTTP ' + res.status)
     }
