@@ -27,6 +27,7 @@
     "data:open-facility": "node scripts/fetch-open-facility.mjs",
     "data:ordinance": "node scripts/fetch-ordinance-rules.mjs",
     "data:holidays": "node scripts/fetch-holidays.mjs",
+    "seo:indexnow": "node scripts/submit-indexnow.mjs",
     "data:holiday": "node scripts/fetch-holiday-parking.mjs",
     "data:seoul-fees": "node scripts/fetch-seoul-fees.mjs",
     "data:import": "node scripts/import-parking-file.mjs",
