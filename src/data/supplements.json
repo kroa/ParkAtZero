@@ -325,6 +325,29 @@
    "institutionNm": "신세계프라퍼티",
    "pzSource": "https://www.starfieldvillage.co.kr/unjeong/store/parkingInfo",
    "pzVerifiedOn": "2026-08-26"
+  },
+  {
+   "prkplceNo": "PZ-SUP-SEN-001",
+   "prkplceNm": "서울특별시교육청 청사 주차장",
+   "prkplceSe": "공영",
+   "prkplceType": "부설",
+   "rdnmadr": "서울특별시 용산구 두텁바위로 27",
+   "lnmadr": "서울특별시 용산구 후암동 168",
+   "latitude": "37.546046",
+   "longitude": "126.975603",
+   "prkcmprt": "235",
+   "parkingchrgeInfo": "유료",
+   "basicTime": "30",
+   "basicCharge": "0",
+   "addUnitTime": "5",
+   "addUnitCharge": "190",
+   "dayCmmtkt": "13000",
+   "spcmnt": "입차 후 30분 무료, 이후 5분당 190원(1일 최대 13,000원). 중대형버스 이용불가",
+   "institutionNm": "서울특별시교육청",
+   "phoneNumber": "02-1396",
+   "pzSource": "https://www.sen.go.kr/www/office/location.jsp",
+   "pzVerifiedOn": "2026-08-29",
+   "pzNote": "공식 안내에 주말·공휴일 요금 감면 조항이 없다. 요일 단어를 특기사항에 적으면 파서가 무료로 읽으므로 여기에 남긴다."
   }
  ]
 }
