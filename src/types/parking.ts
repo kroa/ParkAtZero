@@ -149,6 +149,11 @@ export interface Evaluation {
   nextFreeAt: Date | null
   /** 무료가 끝나는 시각 (Date) */
   freeUntil: Date | null
+  /**
+   * 무료가 끝나는 시각을 카드에 한 줄로 보여줄 문구. 없으면 null.
+   * '내일'·요일 판단에 방문 시각이 필요해 판정 쪽에서 만들어 넘긴다.
+   */
+  freeUntilLabel: string | null
   dayType: DayType
   isOpen: boolean
   /** 요금 상세를 추정으로 계산했는지 여부 */

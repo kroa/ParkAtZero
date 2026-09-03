@@ -23,6 +23,9 @@ import {
 /** 방문 당일을 0으로 두고 앞뒤 며칠까지 규칙을 펼칠지. 야간무료·자정 넘김 계산에 필요. */
 const DAY_SPAN = [-1, 0, 1, 2, 3] as const
 
+/** 며칠 뒤 징수가 재개되는지 알려 줄 때 쓴다. Date.getDay() 순서. */
+const WEEKDAY_LABEL = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'] as const
+
 export function formatMoney(won: number): string {
   return won.toLocaleString('ko-KR') + '원'
 }
@@ -405,13 +408,40 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
   const hasAlways = rules.some((r) => r.kind === 'always')
   let freeUntil: Date | null = null
   let nextFreeAt: Date | null = null
+  let freeUntilLabel: string | null = null
 
-  if (!hasAlways) {
+  /*
+   * 운영시간 밖이라 0원인 경우의 무료 종료 시각은 <징수가 다시 시작되는 때>다.
+   *
+   * 이 판정에는 무료 규칙이 없다. 요금을 받는 시간대가 지나갔을 뿐이라 아래
+   * ruleSet.intervals 가 비어 있고, 그래서 freeUntil 이 계속 null 이었다.
+   * 밤에 대는 사람은 다음 날 아침까지 두는 일이 흔한데, '0원' 만 보고 두었다가
+   * 징수가 시작되면 요금이 붙는다. 언제부터 받는지 알려 줘야 한다.
+   */
+  if (offHoursFree) {
+    const nextOpen = oper.intervals.find((it) => it.start > startMin)
+    if (nextOpen) {
+      const resumeAt = minutesToDate(visitStart, nextOpen.start)
+      freeUntil = resumeAt
+      /*
+       * 며칠 뒤일 수 있으므로 날을 밝힌다.
+       * 평일만 징수하는 노상에 금요일 밤에 대면 다음 징수는 월요일 아침이다.
+       * 그냥 '08:00부터' 라고만 하면 내일 아침으로 읽혀 사흘을 착각하게 된다.
+       */
+      const dayGap = Math.floor(nextOpen.start / DAY_MINUTES) - Math.floor(startMin / DAY_MINUTES)
+      const when = dayGap <= 0 ? '' : dayGap === 1 ? '내일 ' : WEEKDAY_LABEL[resumeAt.getDay()] + ' '
+      reasons.push(when + formatMinuteOfDay(nextOpen.start) + '부터 요금이 부과됩니다.')
+      freeUntilLabel = when + formatMinuteOfDay(nextOpen.start) + '부터 유료'
+    }
+  } else if (!hasAlways) {
     const containing = findContaining(ruleSet.intervals, startMin)
     if (containing) {
       freeUntil = minutesToDate(visitStart, containing.end)
       if (status === 'free' || status === 'conditional') {
         reasons.push(formatMinuteOfDay(containing.end) + '까지 무료')
+        const gap = Math.floor(containing.end / DAY_MINUTES) - Math.floor(startMin / DAY_MINUTES)
+        const when = gap <= 0 ? '' : gap === 1 ? '내일 ' : WEEKDAY_LABEL[freeUntil.getDay()] + ' '
+        freeUntilLabel = when + formatMinuteOfDay(containing.end) + '까지 무료'
       }
     } else {
       const next = ruleSet.intervals.find((it) => it.start > startMin)
@@ -439,6 +469,7 @@ export function evaluate({ parking, visitStart, durationMin }: EvaluateInput): E
     reasons: Array.from(new Set(reasons)),
     nextFreeAt,
     freeUntil,
+    freeUntilLabel,
     dayType,
     isOpen: openMinutes > 0,
     estimated: priced.estimated || oper.assumed || ruleSet.inferred || offHoursFree,

@@ -2170,3 +2170,62 @@ test.describe('딥링크', () => {
     await expect(page.getByTestId('parking-card').first()).toBeVisible({ timeout: 15_000 })
   })
 })
+
+/* ═══════════════════════════════════════════════════════════════
+ *  무료가 끝나는 시각 안내
+ * ═══════════════════════════════════════════════════════════════ */
+test.describe('무료 종료 시각', () => {
+  test('운영시간 외 무료는 언제부터 다시 받는지 알려 준다', async ({ page }) => {
+    /*
+     * 밤에 노상을 찾는 사람은 아침까지 그대로 두는 일이 흔하다. '0원' 만 보고 두었다가
+     * 징수가 시작되면 요금이 붙는다. 게다가 평일만 징수하는 곳에 금요일 밤에 대면
+     * 다음 징수는 월요일 아침이라, 시각만 적으면 사흘을 착각하게 된다.
+     */
+    await gotoApp(page)
+    await expect.poll(() => page.evaluate(() => Boolean(window.__parkatzero))).toBe(true)
+
+    const out = await page.evaluate(() => {
+      const bridge = window.__parkatzero!
+      // 평일 08:00~20:00 만 징수하는 노상
+      const lot = bridge.normalize(
+        {
+          prkplceNm: 'T',
+          prkplceType: '노상',
+          latitude: '37.5',
+          longitude: '127.0',
+          parkingchrgeInfo: '유료',
+          basicTime: '30',
+          basicCharge: '500',
+          addUnitTime: '30',
+          addUnitCharge: '500',
+          operDay: '평일',
+          weekdayOperOpenHhmm: '0800',
+          weekdayOperColseHhmm: '2000',
+        },
+        0,
+      )!
+      const pick = (iso: string, mins: number) => {
+        const r = bridge.evaluate(lot, iso, mins) as Record<string, unknown>
+        return { status: r.status, label: r.freeUntilLabel, cost: r.cost }
+      }
+      return {
+        수요밤: pick('2026-09-02T21:00:00+09:00', 120),
+        금요밤: pick('2026-09-04T23:50:00+09:00', 120),
+        // 체류가 징수시간으로 넘어가면 요금이 붙어야 한다
+        밤새: pick('2026-09-02T23:50:00+09:00', 720),
+      }
+    })
+
+    // 수요일 밤 → 다음 날 아침부터 다시 받는다
+    expect(out.수요밤.status).toBe('free')
+    expect(out.수요밤.label).toBe('내일 08:00부터 유료')
+
+    // 금요일 밤 → 토·일은 징수하지 않으므로 월요일 아침이다. '내일' 이라고 하면 안 된다.
+    expect(out.금요밤.status).toBe('free')
+    expect(out.금요밤.label).toBe('월요일 08:00부터 유료')
+
+    // 아침까지 두면 그만큼 요금이 붙는다 — '밤이니까 공짜' 로 뭉개지 않는다.
+    expect(out.밤새.status).toBe('paid')
+    expect(Number(out.밤새.cost)).toBeGreaterThan(0)
+  })
+})

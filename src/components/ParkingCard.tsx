@@ -105,6 +105,17 @@ export const ParkingCard = memo(function ParkingCard({ item, selected, onSelect,
             {evaluation.headline}
           </p>
 
+          {/*
+            무료가 언제 끝나는지 카드에서 바로 보이게 한다.
+            야간에 노상을 찾는 사람은 아침까지 그대로 두는 일이 흔한데, '0원' 만 보고
+            두었다가 징수가 시작되면 요금이 붙는다. 상세를 열지 않아도 알아야 한다.
+          */}
+          {evaluation.freeUntilLabel && (
+            <p data-testid="card-free-until" className="mt-0.5 truncate text-[12px] font-semibold text-amber-600 dark:text-amber-400">
+              {evaluation.freeUntilLabel}
+            </p>
+          )}
+
           <div className="mt-2 flex items-center gap-2.5 text-[11.5px] font-semibold text-ink-mute">
             <span className="flex items-center gap-1 tnum">
               <Footprints className="h-3.5 w-3.5" strokeWidth={2.4} />
