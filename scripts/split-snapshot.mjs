@@ -164,6 +164,16 @@ async function main() {
         if (rule.types && !rule.types.includes(String(r.prkplceType ?? '').trim())) continue
         const name = String(r.prkplceNm ?? '')
         if ((rule.excludeNames ?? []).some((x) => name.includes(x))) continue
+
+        /*
+         * includeNames 는 <이 이름들만> 이라는 뜻이다.
+         *
+         * 같은 기관 안에서도 일부만 무료인 곳이 있다. 의왕도시공사 유료 24곳 중
+         * 공휴일 무료가 확인되는 건 9곳뿐이고, 조례에 "다만 노외주차장과 행락지
+         * 주차장은 공휴일에도 징수할 수 있다"는 단서가 붙어 있다. 기관 전체에
+         * 걸면 유료 15곳을 무료로 잘못 안내하게 된다.
+         */
+        if (rule.includeNames && !rule.includeNames.some((x) => name.includes(x))) continue
         // 요금정보가 '무료'인 곳에 요금을 넣으면 무료 주차장이 유료로 뒤집힌다.
         if (String(r.parkingchrgeInfo ?? '').trim() === '무료') continue
 
