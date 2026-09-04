@@ -156,17 +156,32 @@ export function readScope(sentence) {
  * 이 걸린다. 꼬리를 붙인 채로 맞춘다.
  * 이름이 짧아 흔한 것('중구'·'남구' 등)은 시도 이름까지 함께 있어야 인정한다.
  */
+/** 지자체가 주차장을 맡기는 기관 이름의 꼬리. '의왕도시공사' 처럼 시·군·구가 빠진다. */
+const ORG_TAIL = /^(도시공사|도시관리공사|시설관리공단|시설공단|도시개발공사|공사|공단)/
+
 export function matchInstitutions(org, known) {
   const words = squash(org).split(' ')
   const town = words[words.length - 1]
   if (!town || town.length < 2) return []
   const sido = words.length > 1 ? words[0].replace(/(특별자치도|특별자치시|광역시|특별시|도)$/, '') : ''
   const ambiguous = town.length <= 2
+  // '의왕시' → '의왕'. 산하 기관 이름에는 시·군·구가 빠져 있다.
+  const bare = town.replace(/(시|군|구)$/, '')
 
   return [...known].filter((k) => {
-    if (!k.includes(town)) return false
-    if (ambiguous && sido && !k.includes(sido)) return false
-    return true
+    if (k.includes(town)) {
+      if (ambiguous && sido && !k.includes(sido)) return false
+      return true
+    }
+    /*
+     * 산하 기관도 잡는다. '경기도 의왕시' 의 주차장이 데이터에는 '의왕도시공사' 로 들어와 있어
+     * '의왕시' 로만 찾으면 55곳을 통째로 놓쳤다. 안산도시공사 75곳·양주도시공사 17곳도 같다.
+     *
+     * 다만 이름 가운데서 찾으면 안 된다 — '남양주도시공사' 가 '양주' 로 걸린다.
+     * 낱말이 그 이름으로 <시작>하고 바로 뒤에 기관 꼬리가 붙을 때만 인정한다.
+     */
+    if (bare.length < 2 || bare === town) return false
+    return k.split(' ').some((seg) => seg.startsWith(bare) && ORG_TAIL.test(seg.slice(bare.length)))
   })
 }
 
