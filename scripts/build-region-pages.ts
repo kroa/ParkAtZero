@@ -664,6 +664,144 @@ ${s.why.map((w) => `<p class="lead">${esc(w)}</p>`).join('\n')}
   })
 }
 
+/*
+ * 지역 × 상황 교차 페이지.
+ *
+ * "서울 공휴일 무료주차장" 처럼 지역과 상황을 함께 넣는 검색어가 많다. 그런데 지역
+ * 페이지는 시간 조건을 안 따지고, 상황 페이지는 전국을 섞어 보여 준다. 둘 사이가
+ * 비어 있어서 이 검색어에 걸릴 페이지가 없었다.
+ *
+ * 얇은 페이지를 늘리려는 게 아니다. 20곳 미만인 조합은 만들지 않는다 — 그 아래는
+ * 대개 시군구 한두 곳에 쏠려 있어 지역 페이지와 내용이 거의 같아진다.
+ */
+const MIN_CROSS = 20
+
+function crossPage(
+  sido: string,
+  s: Situation,
+  rows: Array<{ lot: Lot; sido: string; sgg: string }>,
+  alsoHere: Situation[],
+  referenceDate: string,
+): string {
+  const n = rows.length.toLocaleString('ko-KR')
+  const shortName = s.name.replace(' 주차장', '')
+
+  /* 시군구별 분포 — 이 페이지에서만 나오는 숫자다 */
+  const bySgg = new Map<string, number>()
+  for (const x of rows) bySgg.set(x.sgg, (bySgg.get(x.sgg) ?? 0) + 1)
+  const ranked = [...bySgg.entries()].sort((a, b) => b[1] - a[1])
+
+  const desc =
+    `${sido}에서 ${shortName}인 주차장 ${n}곳. 시·군·구별로 정리했고 ` +
+    `이름·주소·무료 조건·운영시간을 함께 실었습니다.`
+
+  const sggRows = ranked
+    .map(
+      ([sgg, c]) =>
+        `<tr><td class="nm">${sgg ? `<a href="${regionPath(sido, sgg)}">${esc(sgg)}</a>` : esc(sido)}</td>` +
+        `<td class="free">${c.toLocaleString('ko-KR')}곳</td></tr>`,
+    )
+    .join('\n')
+
+  /* 목록도 시군구가 한쪽으로 쏠리지 않게 번갈아 싣는다 */
+  const perSgg = new Map<string, Array<{ lot: Lot; sido: string; sgg: string }>>()
+  for (const x of rows) {
+    if (!perSgg.has(x.sgg)) perSgg.set(x.sgg, [])
+    perSgg.get(x.sgg)!.push(x)
+  }
+  const mixed: Array<{ lot: Lot; sido: string; sgg: string }> = []
+  for (let round = 0; mixed.length < MAX_ROWS; round++) {
+    let added = false
+    for (const [, arr] of perSgg) {
+      if (arr[round]) {
+        mixed.push(arr[round])
+        added = true
+      }
+      if (mixed.length >= MAX_ROWS) break
+    }
+    if (!added) break
+  }
+
+  const listRows = mixed
+    .map(
+      (x) => `<tr>
+<td class="nm">${esc(x.lot.p.name)}</td>
+<td>${esc(x.sgg)}</td>
+<td class="${x.lot.always ? 'free' : ''}">${esc(x.lot.freeLabel)}</td>
+<td>${x.lot.p.restriction ? '<span class="warn">' + esc(x.lot.p.restriction) + '</span>' : '누구나'}</td>
+<td>${esc(hoursLabel(x.lot.p))}</td>
+<td>${esc(x.lot.p.address)}</td>
+</tr>`,
+    )
+    .join('\n')
+
+  const others = alsoHere
+    .filter((o) => o.slug !== s.slug)
+    .map((o) => `<li><a href="${regionPath(sido, '')}${o.slug}/">${esc(sido)} ${esc(o.name)}</a></li>`)
+    .join('')
+
+  const body = `
+<p class="lead">${esc(desc)}</p>
+<a class="cta" href="/">지도에서 지금 무료인 곳 보기</a>
+
+<h2>왜 그때 무료인가</h2>
+${s.why.map((w) => `<p class="lead">${esc(w)}</p>`).join('\n')}
+
+<h2>시·군·구별 ${n}곳</h2>
+<div class="scroll"><table>
+<thead><tr><th>시·군·구</th><th>${esc(shortName)}</th></tr></thead>
+<tbody>${sggRows}</tbody></table></div>
+
+<h2>주차장 목록</h2>
+<p class="lead">시·군·구가 한쪽으로 쏠리지 않도록 번갈아 ${mixed.length}곳을 실었습니다.${
+    rows.length > mixed.length ? ` 나머지 ${(rows.length - mixed.length).toLocaleString('ko-KR')}곳은 지도나 시·군·구 페이지에서 볼 수 있습니다.` : ''
+  }</p>
+<div class="scroll"><table>
+<thead><tr><th>주차장</th><th>시·군·구</th><th>무료 조건</th><th>이용</th><th>운영시간</th><th>주소</th></tr></thead>
+<tbody>${listRows}</tbody></table></div>
+
+<h2>${esc(sido)}의 다른 상황</h2>
+<ul class="links">${others}</ul>
+
+<h2>더 보기</h2>
+<ul class="links">
+<li><a href="/${s.slug}/">전국 ${esc(s.name)}</a></li>
+<li><a href="${regionPath(sido, '')}">${esc(sido)} 전체 무료 주차장</a></li>
+<li><a href="/지역/">지역별 목록</a></li>
+</ul>
+<p class="lead" style="margin-top:20px">데이터 기준 ${esc(referenceDate)}</p>
+`
+
+  return shell({
+    title: `${sido} ${s.name} ${n}곳 | 0원 주차`,
+    description: desc,
+    canonical: SITE + regionPath(sido, '') + s.slug + '/',
+    h1: `${sido}에서 ${s.h1.replace('인 주차장', '')}인 주차장`,
+    crumb: `<a href="/">0원 주차</a> › <a href="/지역/">지역별</a> › <a href="${regionPath(sido, '')}">${esc(sido)}</a>`,
+    body,
+    extraHead:
+      jsonLd(
+        breadcrumb([
+          { name: '0원 주차', path: '/' },
+          { name: '지역별', path: '/지역/' },
+          { name: sido, path: regionPath(sido, '') },
+          { name: s.name, path: regionPath(sido, '') + s.slug + '/' },
+        ]),
+      ) +
+      jsonLd({
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: sido + ' ' + s.name,
+        numberOfItems: Math.min(mixed.length, MAX_LD),
+        itemListElement: mixed.slice(0, MAX_LD).map((x, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          item: parkingFacility(x.lot, x.sido, x.sgg),
+        })),
+      }),
+  })
+}
+
 /**
  * 이 빌드가 한국 시각으로 판단하는지 확인한다.
  *
@@ -738,6 +876,8 @@ async function main() {
     console.warn('  ! index.html 에 <!--HOME_STATIC--> 자리 표시가 없습니다 — 홈은 그대로 둡니다')
   }
 
+  const crossRows: Array<{ sido: string; s: Situation; xs: Array<{ lot: Lot; sido: string; sgg: string }> }> = []
+
   /* 상황별 페이지 — 지역 축과 다른 검색어 집합을 연다 */
   const flat: Array<{ lot: Lot; sido: string; sgg: string }> = []
   for (const r of kept) for (const lot of r.lots) flat.push({ lot, sido: r.sido, sgg: r.sgg })
@@ -754,7 +894,84 @@ async function main() {
     }
     await write('/' + s.slug + '/', situationPage(s, rows, bySido, referenceDate), '0.85')
     console.log('상황 페이지: ' + s.name + ' ' + rows.length + '곳')
+
+    /* 이 상황을 시도별로 쪼개 교차 페이지 재료로 모아 둔다 */
+    const bySidoRows = new Map<string, Array<{ lot: Lot; sido: string; sgg: string }>>()
+    for (const x of rows) {
+      if (!bySidoRows.has(x.sido)) bySidoRows.set(x.sido, [])
+      bySidoRows.get(x.sido)!.push(x)
+    }
+    for (const [sido, xs] of bySidoRows) {
+      if (xs.length < MIN_CROSS) continue
+      crossRows.push({ sido, s, xs })
+    }
   }
+
+  /*
+   * 지역 x 상황 교차 페이지.
+   *
+   * 어떤 시도에 어떤 상황 페이지가 있는지 먼저 다 알아야 서로 링크를 걸 수 있다.
+   * 그래서 위에서 재료만 모으고 여기서 한꺼번에 쓴다.
+   */
+  /*
+   * 겹치는 조합을 떨어낸다.
+   *
+   * 「관공서의 공휴일에 관한 규정」제2조가 일요일을 공휴일로 정하기 때문에, 한 시도
+   * 안에서 '공휴일'과 '일요일'의 주차장 집합이 거의 같아진다. 실제로 서울은 두 쪽이
+   * 94.7% 같았고 인천·대전은 곳 수까지 똑같았다. 그대로 두면 서로 중복 페이지가 되어
+   * 색인에서 빠지고 사이트 전체 평가도 깎인다.
+   *
+   * 그래서 곳 수가 많은 쪽을 남기고, 이미 남긴 쪽에 90% 이상 포함되는 조합은 버린다.
+   * 전국 상황 페이지(/일요일-무료주차장/)는 여러 시도가 섞여 편차가 크므로 그대로 둔다.
+   */
+  const MAX_CROSS_OVERLAP = 0.9
+  const lotKey = (x: { lot: Lot }) => x.lot.p.name + '|' + x.lot.p.address
+  const bySidoCross = new Map<string, typeof crossRows>()
+  for (const c of crossRows) {
+    if (!bySidoCross.has(c.sido)) bySidoCross.set(c.sido, [])
+    bySidoCross.get(c.sido)!.push(c)
+  }
+  const acceptedCross: typeof crossRows = []
+  let droppedCross = 0
+  for (const [, group] of bySidoCross) {
+    const keptSets: Array<Set<string>> = []
+    for (const c of [...group].sort((a, b) => b.xs.length - a.xs.length)) {
+      const set = new Set(c.xs.map(lotKey))
+      const redundant = keptSets.some((prev) => {
+        let shared = 0
+        for (const k of set) if (prev.has(k)) shared++
+        return shared / set.size > MAX_CROSS_OVERLAP
+      })
+      if (redundant) {
+        droppedCross++
+        continue
+      }
+      keptSets.push(set)
+      acceptedCross.push(c)
+    }
+  }
+  crossRows.length = 0
+  crossRows.push(...acceptedCross)
+  if (droppedCross > 0) {
+    console.log('  겹쳐서 버린 교차 조합 ' + droppedCross + '개 (기존 쪽에 ' + Math.round(MAX_CROSS_OVERLAP * 100) + '% 이상 포함)')
+  }
+
+  const hasCross = new Map<string, Situation[]>()
+  for (const c of crossRows) {
+    if (!hasCross.has(c.sido)) hasCross.set(c.sido, [])
+    hasCross.get(c.sido)!.push(c.s)
+  }
+  for (const c of crossRows) {
+    await write(
+      regionPath(c.sido, '') + c.s.slug + '/',
+      crossPage(c.sido, c.s, c.xs, hasCross.get(c.sido) ?? [], referenceDate),
+      '0.75',
+    )
+  }
+  console.log(
+    '교차 페이지 ' + crossRows.length + '개 (시도 ' + hasCross.size + ' x 상황) · ' +
+      MIN_CROSS + '곳 이상인 조합만',
+  )
 
   await writeFile(path.join(dist, 'region-pages.json'), JSON.stringify(written, null, 1), 'utf-8')
   const listedLots = kept.reduce((s, r) => s + r.lots.length, 0)
