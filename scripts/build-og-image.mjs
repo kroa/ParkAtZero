@@ -12,7 +12,13 @@
  *
  * 숫자는 만들 때마다 데이터에서 새로 읽는다. 손으로 적으면 곧 낡는다.
  *
- * 사용: node scripts/build-og-image.mjs [출력디렉터리]
+ * ── 빌드 사슬에 넣지 않는다 ────────────────────────────────
+ * 이 스크립트는 Playwright 브라우저가 필요한데 배포 워크플로에는 설치 단계가 없다.
+ * 넣었더니 배포가 세 커밋 연속 조용히 실패했다(사이트는 옛 버전 그대로였다).
+ * 결과물 public/og.png 를 저장소에 두고 vite 가 그대로 복사하게 한다.
+ * 숫자가 크게 달라졌을 때만 `npm run seo:og` 로 다시 만들어 커밋한다.
+ *
+ * 사용: npm run seo:og   (기본 출력 public/)
  */
 import path from 'node:path'
 import { readFile, readdir, writeFile } from 'node:fs/promises'

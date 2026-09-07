@@ -89,6 +89,29 @@ async function main() {
     ok(false, 'public/ 에서 키 파일을 찾지 못함')
   }
 
+  /*
+   * 4.5) 로컬 빌드와 배포본이 같은가.
+   *
+   * 배포가 조용히 실패할 수 있다. 실제로 og 이미지 생성에 브라우저가 필요한데
+   * 배포 워크플로에는 설치 단계가 없어 세 커밋 연속 실패했고, 사이트는 옛 버전
+   * 그대로였는데 아무 신호도 없었다. 개수를 맞춰 보면 바로 드러난다.
+   */
+  console.log('\n로컬 빌드와 대조')
+  const localSitemap = 'dist/sitemap.xml'
+  const { readFile: rf } = await import('node:fs/promises')
+  const { existsSync: ex } = await import('node:fs')
+  if (ex(localSitemap)) {
+    const localXml = await rf(localSitemap, 'utf-8')
+    const localCount = (localXml.match(/<loc>/g) ?? []).length
+    ok(
+      localCount === urls.length,
+      '배포본이 최신 빌드와 같음',
+      '로컬 ' + localCount + ' / 배포 ' + urls.length + (localCount === urls.length ? '' : ' — 배포가 아직 안 됐거나 실패했습니다'),
+    )
+  } else {
+    console.log('  · dist/sitemap.xml 이 없어 건너뜁니다 (npm run build:only 먼저)')
+  }
+
   /* 5) 사이트맵의 모든 주소가 실제로 열리는지 */
   console.log('\n주소 전수 확인 (' + urls.length + '개)')
   const bad = []
