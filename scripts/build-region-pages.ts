@@ -18,6 +18,7 @@ import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { normalizeParking } from '@/lib/normalize'
 import { extractFreeRules } from '@/lib/timeRules'
+import { evaluate } from '@/lib/freeCalc'
 import type { Parking } from '@/types/parking'
 import { parseRegion, regionPath } from './lib/region.mjs'
 
@@ -66,13 +67,34 @@ function hoursLabel(p: Parking): string {
   return '평일 ' + w + ' · 토 ' + s + ' · 공휴일 ' + h
 }
 
-/** 왜 무료인지 한 줄로. 없으면 빈 문자열. */
+/*
+ * 노상인데도 물리적으로 막히는 곳의 신호. freeCalc 의 판정과 같은 기준을 쓴다.
+ */
+const BARRIER_HINT = /차단기|차단봉|게이트|폐쇄|통제|출입\s*금지|진입\s*금지/
+
+/**
+ * 왜 무료인지 한 줄로. 없으면 빈 문자열.
+ *
+ * 특기사항에서 뽑는 규칙만 보면 <노상 징수시간 외 무료>가 통째로 빠진다.
+ * 그 판정은 규칙이 아니라 운영시간 부재에서 나오기 때문이다(freeCalc 참고).
+ * 실제로 그 탓에 밤에 0원인 노상 1,400곳이 지역 페이지에도, 상황 페이지에도
+ * 실리지 않았다. 도심에서 공짜로 대는 가장 흔한 방법인데 목록에 없었던 것이다.
+ */
 function freeLabelOf(p: Parking): { label: string; always: boolean } {
   if (p.chargeType === '무료') return { label: '상시 무료', always: true }
   const rules = extractFreeRules(p)
-  if (rules.length === 0) return { label: '', always: false }
-  const always = rules.some((r) => r.kind === 'always')
-  return { label: rules.map((r) => r.label).join(' · '), always }
+  if (rules.length > 0) {
+    return { label: rules.map((r) => r.label).join(' · '), always: rules.some((r) => r.kind === 'always') }
+  }
+  // 징수시간이 하루를 다 덮지 않는 노상은 그 시간 밖에 0원이다.
+  const limited = (['weekday', 'saturday', 'holiday'] as const).some((d) => {
+    const r = p.hours[d]
+    return !r || !r.allDay
+  })
+  if (p.type === '노상' && limited && !BARRIER_HINT.test(p.note ?? '')) {
+    return { label: '운영시간 외 무료', always: false }
+  }
+  return { label: '', always: false }
 }
 
 async function collect(): Promise<{ regions: Map<string, Region>; referenceDate: string; totalLots: number }> {
@@ -210,6 +232,8 @@ function shell(opts: {
   h1: string
   body: string
   extraHead?: string
+  /** 상단 경로 표시. 상황 페이지는 '지역별' 밑이 아니라서 따로 준다. */
+  crumb?: string
 }): string {
   return `<!doctype html>
 <html lang="ko">
@@ -238,7 +262,7 @@ function shell(opts: {
 <style>${STYLE}</style>${opts.extraHead ?? ''}
 </head>
 <body><div class="wrap">
-<p class="lead"><a href="/">0원 주차</a> › <a href="/지역/">지역별</a></p>
+<p class="lead">${opts.crumb ?? '<a href="/">0원 주차</a> › <a href="/지역/">지역별</a>'}</p>
 <h1>${esc(opts.h1)}</h1>
 ${opts.body}
 <footer>
@@ -419,6 +443,9 @@ function homeStatic(bySido: Map<string, Region[]>, totalLots: number, freeLots: 
 <li>'최초 30분 무료'처럼 조건이 붙은 곳과 관광버스·거주자 전용처럼 이용 대상이 정해진 곳은 따로 구분해 표시합니다.</li>
 </ul>
 
+<h2 style="font-size:19px;margin:28px 0 8px">상황별로 보기</h2>
+<ul style="margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px 16px">${SITUATIONS.map((s) => `<li><a href="/${s.slug}/">${esc(s.name)}</a></li>`).join('')}</ul>
+
 <h2 style="font-size:19px;margin:28px 0 8px">지역별로 보기</h2>
 <ul style="margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px 16px">${sidoLinks}</ul>
 <p style="margin:12px 0 0"><a href="/지역/">전체 지역 목록 보기</a></p>
@@ -428,6 +455,213 @@ function homeStatic(bySido: Map<string, Region[]>, totalLots: number, freeLots: 
 요금·운영시간은 관리기관 고시를 따르며 현장과 다를 수 있습니다. 방문 전 확인하세요.
 </p>
 </div>`
+}
+
+/*
+ * 상황별 페이지.
+ *
+ * 지역 페이지만으로는 "종로구 무료주차장" 계열 검색어에만 걸린다. 그런데 사람들은
+ * "공휴일 무료주차장", "야간 무료 주차장" 처럼 <상황>으로도 찾는다. 재료는 같은데
+ * 걸리는 검색어 집합이 완전히 다르다.
+ *
+ * 얇은 페이지를 늘리려는 게 아니다. 각 페이지는 <왜 그 시간에 공짜가 되는가>를
+ * 제도로 설명하고(노상 징수시간·조례·공휴일 규정), 그 상황에 해당하는 곳을
+ * 시·도별로 세어 지역 페이지로 이어 준다.
+ */
+interface Situation {
+  slug: string
+  name: string
+  h1: string
+  /** 이 상황을 대표하는 시각 */
+  iso: string
+  /** 왜 그때 공짜가 되는지 — 사람이 읽어서 알아야 할 내용 */
+  why: string[]
+}
+
+const SITUATIONS: Situation[] = [
+  {
+    slug: '공휴일-무료주차장',
+    name: '공휴일 무료 주차장',
+    h1: '공휴일에 무료인 주차장',
+    iso: '2026-12-25T14:00:00+09:00',
+    why: [
+      '상당수 지방자치단체가 조례로 공휴일에 주차요금을 받지 않는다. 「관공서의 공휴일에 관한 규정」이 정한 날이 기준이라 설날·추석 같은 음력 명절과 대체공휴일도 포함된다.',
+      '이 목록은 한국천문연구원 특일 정보의 공휴일표로 판단한다. 대체공휴일과 임시공휴일까지 반영한다.',
+      '근로자의 날(5월 1일)은 공휴일이 아니다. 유급휴일이지만 관공서는 정상 근무하고 공영주차장도 평일처럼 운영한다.',
+    ],
+  },
+  {
+    slug: '야간-무료주차장',
+    name: '야간 무료 주차장',
+    h1: '밤에 무료인 주차장',
+    iso: '2026-09-07T22:00:00+09:00',
+    why: [
+      '노상주차장은 도로 노면에 그린 주차구획이라 차단기가 없다. 조례로 정한 징수시간에만 요금을 받고, 그 시간이 지나면 그대로 대도 0원이다. 도심에서 공짜로 대는 가장 흔한 방법이다.',
+      '노외·부설주차장은 여기 넣지 않는다. 밤에 차단기로 닫히는 곳이 섞여 있는데 데이터만으로는 24시간 개방인지 야간 폐쇄인지 가릴 수 없다. 갔는데 못 대는 쪽이 더 나쁘다.',
+      '아침에 징수가 다시 시작되면 그때부터 요금이 붙는다. 각 주차장 카드에 몇 시부터 유료인지 적어 두었다.',
+    ],
+  },
+  {
+    slug: '일요일-무료주차장',
+    name: '일요일 무료 주차장',
+    h1: '일요일에 무료인 주차장',
+    iso: '2026-09-06T14:00:00+09:00',
+    why: [
+      '「관공서의 공휴일에 관한 규정」제2조는 일요일을 공휴일로 정한다. 그래서 공휴일 무료를 규정한 지자체에서는 일요일도 요금을 받지 않는 경우가 많다.',
+      '다만 일요일만 따로 유료로 두는 곳도 있다. 관광지·전통시장 주변처럼 주말에 수요가 몰리는 곳이 그렇다.',
+    ],
+  },
+  {
+    slug: '토요일-무료주차장',
+    name: '토요일 무료 주차장',
+    h1: '토요일에 무료인 주차장',
+    iso: '2026-09-05T14:00:00+09:00',
+    why: [
+      '토요일은 공휴일이 아니지만, 조례에서 평일보다 이른 시각에 징수를 끝내거나 아예 받지 않는 곳이 많다. 서울 노상주차장은 대개 토요일 15시에 징수가 끝난다.',
+      '토요일 낮에는 유료지만 오후 늦게 무료로 풀리는 곳이 많으니, 방문 시각을 정확히 넣어 확인하는 편이 낫다.',
+    ],
+  },
+  {
+    slug: '24시간-무료주차장',
+    name: '24시간 무료 주차장',
+    h1: '언제 가도 무료인 주차장',
+    iso: '2026-09-09T14:00:00+09:00',
+    why: [
+      '시간·요일과 관계없이 요금을 받지 않는 주차장이다. 대부분 공영주차장이고, 관공서·공원·전통시장에 딸린 곳이 많다.',
+      '이용 대상이 정해진 곳은 뺐다. 관광버스 전용이나 거주자 전용은 요금이 0원이어도 승용차로 가면 대지 못한다.',
+    ],
+  },
+]
+
+/**
+ * 상황별로 해당하는 주차장을 고른다.
+ *
+ * 시간 조건이 붙은 상황에서는 <상시 무료인 곳을 뺀다>. 넣으면 어느 페이지나
+ * 같은 13,000곳이 실려 서로 닮은 문서가 되고, 검색엔진이 중복으로 걸러 낸다.
+ * 무엇보다 사람에게 쓸모가 없다 — 늘 공짜인 곳은 '공휴일 무료'를 찾는 이유가 아니다.
+ * 알고 싶은 건 <평소엔 돈을 내야 하는데 이때는 0원인 곳>이다.
+ */
+function pickForSituation(all: Lot[], s: Situation): Lot[] {
+  const at = new Date(s.iso)
+  if (s.slug === '24시간-무료주차장') return all.filter((l) => l.always && !l.p.restriction)
+
+  return all.filter((l) => {
+    if (l.always) return false // 상시 무료는 이 페이지의 주제가 아니다
+    if (s.slug === '야간-무료주차장' && l.p.type !== '노상') return false
+    return evaluate({ parking: l.p, visitStart: at, durationMin: 120 }).status === 'free'
+  })
+}
+
+function situationPage(
+  s: Situation,
+  lots: Array<{ lot: Lot; sido: string; sgg: string }>,
+  bySido: Map<string, Region[]>,
+  referenceDate: string,
+): string {
+  const bySidoCount = new Map<string, number>()
+  for (const x of lots) bySidoCount.set(x.sido, (bySidoCount.get(x.sido) ?? 0) + 1)
+  const ranked = [...bySidoCount.entries()].sort((a, b) => b[1] - a[1])
+
+  const desc =
+    (s.slug === '24시간-무료주차장'
+      ? `전국에서 시간·요일과 관계없이 요금을 받지 않는 주차장 ${lots.length.toLocaleString('ko-KR')}곳. `
+      : `평소에는 요금을 받지만 ${s.name.replace(' 무료 주차장', '')}에는 0원이 되는 주차장 ${lots.length.toLocaleString('ko-KR')}곳. `) +
+    `시·도별로 정리했고, 이름·주소·무료 조건·운영시간을 함께 실었습니다.`
+
+  const sidoRows = ranked
+    .map(
+      ([sido, n]) =>
+        `<tr><td class="nm"><a href="${regionPath(sido, '')}">${esc(sido)}</a></td><td class="free">${n.toLocaleString('ko-KR')}곳</td></tr>`,
+    )
+    .join('\n')
+
+  /* 대표 목록은 시·도를 골고루 섞는다 — 한 지역이 표를 다 차지하면 쓸모가 없다 */
+  const perSido = new Map<string, Array<{ lot: Lot; sido: string; sgg: string }>>()
+  for (const x of lots) {
+    if (!perSido.has(x.sido)) perSido.set(x.sido, [])
+    perSido.get(x.sido)!.push(x)
+  }
+  const mixed: Array<{ lot: Lot; sido: string; sgg: string }> = []
+  let round = 0
+  while (mixed.length < 200 && round < 40) {
+    let added = false
+    for (const [, arr] of perSido) {
+      if (arr[round]) {
+        mixed.push(arr[round])
+        added = true
+      }
+      if (mixed.length >= 200) break
+    }
+    if (!added) break
+    round++
+  }
+
+  const rows = mixed
+    .map(
+      (x) => `<tr>
+<td class="nm">${esc(x.lot.p.name)}</td>
+<td class="${x.lot.always ? 'free' : ''}">${esc(x.lot.freeLabel)}</td>
+<td>${x.lot.p.restriction ? '<span class="warn">' + esc(x.lot.p.restriction) + '</span>' : '누구나'}</td>
+<td>${esc(hoursLabel(x.lot.p))}</td>
+<td>${esc(x.lot.p.address)}</td>
+</tr>`,
+    )
+    .join('\n')
+
+  const others = SITUATIONS.filter((o) => o.slug !== s.slug)
+    .map((o) => `<li><a href="/${o.slug}/">${esc(o.name)}</a></li>`)
+    .join('')
+
+  const body = `
+<p class="lead">${esc(desc)}</p>
+<a class="cta" href="/">지도에서 지금 무료인 곳 보기</a>
+
+<h2>왜 그때 무료인가</h2>
+${s.why.map((w) => `<p class="lead">${esc(w)}</p>`).join('\n')}
+
+<h2>시·도별 ${lots.length.toLocaleString('ko-KR')}곳</h2>
+<div class="scroll"><table>
+<thead><tr><th>시·도</th><th>${esc(s.name.replace(' 주차장', ''))}</th></tr></thead>
+<tbody>${sidoRows}</tbody></table></div>
+
+<h2>주차장 목록</h2>
+<p class="lead">지역이 한쪽으로 쏠리지 않도록 시·도별로 번갈아 ${mixed.length}곳을 실었습니다. 나머지는 지도나 지역 페이지에서 볼 수 있습니다.</p>
+<div class="scroll"><table>
+<thead><tr><th>주차장</th><th>무료 조건</th><th>이용</th><th>운영시간</th><th>주소</th></tr></thead>
+<tbody>${rows}</tbody></table></div>
+
+<h2>다른 상황으로 찾기</h2>
+<ul class="links">${others}</ul>
+<p class="lead" style="margin-top:8px"><a href="/지역/">지역별 목록 보기</a></p>
+<p class="lead" style="margin-top:20px">데이터 기준 ${esc(referenceDate)}</p>
+`
+  void bySido
+  return shell({
+    title: `${s.name} ${lots.length.toLocaleString('ko-KR')}곳 — 전국 | 0원 주차`,
+    description: desc,
+    canonical: SITE + '/' + s.slug + '/',
+    h1: s.h1,
+    body,
+    crumb: '<a href="/">0원 주차</a> › ' + esc(s.name),
+    extraHead:
+      jsonLd(
+        breadcrumb([
+          { name: '0원 주차', path: '/' },
+          { name: s.name, path: '/' + s.slug + '/' },
+        ]),
+      ) +
+      jsonLd({
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: s.name,
+        numberOfItems: Math.min(mixed.length, MAX_LD),
+        itemListElement: mixed.slice(0, MAX_LD).map((x, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          item: parkingFacility(x.lot, x.sido, x.sgg),
+        })),
+      }),
+  })
 }
 
 async function main() {
@@ -480,6 +714,24 @@ async function main() {
     console.log('홈 정적 소개 주입: 전국 ' + totalLots + '곳 / 무료 요소 ' + freeLots + '곳')
   } else {
     console.warn('  ! index.html 에 <!--HOME_STATIC--> 자리 표시가 없습니다 — 홈은 그대로 둡니다')
+  }
+
+  /* 상황별 페이지 — 지역 축과 다른 검색어 집합을 연다 */
+  const flat: Array<{ lot: Lot; sido: string; sgg: string }> = []
+  for (const r of kept) for (const lot of r.lots) flat.push({ lot, sido: r.sido, sgg: r.sgg })
+  for (const s of SITUATIONS) {
+    const picked = pickForSituation(
+      flat.map((x) => x.lot),
+      s,
+    )
+    const set = new Set(picked)
+    const rows = flat.filter((x) => set.has(x.lot))
+    if (rows.length < 50) {
+      console.warn('  ! ' + s.name + ' 은 ' + rows.length + '곳뿐이라 건너뜁니다')
+      continue
+    }
+    await write('/' + s.slug + '/', situationPage(s, rows, bySido, referenceDate), '0.85')
+    console.log('상황 페이지: ' + s.name + ' ' + rows.length + '곳')
   }
 
   await writeFile(path.join(dist, 'region-pages.json'), JSON.stringify(written, null, 1), 'utf-8')
