@@ -64,6 +64,17 @@ function today(now = new Date()) {
 }
 
 /**
+ * 내용 비교에서 번들 파일명의 해시를 지운다.
+ *
+ * 홈은 /assets/index-C9lZ94BB.js 처럼 해시가 박힌 파일명을 참조한다. 이 해시는 빌드
+ * 환경에 따라 달라져서, 첫 배포에서 정적 페이지 272쪽은 모두 그대로였는데 홈만 날짜가
+ * 올라갔다. 사람이 보는 내용은 하나도 안 바뀌었는데 매 배포마다 <오늘 바뀜>이 된다.
+ * 파일명에서 해시 부분만 빼고 비교한다 — 번들 내용이 정말 바뀌면 그건 앱이 바뀐
+ * 것이고, 그때는 홈 HTML 의 다른 곳(주입된 소개문·집계 숫자)도 함께 바뀐다.
+ */
+const normalize = (html) => html.replace(/\/assets\/([\w.-]+?)-[A-Za-z0-9_-]{8,}\.(js|css)/g, '/assets/$1.$2')
+
+/**
  * 페이지가 <실제로 바뀐 날> 을 lastmod 로 채운다.
  *
  * 예전에는 데이터 기준일(2026-08-04)을 273개 주소에 그대로 붙였다. 그날 새로 만든
@@ -90,7 +101,7 @@ async function resolveLastmod(dist, entries, stamp, complete) {
   for (const e of entries) {
     const file = path.join(dist, ...e.path.split('/').filter(Boolean), 'index.html')
     let hash = ''
-    if (existsSync(file)) hash = createHash('sha256').update(await readFile(file)).digest('hex').slice(0, 16)
+    if (existsSync(file)) hash = createHash('sha256').update(normalize(await readFile(file, 'utf-8'))).digest('hex').slice(0, 16)
 
     const before = prev[e.path]
     if (before && before.hash === hash && /^\d{4}-\d{2}-\d{2}$/.test(String(before.lastmod))) {
