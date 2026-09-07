@@ -664,7 +664,29 @@ ${s.why.map((w) => `<p class="lead">${esc(w)}</p>`).join('\n')}
   })
 }
 
+/**
+ * 이 빌드가 한국 시각으로 판단하는지 확인한다.
+ *
+ * 상황별 페이지는 '평일 22시에 0원인가' 를 계산하는데 Date 는 실행 환경의 시간대를 쓴다.
+ * UTC 러너에서 돌면 9시간이 밀려 밤이 낮으로 읽힌다. 실제로 그렇게 배포돼서
+ * 야간 무료가 1,363곳이 아니라 4곳으로 나왔고 페이지가 통째로 빠졌다.
+ * 조용히 틀리는 대신 큰 소리로 알린다.
+ */
+function assertKoreanTime(): void {
+  // 한국은 서머타임이 없어 연중 UTC+9 다. getTimezoneOffset 은 분 단위이고 부호가 반대다.
+  const offset = -new Date('2026-01-15T00:00:00Z').getTimezoneOffset()
+  if (offset !== 540) {
+    console.warn(
+      '  ! 시간대가 한국(UTC+9)이 아닙니다 — 현재 UTC' +
+        (offset >= 0 ? '+' : '') +
+        (offset / 60).toFixed(0) +
+        '. 상황별 페이지의 시각 판정이 어긋납니다. TZ=Asia/Seoul 로 실행하세요.',
+    )
+  }
+}
+
 async function main() {
+  assertKoreanTime()
   const dist = process.argv[2] ?? 'dist'
   if (!existsSync(dist)) throw new Error(dist + ' 이 없습니다. vite build 뒤에 실행하세요.')
 
