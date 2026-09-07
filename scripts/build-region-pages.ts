@@ -223,6 +223,17 @@ function shell(opts: {
 <meta property="og:title" content="${esc(opts.title)}">
 <meta property="og:description" content="${esc(opts.description)}">
 <meta property="og:url" content="${esc(opts.canonical)}">
+<meta property="og:site_name" content="ParkAtZero">
+<meta property="og:locale" content="ko_KR">
+<!--
+  공유 미리보기 이미지. 없으면 카카오톡·커뮤니티에 붙였을 때 카드가 비어 링크만 나온다.
+  지역마다 따로 만들지 않고 하나를 함께 쓴다 — 제목·설명이 이미 지역별로 다르므로
+  카드에서 구분이 되고, 217장을 만들면 배포물만 무거워진다.
+-->
+<meta property="og:image" content="${SITE}/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.svg">
 <style>${STYLE}</style>${opts.extraHead ?? ''}
 </head>

@@ -35,7 +35,16 @@
     <meta property="og:title" content="ParkAtZero · 0원 주차" />
     <meta property="og:description" content="선택한 방문 시간에 무료인 주차장만 초록으로 보여줍니다." />
     <meta property="og:url" content="https://parkatzero.pages.dev/" />
-    <meta property="og:image" content="https://parkatzero.pages.dev/og.svg" />
+    <!--
+      공유 미리보기. 예전에는 og.svg 를 가리켰는데 그 파일이 존재한 적이 없어
+      Cloudflare 가 index.html 을 대신 돌려줬고, 카카오톡·페이스북은 이미지를 못 찾아
+      카드를 비운 채 링크만 보여 줬다. SNS 는 og:image 로 SVG 를 지원하지 않으므로
+      빌드 때 PNG 로 만든다(scripts/build-og-image.mjs).
+    -->
+    <meta property="og:image" content="https://parkatzero.pages.dev/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="0원 주차 — 지금 이 시간에 무료인 주차장만" />
     <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
