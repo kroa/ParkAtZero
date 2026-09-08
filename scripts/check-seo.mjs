@@ -70,6 +70,24 @@ async function main() {
     'lastmod 형식',
   )
 
+  /*
+   * 3.5) 흔한 오타 경로가 HTML 을 돌려주지 않는가.
+   *
+   * Search Console 에 /sitemaps.xml (복수) 로 제출된 항목이 열흘 동안 "가져올 수 없음"
+   * 으로 남아 있었다. 그 경로는 SPA 폴백 때문에 200 + HTML 을 돌려주고 있었고, 화면만
+   * 봐서는 무엇이 잘못됐는지 알 수 없었다. 오타를 진짜 사이트맵으로 넘기게 해 뒀으니
+   * 그게 살아 있는지 확인한다.
+   */
+  console.log('\n오타 경로')
+  for (const wrong of ['/sitemaps.xml', '/sitemap_index.xml']) {
+    const r = await get(SITE + wrong)
+    ok(
+      r.status === 200 && /xml/.test(r.type) && !/<!doctype html>/i.test(r.body),
+      wrong + ' 이 사이트맵으로 이어짐',
+      'HTTP ' + r.status + ' ' + r.type,
+    )
+  }
+
   /* 4) IndexNow 키 */
   console.log('\nIndexNow')
   const keyName = /\/([0-9a-f]{8,128})\.txt/.exec(robots.body)?.[1]
