@@ -371,12 +371,29 @@ ${sibs ? `<h2>${esc(r.sido)}의 다른 지역</h2><ul class="links">${sibs}</ul>
   })
 }
 
-function sidoPage(sido: string, regions: Region[], referenceDate: string): string {
+function sidoPage(sido: string, regions: Region[], referenceDate: string, crosses: Situation[]): string {
   const total = regions.reduce((s, r) => s + r.lots.length, 0)
   const items = [...regions]
     .sort((a, b) => b.lots.length - a.lots.length)
     .map((r) => `<li><a href="${regionPath(r.sido, r.sgg)}">${esc(r.sgg || r.sido)} (${r.lots.length}곳)</a></li>`)
     .join('')
+
+  /*
+   * 이 시도의 교차 페이지로 가는 링크.
+   *
+   * 처음 만들 때 교차 페이지에서 시도 페이지로 가는 링크만 넣고 반대 방향을 빠뜨렸다.
+   * 그래서 30쪽이 사이트맵에만 있고 링크로는 닿지 않는 고아 페이지가 됐다. 홈에서
+   * 링크만 따라가 보니 273쪽 중 243쪽에만 닿았다. 사이트맵을 읽히지 못하는 동안에는
+   * 발견될 방법이 아예 없다는 뜻이라, 크롤러가 걸어올 길을 열어 둔다.
+   */
+  const crossLinks = crosses.length
+    ? `<h2>상황별로 보기</h2><ul class="links">` +
+      crosses
+        .map((c) => `<li><a href="${regionPath(sido, '')}${c.slug}/">${esc(sido)} ${esc(c.name)}</a></li>`)
+        .join('') +
+      `</ul>`
+    : ''
+
   const desc = `${sido}에서 주차요금을 받지 않는 주차장 ${total}곳을 시·군·구별로 정리했습니다.`
   return shell({
     title: `${sido} 무료 주차장 ${total}곳 | 0원 주차`,
@@ -391,6 +408,7 @@ function sidoPage(sido: string, regions: Region[], referenceDate: string): strin
       ]),
     ),
     body: `<p class="lead">${esc(desc)}</p><h2>시·군·구</h2><ul class="links">${items}</ul>
+${crossLinks}
 <p class="lead" style="margin-top:24px">데이터 기준 ${esc(referenceDate)}</p>`,
   })
 }
@@ -557,6 +575,8 @@ function situationPage(
   lots: Array<{ lot: Lot; sido: string; sgg: string }>,
   bySido: Map<string, Region[]>,
   referenceDate: string,
+  /** 이 상황의 교차 페이지가 있는 시도. 표에서 그쪽으로 잇는다. */
+  crossSidos: Set<string>,
 ): string {
   const bySidoCount = new Map<string, number>()
   for (const x of lots) bySidoCount.set(x.sido, (bySidoCount.get(x.sido) ?? 0) + 1)
@@ -571,7 +591,7 @@ function situationPage(
   const sidoRows = ranked
     .map(
       ([sido, n]) =>
-        `<tr><td class="nm"><a href="${regionPath(sido, '')}">${esc(sido)}</a></td><td class="free">${n.toLocaleString('ko-KR')}곳</td></tr>`,
+        `<tr><td class="nm"><a href="${crossSidos.has(sido) ? regionPath(sido, '') + s.slug + '/' : regionPath(sido, '')}">${esc(sido)}</a></td><td class="free">${n.toLocaleString('ko-KR')}곳</td></tr>`,
     )
     .join('\n')
 
@@ -846,41 +866,19 @@ async function main() {
     written.push({ path: p, priority })
   }
 
-  await write('/지역/', indexPage(bySido, referenceDate), '0.9')
-  for (const [sido, rs] of bySido) {
-    /*
-     * 세종특별자치시는 아래에 시·군·구가 없다. 그래서 시도 페이지와 지역 페이지의
-     * 경로가 /지역/세종특별자치시/ 로 똑같아져 사이트맵에 같은 주소가 두 번 실렸다.
-     * 이럴 때는 목차 격인 시도 페이지를 건너뛴다 — 주차장 목록이 든 쪽이 쓸모 있다.
-     */
-    const collides = rs.some((r) => r.sgg === '')
-    if (!collides) await write(regionPath(sido, ''), sidoPage(sido, rs, referenceDate), '0.8')
-    for (const r of rs) await write(regionPath(r.sido, r.sgg), regionPage(r, rs, referenceDate), '0.7')
-  }
-
   /*
-   * 홈의 자리 표시를 실제 글로 바꾼다. 자리 표시가 없으면(구조가 바뀌었으면) 조용히
-   * 넘어가지 않고 알린다 — 모르는 사이에 홈이 다시 빈 페이지가 되면 안 된다.
+   * 상황·교차 페이지의 재료를 먼저 계산한다.
+   *
+   * 시도 페이지가 자기 교차 페이지로 링크를 걸어야 하는데, 예전에는 시도 페이지를 먼저
+   * 쓰고 교차 페이지를 나중에 만들어서 그럴 수가 없었다. 그 결과 교차 30쪽이 사이트맵에만
+   * 있고 링크로는 닿지 않는 고아가 됐다. 무엇을 만들지 먼저 정하고, 그다음에 쓴다.
    */
-  const indexFile = path.join(dist, 'index.html')
-  const freeLots = [...regions.values()].reduce((s, r) => s + r.lots.length, 0)
-  const html = await readFile(indexFile, 'utf-8')
-  if (html.includes('<!--HOME_STATIC-->')) {
-    await writeFile(
-      indexFile,
-      html.replace('<!--HOME_STATIC-->', homeStatic(bySido, totalLots, freeLots, referenceDate)),
-      'utf-8',
-    )
-    console.log('홈 정적 소개 주입: 전국 ' + totalLots + '곳 / 무료 요소 ' + freeLots + '곳')
-  } else {
-    console.warn('  ! index.html 에 <!--HOME_STATIC--> 자리 표시가 없습니다 — 홈은 그대로 둡니다')
-  }
-
-  const crossRows: Array<{ sido: string; s: Situation; xs: Array<{ lot: Lot; sido: string; sgg: string }> }> = []
-
-  /* 상황별 페이지 — 지역 축과 다른 검색어 집합을 연다 */
   const flat: Array<{ lot: Lot; sido: string; sgg: string }> = []
   for (const r of kept) for (const lot of r.lots) flat.push({ lot, sido: r.sido, sgg: r.sgg })
+
+  const situationData: Array<{ s: Situation; rows: Array<{ lot: Lot; sido: string; sgg: string }> }> = []
+  const crossRows: Array<{ sido: string; s: Situation; xs: Array<{ lot: Lot; sido: string; sgg: string }> }> = []
+
   for (const s of SITUATIONS) {
     const picked = pickForSituation(
       flat.map((x) => x.lot),
@@ -892,8 +890,7 @@ async function main() {
       console.warn('  ! ' + s.name + ' 은 ' + rows.length + '곳뿐이라 건너뜁니다')
       continue
     }
-    await write('/' + s.slug + '/', situationPage(s, rows, bySido, referenceDate), '0.85')
-    console.log('상황 페이지: ' + s.name + ' ' + rows.length + '곳')
+    situationData.push({ s, rows })
 
     /* 이 상황을 시도별로 쪼개 교차 페이지 재료로 모아 둔다 */
     const bySidoRows = new Map<string, Array<{ lot: Lot; sido: string; sgg: string }>>()
@@ -907,12 +904,6 @@ async function main() {
     }
   }
 
-  /*
-   * 지역 x 상황 교차 페이지.
-   *
-   * 어떤 시도에 어떤 상황 페이지가 있는지 먼저 다 알아야 서로 링크를 걸 수 있다.
-   * 그래서 위에서 재료만 모으고 여기서 한꺼번에 쓴다.
-   */
   /*
    * 겹치는 조합을 떨어낸다.
    *
@@ -961,6 +952,44 @@ async function main() {
     if (!hasCross.has(c.sido)) hasCross.set(c.sido, [])
     hasCross.get(c.sido)!.push(c.s)
   }
+
+  /* 여기서부터 실제로 쓴다 */
+  await write('/지역/', indexPage(bySido, referenceDate), '0.9')
+  for (const [sido, rs] of bySido) {
+    /*
+     * 세종특별자치시는 아래에 시·군·구가 없다. 그래서 시도 페이지와 지역 페이지의
+     * 경로가 /지역/세종특별자치시/ 로 똑같아져 사이트맵에 같은 주소가 두 번 실렸다.
+     * 이럴 때는 목차 격인 시도 페이지를 건너뛴다 — 주차장 목록이 든 쪽이 쓸모 있다.
+     */
+    const collides = rs.some((r) => r.sgg === '')
+    if (!collides) await write(regionPath(sido, ''), sidoPage(sido, rs, referenceDate, hasCross.get(sido) ?? []), '0.8')
+    for (const r of rs) await write(regionPath(r.sido, r.sgg), regionPage(r, rs, referenceDate), '0.7')
+  }
+
+  /*
+   * 홈의 자리 표시를 실제 글로 바꾼다. 자리 표시가 없으면(구조가 바뀌었으면) 조용히
+   * 넘어가지 않고 알린다 — 모르는 사이에 홈이 다시 빈 페이지가 되면 안 된다.
+   */
+  const indexFile = path.join(dist, 'index.html')
+  const freeLots = [...regions.values()].reduce((s, r) => s + r.lots.length, 0)
+  const html = await readFile(indexFile, 'utf-8')
+  if (html.includes('<!--HOME_STATIC-->')) {
+    await writeFile(
+      indexFile,
+      html.replace('<!--HOME_STATIC-->', homeStatic(bySido, totalLots, freeLots, referenceDate)),
+      'utf-8',
+    )
+    console.log('홈 정적 소개 주입: 전국 ' + totalLots + '곳 / 무료 요소 ' + freeLots + '곳')
+  } else {
+    console.warn('  ! index.html 에 <!--HOME_STATIC--> 자리 표시가 없습니다 — 홈은 그대로 둡니다')
+  }
+
+  for (const { s, rows } of situationData) {
+    const crossSidos = new Set(crossRows.filter((c) => c.s.slug === s.slug).map((c) => c.sido))
+    await write('/' + s.slug + '/', situationPage(s, rows, bySido, referenceDate, crossSidos), '0.85')
+    console.log('상황 페이지: ' + s.name + ' ' + rows.length + '곳')
+  }
+
   for (const c of crossRows) {
     await write(
       regionPath(c.sido, '') + c.s.slug + '/',
