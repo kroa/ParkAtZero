@@ -29,6 +29,7 @@
     "data:holidays": "node scripts/fetch-holidays.mjs",
     "seo:indexnow": "node scripts/submit-indexnow.mjs",
     "seo:check": "node scripts/check-seo.mjs",
+    "visitors": "node scripts/visitors.mjs",
     "data:holiday": "node scripts/fetch-holiday-parking.mjs",
     "data:seoul-fees": "node scripts/fetch-seoul-fees.mjs",
     "data:import": "node scripts/import-parking-file.mjs",
