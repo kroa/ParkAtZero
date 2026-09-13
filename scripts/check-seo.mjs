@@ -133,6 +133,7 @@ async function main() {
   /* 5) 사이트맵의 모든 주소가 실제로 열리는지 */
   console.log('\n주소 전수 확인 (' + urls.length + '개)')
   const bad = []
+  const noBeacon = []
   let good = 0
   for (let i = 0; i < urls.length; i += CONC) {
     await Promise.all(
@@ -146,6 +147,7 @@ async function main() {
           const fallback = /JavaScript 가 필요합니다/.test(r.body) && !/무료 주차장/.test(r.body)
           if (r.status === 200 && (u === SITE + '/' || !fallback)) good++
           else bad.push(u.replace(SITE, '') + ' → ' + r.status + (fallback ? ' (SPA 폴백)' : ''))
+          if (r.status === 200 && !/cloudflareinsights/.test(r.body)) noBeacon.push(u.replace(SITE, ''))
         } catch (e) {
           bad.push(u.replace(SITE, '') + ' → ' + String(e.message).slice(0, 40))
         }
@@ -154,6 +156,19 @@ async function main() {
   }
   ok(bad.length === 0, good + '/' + urls.length + ' 정상 응답')
   for (const b of bad.slice(0, 10)) console.log('      ' + b)
+
+  /*
+   * 방문자 집계 스크립트가 빠진 페이지.
+   *
+   * 처음에 정적 페이지 272쪽에 전부 빠져 있어서 검색으로 들어온 방문이 한 명도 세지지
+   * 않았다. 대시보드 숫자가 0 이면 유입이 없는 건지 집계가 안 되는 건지 구분할 수
+   * 없으므로, 숫자를 믿기 전에 여기서 먼저 확인한다.
+   */
+  ok(
+    noBeacon.length === 0,
+    '방문자 집계 스크립트 ' + (urls.length - noBeacon.length) + '/' + urls.length + '쪽',
+    noBeacon.length ? '빠짐 예: ' + decodeURIComponent(noBeacon[0]) : '',
+  )
 
   console.log('\n' + (failed === 0 ? '모두 정상' : '문제 ' + failed + '건'))
   console.log('색인 여부는 여기서 알 수 없습니다 — Search Console·서치어드바이저에서 확인하세요.')

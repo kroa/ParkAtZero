@@ -36,6 +36,24 @@ const MAX_ROWS = 300
  */
 const MAX_LD = 100
 
+/*
+ * 방문자 집계 스크립트(Cloudflare Web Analytics).
+ *
+ * 처음에는 index.html 에만 넣어서 홈 방문만 집계됐다. 검색으로 들어오는 사람은 대부분
+ * 지역·상황 페이지에 바로 착지하는데, 그 272쪽에는 스크립트가 없어 한 명도 세지 않았다.
+ * 토큰을 두 곳에 적지 않도록 빌드된 index.html 에서 그대로 떼어 와 함께 쓴다.
+ */
+let BEACON = ''
+
+function extractBeacon(html: string): string {
+  const at = html.indexOf('static.cloudflareinsights.com/beacon.min.js')
+  if (at < 0) return ''
+  const start = html.lastIndexOf('<script', at)
+  const end = html.indexOf('</script>', at)
+  if (start < 0 || end < 0) return ''
+  return html.slice(start, end + '</script>'.length)
+}
+
 const esc = (s: unknown) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
 
@@ -269,7 +287,7 @@ ${opts.body}
 출처: 공공데이터포털 「전국주차장정보표준데이터」 외 · 공공누리 제1유형.<br>
 요금·운영시간은 관리기관 고시를 따르며 현장과 다를 수 있습니다. 방문 전 확인하세요.
 </footer>
-</div></body></html>
+</div>${BEACON}</body></html>
 `
 }
 
@@ -847,6 +865,11 @@ async function main() {
   assertKoreanTime()
   const dist = process.argv[2] ?? 'dist'
   if (!existsSync(dist)) throw new Error(dist + ' 이 없습니다. vite build 뒤에 실행하세요.')
+
+  BEACON = extractBeacon(await readFile(path.join(dist, 'index.html'), 'utf-8'))
+  if (!BEACON) {
+    console.warn('  ! index.html 에서 방문자 집계 스크립트를 찾지 못했습니다 — 정적 페이지는 집계되지 않습니다')
+  }
 
   const { regions, referenceDate, totalLots } = await collect()
 
