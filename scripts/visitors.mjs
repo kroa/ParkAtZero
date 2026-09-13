@@ -25,12 +25,19 @@ import { existsSync } from 'node:fs'
 const GRAPHQL = 'https://api.cloudflare.com/client/v4/graphql'
 const DAYS = Number(process.argv[2] ?? 7)
 
-/** .env.local 에서 값을 읽는다. 값은 반환만 하고 어디에도 찍지 않는다. */
+/**
+ * .env.local 을 먼저 보고, 없으면 .env 를 본다. 값은 반환만 하고 어디에도 찍지 않는다.
+ *
+ * 처음에는 .env.local 만 읽었는데 .env 에 넣는 경우가 있었다. 둘 다 .gitignore 에
+ * 있어 저장소에는 올라가지 않으므로 어느 쪽이든 받아 준다.
+ */
 async function fromEnvFile(key) {
-  if (!existsSync('.env.local')) return ''
-  for (const line of (await readFile('.env.local', 'utf-8')).split(/\r?\n/)) {
-    const m = new RegExp('^' + key + '=(.*)$').exec(line.trim())
-    if (m) return m[1].trim().replace(/^["']|["']$/g, '')
+  for (const file of ['.env.local', '.env']) {
+    if (!existsSync(file)) continue
+    for (const line of (await readFile(file, 'utf-8')).split(/\r?\n/)) {
+      const m = new RegExp('^' + key + '=(.*)$').exec(line.trim())
+      if (m) return m[1].trim().replace(/^["']|["']$/g, '')
+    }
   }
   return ''
 }
@@ -89,6 +96,17 @@ async function main() {
     console.error('    CLOUDFLARE_ACCOUNT_ID=...')
     console.error('  찾는 곳: 대시보드 주소의 dash.cloudflare.com/<계정ID>/... 부분,')
     console.error('           또는 계정 홈의 Account ID 복사 버튼.')
+    process.exit(1)
+  }
+
+  /*
+   * 계정 ID 는 32자 16진수다. 로그인 이메일을 적는 경우가 있었는데, 그대로 보내면
+   * Cloudflare 는 인증 오류만 돌려주어 토큰이 잘못된 것처럼 보인다. 형식이 아니면
+   * 요청을 보내기 전에 여기서 알려 준다.
+   */
+  if (!/^[0-9a-f]{32}$/i.test(accountTag)) {
+    console.error('✗ 계정 ID 형식이 아닙니다 — 32자 16진수여야 하는데 ' + accountTag.length + '자입니다.')
+    console.error('  로그인 이메일이 아닙니다. 대시보드 주소 dash.cloudflare.com/<32자>/... 의 그 부분입니다.')
     process.exit(1)
   }
 
