@@ -12,8 +12,10 @@
  * 토큰 권한은 Account → Account Analytics → Read 하나면 된다.
  * 만드는 곳: https://dash.cloudflare.com/profile/api-tokens/
  *
- * 계정 ID 는 토큰으로 알아내므로 적지 않아도 된다. 알아내지 못하면
- * CLOUDFLARE_ACCOUNT_ID 를 .env.local 에 함께 적는다.
+ * 계정 ID 도 함께 필요하다. Account Analytics 권한만 가진 토큰은 계정 목록을 볼 수
+ * 없어서 알아낼 방법이 없다(토큰 자체는 멀쩡하다).
+ *
+ *   CLOUDFLARE_ACCOUNT_ID=...
  *
  * 사용: node scripts/visitors.mjs [일수]      (기본 7일)
  */
@@ -65,11 +67,29 @@ async function main() {
   const siteTag = await siteTagFromIndex()
   if (!siteTag) throw new Error('index.html 에서 beacon 토큰(사이트 태그)을 찾지 못했습니다.')
 
+  /*
+   * 계정 ID 는 직접 받는다.
+   *
+   * 처음에는 토큰으로 알아내려 했다. 그런데 Account Analytics 권한만 준 토큰은 계정
+   * 목록을 볼 수 없다 — GraphQL 은 "not authorized for that account" 를, REST 의
+   * /accounts 는 빈 목록을 돌려준다. 토큰 유효성 검사는 active 로 나오므로 토큰이
+   * 잘못된 것으로 오해하기 쉽다. 권한을 넓히는 대신 계정 ID 를 받는다.
+   */
   let accountTag = process.env.CLOUDFLARE_ACCOUNT_ID || (await fromEnvFile('CLOUDFLARE_ACCOUNT_ID'))
   if (!accountTag) {
-    const d = await graphql(token, '{ viewer { accounts { accountTag } } }', {})
-    accountTag = d?.viewer?.accounts?.[0]?.accountTag ?? ''
-    if (!accountTag) throw new Error('계정을 찾지 못했습니다. CLOUDFLARE_ACCOUNT_ID 를 .env.local 에 적어 주세요.')
+    try {
+      const d = await graphql(token, '{ viewer { accounts { accountTag } } }', {})
+      accountTag = d?.viewer?.accounts?.[0]?.accountTag ?? ''
+    } catch {
+      /* 권한이 좁은 토큰에서는 정상이다. 아래에서 안내한다. */
+    }
+  }
+  if (!accountTag) {
+    console.error('✗ 계정 ID 가 필요합니다. .env.local 에 한 줄 추가해 주세요.')
+    console.error('    CLOUDFLARE_ACCOUNT_ID=...')
+    console.error('  찾는 곳: 대시보드 주소의 dash.cloudflare.com/<계정ID>/... 부분,')
+    console.error('           또는 계정 홈의 Account ID 복사 버튼.')
+    process.exit(1)
   }
 
   const to = new Date()
