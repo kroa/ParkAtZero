@@ -88,6 +88,19 @@ async function main() {
     )
   }
 
+  /*
+   * 3.6) 없는 경로가 404 를 돌려주는가.
+   *
+   * Cloudflare Pages 는 최상위 404.html 이 없으면 없는 경로에 index.html 을 200 으로
+   * 돌려준다. 실제로 /지역/없는지역/ 같은 주소가 전부 200 + HTML 이었다. 검색엔진은
+   * 이것을 soft 404 로 보고, 90일에 40회밖에 안 되는 크롤을 없는 주소에 쓴다.
+   */
+  console.log('\n없는 경로')
+  for (const missing of ['/zzz-does-not-exist-check', '/지역/없는지역/']) {
+    const r = await get(SITE + missing)
+    ok(r.status === 404, missing + ' 가 404 를 돌려줌', 'HTTP ' + r.status)
+  }
+
   /* 4) IndexNow 키 */
   console.log('\nIndexNow')
   const keyName = /\/([0-9a-f]{8,128})\.txt/.exec(robots.body)?.[1]

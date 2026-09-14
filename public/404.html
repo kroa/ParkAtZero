@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>페이지를 찾을 수 없습니다 | 0원 주차</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg">
+<!--
+  Cloudflare Pages 는 최상위 404.html 이 없으면 없는 경로에 index.html 을 200 으로
+  돌려준다. 그러면 존재하지 않는 주소가 전부 "정상 페이지"로 보인다. 검색엔진은 이걸
+  soft 404 로 보고, 가뜩이나 적은 크롤 예산을 없는 주소에 쓴다.
+
+  이 앱은 경로 기반 라우팅을 쓰지 않는다. 딥링크는 /?lat=..&lng=.. 처럼 쿼리스트링을
+  쓰고(src/lib/deepLink.ts), 지역·상황 페이지는 실제 파일이다. 그래서 폴백을 없애도
+  앱이 깨지지 않는다.
+-->
+<style>
+:root{--ink:#111827;--mute:#6b7280;--line:#e5e7eb;--free:#059669;--bg:#fff}
+@media(prefers-color-scheme:dark){:root{--ink:#e5e7eb;--mute:#9ca3af;--line:#374151;--free:#34d399;--bg:#0b0f14}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:640px;margin:0 auto;padding:64px 20px}
+h1{font-size:24px;margin:0 0 8px}
+p{color:var(--mute);margin:0 0 20px}
+.cta{display:inline-block;margin-right:10px;padding:11px 18px;border-radius:10px;background:var(--free);color:#fff;text-decoration:none;font-weight:700}
+.links{margin:24px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px 14px}
+.links a{color:var(--mute);font-size:14px}
+</style>
+</head>
+<body><div class="wrap">
+<h1>페이지를 찾을 수 없습니다</h1>
+<p>주소가 바뀌었거나 없는 페이지입니다.</p>
+<a class="cta" href="/">지도에서 무료 주차장 찾기</a>
+<ul class="links">
+<li><a href="/지역/">지역별 목록</a></li>
+<li><a href="/24시간-무료주차장/">언제 가도 무료</a></li>
+<li><a href="/야간-무료주차장/">밤에 무료</a></li>
+<li><a href="/공휴일-무료주차장/">공휴일에 무료</a></li>
+</ul>
+</div></body>
+</html>
