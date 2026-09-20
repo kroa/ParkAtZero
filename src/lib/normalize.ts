@@ -41,6 +41,7 @@ const FIELD = {
   roadAddr: ['rdnmadr', '소재지도로명주소', 'roadAddress'],
   lotAddr: ['lnmadr', '소재지지번주소', 'address'],
   capacity: ['prkcmprt', '주차구획수', 'capacity'],
+  live: ['pzLive'],
   operDay: ['operDay', '운영요일'],
   weekdayOpen: ['weekdayOperOpenHhmm', '평일운영시작시각'],
   weekdayClose: ['weekdayOperColseHhmm', 'weekdayOperCloseHhmm', '평일운영종료시각'],
@@ -181,6 +182,12 @@ export function normalizeParking(row: Raw, index: number): Parking | null {
     lat,
     lng,
     capacity: num(pick(row, FIELD.capacity)),
+    /*
+     * 실시간 대수를 물어볼 수 있는 곳인지. split-snapshot 이 서울 안내시스템
+     * 목록을 보고 심어 둔다. 없으면 undefined 로 둔다 — false 를 담으면
+     * 격자 파일이 쓸데없이 커진다.
+     */
+    live: pick(row, FIELD.live) === true ? true : undefined,
     chargeType,
     operDay: str(pick(row, FIELD.operDay)) || undefined,
     hours: { weekday, saturday, holiday },

@@ -67,6 +67,14 @@ export interface Parking {
    * 특기사항에서 읽거나, 원본이 비어 있으면 보정표(data/corrections.ts)에서 채운다.
    */
   restriction?: string
+  /**
+   * 실시간 주차대수를 물어볼 수 있는 곳인가.
+   *
+   * 서울시 주차정보안내시스템이 2~3분 주기로 갱신하는 곳만 true 다(서울 72곳).
+   * 대수 자체는 여기 담지 않는다 — 빌드 시점 값은 배포되는 순간 낡는다.
+   * 화면에 보이는 곳만 /api/live 로 그때그때 물어본다.
+   */
+  live?: boolean
   tel?: string
   /**
    * 이 레코드가 표준데이터가 아니라 보완표(data/supplements.json)에서 온 경우의 확인 출처.

@@ -143,6 +143,41 @@ async function main() {
     console.log('  · dist/sitemap.xml 이 없어 건너뜁니다 (npm run build:only 먼저)')
   }
 
+  /*
+   * 사이트맵 개수만으로는 부족하다.
+   *
+   * 실제로 데이터만 고친 커밋 두 개가 배포되지 않았는데 이 검사는 통과했다.
+   * 주소 수가 273 으로 그대로였기 때문이다. 배포본은 망원시장 노상을 1면으로,
+   * 로컬은 17면으로 들고 있었는데도 "최신 빌드와 같음" 이라고 말했다.
+   *
+   * 격자 색인은 칸 파일 이름에 내용 해시가 들어 있어, 데이터가 한 곳만 바뀌어도
+   * 값이 달라진다. 그걸 대조하면 이번 같은 실패가 바로 드러난다.
+   */
+  const localIndex = 'dist/data/cell-index.json'
+  if (ex(localIndex)) {
+    const local = JSON.parse(await rf(localIndex, 'utf-8'))
+    const live = await get(SITE + '/data/cell-index.json')
+    let remote = null
+    try {
+      remote = JSON.parse(live.body)
+    } catch {
+      /* 아래에서 실패로 잡는다 */
+    }
+    const names = (idx) =>
+      Object.values(idx?.cells ?? {})
+        .map((c) => String(c?.file ?? ''))
+        .sort()
+        .join(',')
+    const same = remote !== null && names(local) === names(remote)
+    ok(
+      same,
+      '배포본 데이터가 최신 빌드와 같음',
+      same
+        ? Object.keys(local?.cells ?? {}).length + '칸 일치'
+        : '격자 내용이 다릅니다 — 배포가 안 됐거나 실패했습니다',
+    )
+  }
+
   /* 5) 사이트맵의 모든 주소가 실제로 열리는지 */
   console.log('\n주소 전수 확인 (' + urls.length + '개)')
   const bad = []
