@@ -8,12 +8,15 @@ import { formatMoney, summarizePerks } from '@/lib/freeCalc'
 import { statusStyle } from '@/lib/statusStyle'
 import { StatusBadge } from './StatusBadge'
 import { NaviQuickButton } from './NaviButtons'
+import type { LiveOccupancy } from '@/lib/liveOccupancy'
 
 interface Props {
   item: ResultItem
   selected: boolean
   onSelect: (id: string) => void
   index: number
+  /** 지금 비어 있는 면수. 서울 72곳만 값이 온다. */
+  live?: LiveOccupancy
 }
 
 /**
@@ -21,7 +24,7 @@ interface Props {
  * 좌측 컬러 바 → 뱃지 → 요금 한 줄 순으로 시선이 흐르도록 배치했다.
  * 스크롤 성능을 위해 memo 로 감싸고, 리스트가 길어져도 프레임이 흔들리지 않게 애니메이션은 진입 1회만 준다.
  */
-export const ParkingCard = memo(function ParkingCard({ item, selected, onSelect, index }: Props) {
+export const ParkingCard = memo(function ParkingCard({ item, selected, onSelect, index, live }: Props) {
   const { parking, evaluation, distanceKm } = item
   const style = statusStyle(evaluation.status)
 
@@ -125,6 +128,20 @@ export const ParkingCard = memo(function ParkingCard({ item, selected, onSelect,
               <span className="flex items-center gap-1 tnum">
                 <CircleParking className="h-3.5 w-3.5" strokeWidth={2.4} />
                 {parking.capacity}면
+              </span>
+            )}
+            {live && (
+              /*
+               * 지금 비어 있는 면수. 0 일 때 '여유 0면' 이라고 쓰면 한눈에 안 들어온다.
+               * 사용자가 망원에서 겪은 것이 바로 이 경우라 말을 바꿔 준다.
+               */
+              <span
+                className={cn(
+                  'flex items-center gap-1 tnum font-bold',
+                  live.free > 0 ? 'text-free-600' : 'text-conditional-600',
+                )}
+              >
+                {live.free > 0 ? '여유 ' + live.free + '면' : '자리 없음'}
               </span>
             )}
             <span className="truncate">{parking.ownership} · {parking.type}</span>

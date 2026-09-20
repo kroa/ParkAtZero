@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLiveOccupancy } from '@/lib/liveOccupancy'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown, RefreshCw, SlidersHorizontal, TriangleAlert } from 'lucide-react'
 import { SearchBar, type SearchTarget } from '@/components/SearchBar'
@@ -127,6 +128,12 @@ export default function App() {
   const scored = useMemo(() => buildResults(parkings, query), [parkings, query])
   const summary = useMemo(() => summarize(scored), [scored])
   const results = useMemo(() => filterByStatus(scored, status), [scored, status])
+
+  /*
+   * 지금 비어 있는 면수. 목록에 보이는 곳 중 실시간이 있는 곳만 묻는다.
+   * 없으면 빈 지도라서 카드는 평소대로 그려진다.
+   */
+  const live = useLiveOccupancy(results)
 
   /*
    * 마커는 '지금 보고 있는 화면' 기준으로 고른다.
@@ -320,6 +327,7 @@ export default function App() {
     <div ref={listRef}>
       <ParkingList
         items={results}
+        live={live}
         isSample={isSample}
         statusFilter={status}
         hasOtherStatuses={summary.total > results.length}

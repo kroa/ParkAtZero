@@ -5,6 +5,7 @@ import type { ResultItem, StatusFilter } from '@/lib/query'
 import { cn } from '@/lib/cn'
 import { CONFIG } from '@/lib/env'
 import { ParkingCard } from './ParkingCard'
+import type { LiveOccupancy } from '@/lib/liveOccupancy'
 import { SkeletonList } from './SkeletonCard'
 import { AdSlot } from './AdSlot'
 import { AttributionNotice } from './AttributionNotice'
@@ -25,6 +26,8 @@ interface Props {
   selectedId: string | null
   onSelect: (id: string) => void
   onResetFilters: () => void
+  /** 주차장 id -> 지금 비어 있는 면수 */
+  live?: Map<string, LiveOccupancy>
   className?: string
 }
 
@@ -42,6 +45,7 @@ const INITIAL_VISIBLE = 20
 const VISIBLE_STEP = 20
 
 export function ParkingList({
+  live,
   items,
   isSample,
   statusFilter,
@@ -141,6 +145,7 @@ export function ParkingList({
               index={i}
               selected={selectedId === item.parking.id}
               onSelect={onSelect}
+              live={live?.get(item.parking.id)}
             />
             {i === AD_AFTER_INDEX && items.length > AD_AFTER_INDEX + 1 && (
               // 광고는 카드 사이에 '한 칸 쉼표'처럼 들어간다. 위아래 여백을 카드 간격보다 살짝 크게 줘서

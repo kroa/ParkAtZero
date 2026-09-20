@@ -11,6 +11,7 @@
   "scripts": {
     "build": "tsc --noEmit && node scripts/split-snapshot.mjs && vite build && npx tsx scripts/build-region-pages.ts && node scripts/build-sitemap.mjs",
     "build:only": "node scripts/split-snapshot.mjs && vite build && npx tsx scripts/build-region-pages.ts && node scripts/build-sitemap.mjs",
+    "deploy": "npm run build:only && npx wrangler pages deploy dist --project-name=parkatzero --branch=main",
     "data:fetch": "node scripts/fetch-parking-data.mjs",
     "data:hangang": "node scripts/fetch-hangang.mjs",
     "data:emart": "node scripts/fetch-emart.mjs",
