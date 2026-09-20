@@ -22,12 +22,23 @@
   {
    "prkplceNo": "PZ-SEOUL-1210657",
    "prkplceNm": "청계3(북1) 공영주차장(시)",
-   "capacity": 19
+   "capacity": 19,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1235522",
    "prkplceNm": "청계3(남) 공영주차장(시)",
    "capacity": 20
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1366527",
+   "prkplceNm": "동작대교 공영주차장(시)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1366593",
+   "prkplceNm": "구로디지털단지역(상) 공영주차장(시)",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1367773",
@@ -42,22 +53,26 @@
   {
    "prkplceNo": "PZ-SEOUL-1368955",
    "prkplceNm": "남산공원 소월로 관광버스전용 주차장(시)",
-   "capacity": 12
+   "capacity": 12,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1369476",
    "prkplceNm": "탑골공원 관광버스전용 주차장(시)",
-   "capacity": 2
+   "capacity": 2,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1430035",
    "prkplceNm": "남대문 초입 관광버스전용 주차장(시)",
-   "capacity": 3
+   "capacity": 3,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1430042",
    "prkplceNm": "남대문 시장 관광버스전용 주차장(시)",
-   "capacity": 2
+   "capacity": 2,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1451364",
@@ -112,7 +127,8 @@
   {
    "prkplceNo": "PZ-SEOUL-1496233",
    "prkplceNm": "동호대교(남) 공영주차장(시)",
-   "capacity": 18
+   "capacity": 18,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1496449",
@@ -132,7 +148,8 @@
   {
    "prkplceNo": "PZ-SEOUL-1509662",
    "prkplceNm": "청계5(동호로_남) 공영주차장(시)",
-   "capacity": 11
+   "capacity": 11,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1509853",
@@ -177,7 +194,8 @@
   {
    "prkplceNo": "PZ-SEOUL-1540689",
    "prkplceNm": "청계8(남) 공영주차장(시)",
-   "capacity": 68
+   "capacity": 68,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1562029",
@@ -220,9 +238,44 @@
    "capacity": 39
   },
   {
+   "prkplceNo": "PZ-SEOUL-171730",
+   "prkplceNm": "종묘주차장 공영주차장(시)",
+   "live": true
+  },
+  {
    "prkplceNo": "PZ-SEOUL-2983079",
    "prkplceNm": "난지중앙로노상공영주차장(시)",
    "capacity": 34
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1025697",
+   "prkplceNm": "대림운동장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1033125",
+   "prkplceNm": "압구정 428 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1040225",
+   "prkplceNm": "논현로22길(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1042405",
+   "prkplceNm": "언북초교 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1042421",
+   "prkplceNm": "언주초 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1052723",
+   "prkplceNm": "살곶이(평면) 공영주차장(구)",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1189778",
@@ -240,6 +293,31 @@
    "capacity": 14
   },
   {
+   "prkplceNo": "PZ-SEOUL-1247661",
+   "prkplceNm": "광진광장 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1247678",
+   "prkplceNm": "망원1-2 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1364468",
+   "prkplceNm": "탄천제2호 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1364472",
+   "prkplceNm": "영희초교 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1366504",
+   "prkplceNm": "송정동(건물) 공영주차장(구)",
+   "live": true
+  },
+  {
    "prkplceNo": "PZ-SEOUL-1370269",
    "prkplceNm": "이경시장 공영주차장(구)",
    "capacity": 27
@@ -248,6 +326,16 @@
    "prkplceNo": "PZ-SEOUL-1384016",
    "prkplceNm": "가로공원 지하 주차장(구)",
    "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1423842",
+   "prkplceNm": "마장축산물시장 서문(건물) 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1441342",
+   "prkplceNm": "도곡초 공영주차장(구)",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1451409",
@@ -307,12 +395,14 @@
   {
    "prkplceNo": "PZ-SEOUL-1495566",
    "prkplceNm": "논현로28길 노상공영 주차장(구)",
-   "capacity": 66
+   "capacity": 66,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1495580",
    "prkplceNm": "테헤란로64길(구)",
-   "capacity": 12
+   "capacity": 12,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1495582",
@@ -322,17 +412,20 @@
   {
    "prkplceNo": "PZ-SEOUL-1495594",
    "prkplceNm": "선릉로132길 노상공영 주차장(구)",
-   "capacity": 17
+   "capacity": 17,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1495596",
    "prkplceNm": "영동대로85길(구)",
-   "capacity": 95
+   "capacity": 95,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1495622",
    "prkplceNm": "남부순환로397길(구)",
-   "capacity": 33
+   "capacity": 33,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1495682",
@@ -716,7 +809,8 @@
   {
    "prkplceNo": "PZ-SEOUL-1566024",
    "prkplceNm": "일원동맛의거리(구)",
-   "capacity": 27
+   "capacity": 27,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1566973",
@@ -747,12 +841,14 @@
   {
    "prkplceNo": "PZ-SEOUL-1568792",
    "prkplceNm": "테헤란로26길(구)",
-   "capacity": 12
+   "capacity": 12,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1568804",
    "prkplceNm": "은마아파트(구)",
-   "capacity": 59
+   "capacity": 59,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1569866",
@@ -767,7 +863,8 @@
   {
    "prkplceNo": "PZ-SEOUL-1570038",
    "prkplceNm": "논현로131길(구)",
-   "capacity": 22
+   "capacity": 22,
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1570296",
@@ -865,9 +962,19 @@
    "capacity": 16
   },
   {
+   "prkplceNo": "PZ-SEOUL-1581248",
+   "prkplceNm": "밤고개로21길 공영주차장(구)",
+   "live": true
+  },
+  {
    "prkplceNo": "PZ-SEOUL-1583685",
    "prkplceNm": "반포복개천 노상공영주차장(구)",
    "capacity": 41
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1583920",
+   "prkplceNm": "마포중앙도서관 공영주차장(구)",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1584204",
@@ -883,6 +990,16 @@
    "prkplceNo": "PZ-SEOUL-1584686",
    "prkplceNm": "평창동(구)",
    "capacity": 10
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1588888",
+   "prkplceNm": "용답 어울림 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1588889",
+   "prkplceNm": "금남시장 공영주차장(구)",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-1597176",
@@ -923,12 +1040,33 @@
   {
    "prkplceNo": "PZ-SEOUL-171924",
    "prkplceNm": "동화동 공영주차장(구)",
-   "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
+   "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-171931",
    "prkplceNm": "신당역 공영주차장(구)",
    "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-172120",
+   "prkplceNm": "성수1가1동(건물) 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-172130",
+   "prkplceNm": "성수2가3동(건물) 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-172134",
+   "prkplceNm": "성수2가1동(건물) 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-172149",
+   "prkplceNm": "용답동(건물) 공영주차장(구)",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-172230",
@@ -941,14 +1079,64 @@
    "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
   },
   {
+   "prkplceNo": "PZ-SEOUL-172912",
+   "prkplceNm": "염리 공영주차장(구)",
+   "live": true
+  },
+  {
    "prkplceNo": "PZ-SEOUL-173093",
    "prkplceNm": "구로리공원지하주차장(구)",
    "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
   },
   {
+   "prkplceNo": "PZ-SEOUL-173238",
+   "prkplceNm": "대림3동 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-173246",
+   "prkplceNm": "도림초교공영(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-173389",
+   "prkplceNm": "구룡산제2호(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-173468",
+   "prkplceNm": "개포동공원 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-173474",
+   "prkplceNm": "구룡산제1호(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-173528",
+   "prkplceNm": "언남문화체육센터 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-173686",
+   "prkplceNm": "천호1동 주차장(구)",
+   "live": true
+  },
+  {
    "prkplceNo": "PZ-SEOUL-1910185",
    "prkplceNm": "영동대로86길노상(구)",
    "capacity": 16
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1914209",
+   "prkplceNm": "응봉동(평면) 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-1914210",
+   "prkplceNm": "뚝섬유수지(평면) 공영주차장(구)",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-2865781",
@@ -991,6 +1179,16 @@
    "capacity": 8
   },
   {
+   "prkplceNo": "PZ-SEOUL-2919760",
+   "prkplceNm": "대흥2구역 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-2921565",
+   "prkplceNm": "동작주차공원공영주차장(구)",
+   "live": true
+  },
+  {
    "prkplceNo": "PZ-SEOUL-2924445",
    "prkplceNm": "유진상가/인왕시장 앞(구)",
    "capacity": 33
@@ -1027,14 +1225,35 @@
    "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
   },
   {
+   "prkplceNo": "PZ-SEOUL-2957386",
+   "prkplceNm": "양평유수지 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-2963709",
+   "prkplceNm": "상암1 공영주차장(구)",
+   "live": true
+  },
+  {
    "prkplceNo": "PZ-SEOUL-2974545",
    "prkplceNm": "성산2-1 공영주차장(구)",
-   "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
+   "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-2989489",
+   "prkplceNm": "망원노외주차장(구)",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-2990365",
    "prkplceNm": "동교노상공영주차장(구)",
    "capacity": 51
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-2992242",
+   "prkplceNm": "민속의 집 주차장(구)",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-2994661",
@@ -1044,12 +1263,18 @@
   {
    "prkplceNo": "PZ-SEOUL-2994710",
    "prkplceNm": "망원2-1 공영주차장(구)",
-   "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
+   "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-2995141",
    "prkplceNm": "망원노상공영주차장(구)",
    "capacity": 14
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-2998608",
+   "prkplceNm": "교대역 동측 공영주차장(구)",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-2998813",
@@ -1089,7 +1314,8 @@
   {
    "prkplceNo": "PZ-SEOUL-3020856",
    "prkplceNm": "망원1-1 공영주차장(구)",
-   "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
+   "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-3037602",
@@ -1100,6 +1326,11 @@
    "prkplceNo": "PZ-SEOUL-3038086",
    "prkplceNm": "신성시장길공영노상주차장(구)",
    "capacity": 7
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-3055106",
+   "prkplceNm": "신촌노외 공영주차장(구)",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-3060488",
@@ -1137,14 +1368,26 @@
    "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
   },
   {
+   "prkplceNo": "PZ-SEOUL-3083942",
+   "prkplceNm": "마들스포츠타운 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-3086463",
+   "prkplceNm": "서강대역 환승 공영주차장(구)",
+   "live": true
+  },
+  {
    "prkplceNo": "PZ-SEOUL-3087529",
    "prkplceNm": "중산 공영주차장(구)",
-   "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
+   "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-3090814",
    "prkplceNm": "부군당길 공영주차장(구)",
-   "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
+   "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-3092169",
@@ -1160,6 +1403,11 @@
    "prkplceNo": "PZ-SEOUL-3096819",
    "prkplceNm": "KBS본관뒤(구)",
    "capacity": 39
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-3097234",
+   "prkplceNm": "양화진 공영주차장(구)",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-3097432",
@@ -1224,7 +1472,8 @@
   {
    "prkplceNo": "PZ-SEOUL-3129403",
    "prkplceNm": "공덕1-1 공영주차장(구)",
-   "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
+   "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다",
+   "live": true
   },
   {
    "prkplceNo": "PZ-SEOUL-3137006",
@@ -1317,6 +1566,11 @@
    "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
   },
   {
+   "prkplceNo": "PZ-SEOUL-3204497",
+   "prkplceNm": "성동고등학교 공영주차장(구)",
+   "live": true
+  },
+  {
    "prkplceNo": "PZ-SEOUL-3215836",
    "prkplceNm": "무계원 공영주차장(구)",
    "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
@@ -1362,6 +1616,11 @@
    "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
   },
   {
+   "prkplceNo": "PZ-SEOUL-3247309",
+   "prkplceNm": "강남세곡체육공원(구)",
+   "live": true
+  },
+  {
    "prkplceNo": "PZ-SEOUL-3247314",
    "prkplceNm": "삼청제2공영(구)",
    "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
@@ -1397,6 +1656,16 @@
    "prkplceNm": "아카데미 노상공영(구)",
    "capacity": 63,
    "extraNote": "거주자 배정 구획이 있어 방문자가 댈 자리가 적을 수 있습니다"
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-788447",
+   "prkplceNm": "창천중교 공영주차장(구)",
+   "live": true
+  },
+  {
+   "prkplceNo": "PZ-SEOUL-790441",
+   "prkplceNm": "도화 공영주차장(구)",
+   "live": true
   }
  ]
 }

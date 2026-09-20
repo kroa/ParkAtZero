@@ -252,6 +252,7 @@ async function main() {
     )
     let caps = 0
     let notes = 0
+    let lives = 0
     for (const r of rows) {
       const hit = byKey.get(String(r.prkplceNo ?? '') + '|' + String(r.prkplceNm ?? ''))
       if (!hit) continue
@@ -267,8 +268,20 @@ async function main() {
         r.spcmnt = [r.spcmnt, hit.extraNote].filter(Boolean).join(' / ')
         notes++
       }
+      /*
+       * 실시간 주차대수를 물어볼 수 있는 곳만 표시한다.
+       *
+       * 값 자체는 싣지 않는다. 빌드 시점 대수는 배포되는 순간 낡는다. 앱이 화면에
+       * 보이는 곳만 /api/live 에 물어보고, 신선도는 거기서 다시 판단한다.
+       */
+      if (hit.live) {
+        r.pzLive = true
+        lives++
+      }
     }
-    console.log('서울 안내시스템 보정: 면수 ' + caps + '건 · 거주자 주의 ' + notes + '건')
+    console.log(
+      '서울 안내시스템 보정: 면수 ' + caps + '건 · 거주자 주의 ' + notes + '건 · 실시간 ' + lives + '곳',
+    )
   }
 
   const cells = new Map()

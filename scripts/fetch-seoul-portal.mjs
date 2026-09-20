@@ -103,6 +103,7 @@ async function main() {
   let failed = 0
   let capFix = 0
   let noted = 0
+  let liveCount = 0
 
   for (const lot of lots) {
     const code = String(lot.prkplceNo ?? '').replace('PZ-SEOUL-', '')
@@ -134,7 +135,25 @@ async function main() {
       row.extraNote = note
       noted++
     }
-    if (row.capacity || row.extraNote) rows.push(row)
+
+    /*
+     * 실시간 주차대수를 믿고 물어볼 수 있는 곳만 표시해 둔다.
+     *
+     * que_status 가 '연계됨'이어도 실제 값은 몇 달 전 것이 남아 있는 곳이 있다.
+     * 갱신 시각이 아예 없는 곳도 39곳이다. 그런 곳까지 앱이 물어보면 응답은
+     * 버려지고 요청만 낭비된다. 여기서 한 번 걸러 목록을 만든다.
+     * 실제 신선도 판단은 /api/live 가 요청 시점에 다시 한다 — 이 목록은
+     * 빌드 시점 기준이라 그사이 끊겼을 수 있다.
+     */
+    if (String(v.que_status) === '1' && String(v.cur_parking_time ?? '').trim()) {
+      const cur = num(v.cur_parking)
+      if (capacity > 0 && cur >= 0 && cur <= capacity) {
+        row.live = true
+        liveCount++
+      }
+    }
+
+    if (row.capacity || row.extraNote || row.live) rows.push(row)
 
     await new Promise((r) => setTimeout(r, GAP))
   }
@@ -149,7 +168,7 @@ async function main() {
   await writeFile(OUT, JSON.stringify(out, null, 1) + '\n', 'utf-8')
   console.log(
     '서울 주차정보안내시스템: ' + lots.length + '건 조회 · 실패 ' + failed +
-      ' · 면수 교정 ' + capFix + '건 · 거주자 주의 ' + noted + '건 → ' + OUT,
+      ' · 면수 교정 ' + capFix + '건 · 거주자 주의 ' + noted + '건 · 실시간 ' + liveCount + '곳 → ' + OUT,
   )
 }
 
