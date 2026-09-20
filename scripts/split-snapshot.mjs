@@ -225,6 +225,52 @@ async function main() {
     console.log('보완 합침: ' + added + '건 (' + file + ')')
   }
 
+  /*
+   * 서울시 주차정보안내시스템으로 면수와 거주자 배정 여부를 덮는다.
+   *
+   * 위 요금 루프에 얹지 않는 이유가 있다. 그 루프는 요금정보가 '무료'인 레코드를
+   * 통째로 건너뛴다(빈 금액 칸이 맞는 값이라서). 그런데 면수와 거주자 주의는
+   * 무료 주차장에도 똑같이 필요하다. 얹었으면 무료 주차장만 조용히 빠졌을 것이다.
+   *
+   * 면수: 「서울시 공영주차장 안내 정보」는 노상주차장 주차면을 전부 1 로 준다.
+   * 서울 노상 235건이 모두 1면이고 노외 184건은 하나도 그렇지 않다. 안내시스템은
+   * 을지로 81면, 봉천복개3 59면처럼 실제 값을 준다.
+   *
+   * 거주자: 공개 API 로는 '거주자 우선 주차장'(operation_rule=2)만 잡히고, 거주자
+   * 우선제로 운영하면서 방문자에게 시간제로 여는 곳(=3)은 표현되지 않는다.
+   * 망원1-1·망원2-1 이 그랬다 — 마포구시설관리공단 거주자우선 시설현황에 등재된
+   * 주차장을 우리는 24시간 일반 유료로 안내하고 있었다.
+   */
+  const PORTAL_FILE = path.join('public', 'data', 'seoul-portal.json')
+  if (existsSync(PORTAL_FILE)) {
+    const portal = JSON.parse(await readFile(PORTAL_FILE, 'utf-8'))
+    const byKey = new Map(
+      (Array.isArray(portal?.rows) ? portal.rows : []).map((r) => [
+        String(r.prkplceNo) + '|' + String(r.prkplceNm),
+        r,
+      ]),
+    )
+    let caps = 0
+    let notes = 0
+    for (const r of rows) {
+      const hit = byKey.get(String(r.prkplceNo ?? '') + '|' + String(r.prkplceNm ?? ''))
+      if (!hit) continue
+      if (hit.capacity > 0) {
+        r.prkcmprt = String(hit.capacity)
+        caps++
+      }
+      /*
+       * 이미 같은 취지가 적혀 있으면 덧붙이지 않는다. 특기사항이 같은 말로
+       * 두 번 늘어나면 카드에서 읽기 어려워진다.
+       */
+      if (hit.extraNote && !String(r.spcmnt ?? '').includes('거주자')) {
+        r.spcmnt = [r.spcmnt, hit.extraNote].filter(Boolean).join(' / ')
+        notes++
+      }
+    }
+    console.log('서울 안내시스템 보정: 면수 ' + caps + '건 · 거주자 주의 ' + notes + '건')
+  }
+
   const cells = new Map()
   let dropped = 0
   let referenceDate = ''
