@@ -168,6 +168,33 @@ async function main() {
 
   const xml = buildSitemap(entries)
   await writeFile(path.join(dist, 'sitemap.xml'), xml, 'utf-8')
+
+  /*
+   * 사이트맵 색인도 같이 낸다.
+   *
+   * Search Console 이 /sitemap.xml 을 세 번(2026-08-29, 09-08, 09-17) 연속으로
+   * "가져올 수 없음" 으로 두고 있다. 파일은 멀쩡하다 — 응답 200, application/xml,
+   * 273개 주소, BOM 없음이고 URL 검사의 실시간 테스트도 통과했다. 그런데도 보고서의
+   * "마지막으로 읽은 날짜" 가 계속 비어 있다. 같은 주소에 붙은 실패 기록 때문에
+   * 재시도가 안 되는 것으로 보인다.
+   *
+   * 실패 기록이 없는 새 주소를 하나 더 두어, 그 가설을 시험한다. 내용은 sitemap.xml
+   * 을 가리키는 표준 sitemapindex 다. 이쪽이 읽히면 원인이 주소에 붙은 기록이었다는
+   * 뜻이고, 이쪽도 안 읽히면 사이트맵 경로 자체의 문제가 아니라는 뜻이다.
+   *
+   * _redirects 의 /sitemap_index.xml(밑줄)과 헷갈리지 않게 하이픈을 쓴다.
+   */
+  const indexXml = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    '  <sitemap>',
+    '    <loc>' + xmlEscape(toUrl(SITE, '/sitemap.xml')) + '</loc>',
+    '    <lastmod>' + stamp + '</lastmod>',
+    '  </sitemap>',
+    '</sitemapindex>',
+    '',
+  ].join('\n')
+  await writeFile(path.join(dist, 'sitemap-index.xml'), indexXml, 'utf-8')
   console.log(
     'sitemap.xml: ' + entries.length + '개 주소 · ' +
       (changed === 0 ? '바뀐 내용 없음 (lastmod 유지)' : '바뀐 ' + changed + '개에 lastmod ' + stamp),
