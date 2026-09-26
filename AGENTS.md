@@ -7,6 +7,32 @@
 
 ---
 
+## 좌표
+
+| 무엇 | 어디 |
+|---|---|
+| 서비스 | https://parkatzero.pages.dev |
+| 저장소 | https://github.com/kroa/ParkAtZero (공개) |
+| 배포 | Cloudflare Pages, 프로젝트명 `parkatzero`, 브랜치 `main` |
+| 배포 방식 | `main` 에 push -> `.github/workflows/deploy.yml` 이 자동 배포 |
+| 수동 배포 | `npm run deploy` (Actions 가 막혔을 때만) |
+| 검색 콘솔 | URL 접두어 속성 `https://parkatzero.pages.dev/` |
+
+데이터 출처는 세 곳이다.
+
+| 출처 | 쓰는 곳 |
+|---|---|
+| 공공데이터포털 「전국주차장정보표준데이터」 | 전국 약 2만 곳의 기반 스냅샷 |
+| 서울 열린데이터광장 (OA-13122) | 서울 공영주차장 요금·운영시간 |
+| 서울시 주차정보안내시스템 `parking.seoul.go.kr` | 서울 노상 면수·거주자 배정·실시간 대수 (**공개 API 아님**, 함정 2·6 참고) |
+
+산출물은 정적 페이지 273쪽(지역 242 + 상황 5 + 교차 30 + 홈 1)과 SPA 하나다.
+
+**에이전트가 직접 볼 수 없는 것**: Search Console, Cloudflare 대시보드, GitHub 설정.
+필요하면 사람에게 화면 캡처를 요청하라. 추측으로 답하지 마라.
+
+---
+
 ## 이 프로젝트가 답하는 질문
 
 "내가 도착할 그 시각에 이 주차장이 0원인가."
