@@ -56,6 +56,26 @@ test.describe('초기 로딩 · Local-First', () => {
     await expect(attribution).toContainText('예시 데이터')
   })
 
+  test('푸터에 지역 및 상황별 페이지로 가는 내부 링크가 렌더링된다 (크롤 막다른 골목 방지)', async ({ page }) => {
+    // React 마운트 후에도 구글봇 등 크롤러가 272개 정적 페이지로 건너갈 수 있어야 한다 (함정 11).
+    await gotoApp(page)
+    const footer = page.getByTestId('footer-links')
+    await expect(footer).toBeVisible()
+
+    const links = await footer.locator('a').all()
+    expect(links.length).toBe(6)
+
+    const hrefs = await Promise.all(links.map((a) => a.getAttribute('href')))
+    expect(hrefs).toEqual([
+      '/지역/',
+      '/공휴일-무료주차장/',
+      '/야간-무료주차장/',
+      '/일요일-무료주차장/',
+      '/토요일-무료주차장/',
+      '/24시간-무료주차장/',
+    ])
+  })
+
   test('주차장마다 상태 뱃지가 하나씩 붙는다', async ({ page }) => {
     await gotoApp(page)
 

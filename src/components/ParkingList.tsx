@@ -9,6 +9,7 @@ import type { LiveOccupancy } from '@/lib/liveOccupancy'
 import { SkeletonList } from './SkeletonCard'
 import { AdSlot } from './AdSlot'
 import { AttributionNotice } from './AttributionNotice'
+import { FooterLinks } from './FooterLinks'
 
 interface Props {
   items: ResultItem[]
@@ -131,6 +132,7 @@ export function ParkingList({
             </button>
           </>
         )}
+        <FooterLinks className="mt-8 pt-4" />
       </div>
     )
   }
@@ -178,6 +180,9 @@ export function ParkingList({
         referenceDate={referenceDate}
         className="mt-2"
       />
+
+      <FooterLinks className="mt-3" />
     </div>
   )
 }
+
