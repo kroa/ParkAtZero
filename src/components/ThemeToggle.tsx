@@ -17,7 +17,7 @@ export function ThemeToggle({ isDark, onToggle, className }: Props) {
       aria-label={isDark ? '라이트 모드로 전환' : '다크 모드로 전환'}
       aria-pressed={isDark}
       className={cn(
-        'tap glass glass-shine relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full text-ink-soft transition-colors hover:text-ink',
+        'tap tap-target-44 glass glass-shine relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-full text-ink-soft transition-colors hover:text-ink',
         className,
       )}
     >

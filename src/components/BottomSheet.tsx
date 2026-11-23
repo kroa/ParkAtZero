@@ -15,7 +15,7 @@ interface Props {
   className?: string
 }
 
-const PEEK_PX = 188
+const PEEK_PX = 152
 const FULL_RATIO = 0.92
 const HALF_RATIO = 0.54
 

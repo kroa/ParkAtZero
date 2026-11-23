@@ -3,14 +3,28 @@
 이 문서는 팀의 현재 진행 상황과 마일스톤, 리소스 사용 현황을 기록합니다.
 
 ## 현재 상태 요약
-- **현재 마일스톤**: 검색 유입 개선 및 정적 페이지 크롤 배관 무결성 확보
-- **진행 중인 과제**: 없음 (다음 우선 과제 선정 준비)
-- **최근 완료 과제**: TASK-003 (272개 지역 및 상황 페이지 상호 링크 크롤 배관 전수 점검 및 검증 도구 구축)
+- **현재 마일스톤**: 모바일/태블릿 반응형 UI 개선 완료 및 검색 유입/홍보 부스팅
+- **진행 중인 과제**: TASK-002 (Search Console sitemap-index.xml 수집 모니터링 및 수동 색인 가속)
+- **최근 완료 과제**: TASK-004 (모바일/태블릿 반응형 UI 시각 검수 및 디자인 개선, "AI 티 방지" 매트 고대비 서피스 및 44px 터치 규격 완비)
 - **차단 요소 / 대표 결정 필요**: 없음
 
 ---
 
 ## 진행 이력
+
+### 2026-11-23 (TASK-004 모바일/태블릿 반응형 UI 시각 검수 및 디자인 개선 완료)
+- **작업 내용**:
+  - `docs/adr/ADR-004-responsive-viewport-architecture.md` 수립 및 승인
+  - `src/hooks/useMediaQuery.ts`: 3단계 뷰포트(`compact < 768px`, `medium 768~1023px`, `expanded >= 1024px`) 인터페이스 구현
+  - `src/App.tsx`: 태블릿 슬림 사이드바(`360px`) 및 상세 패널 Slide-over 처리로 지도 시야 53.1% 항시 보장
+  - `src/index.css`: 글래스모피즘 매트화(`0.94~0.98`), 과도한 블러(12~16px) 절제, `.tap-target-44` 유틸리티 추가
+  - `src/components/BottomSheet.tsx`: 바텀시트 Peek 높이 152px로 축소 (모바일 지도 가시 면적 82% 확보)
+  - `src/components/DetailPanel.tsx`: 닫기 버튼 44×44px 터치 규격화
+  - `src/components/NaviButtons.tsx`: 티맵 & 카카오내비 52px 대형 듀얼 버튼 전면 배치
+  - `src/components/SearchBar.tsx`, `src/components/ThemeToggle.tsx`: 44px 터치 타깃 완비
+  - 자동화 게이트 전수 통과: typecheck 0에러, lint 0경고, Playwright E2E 127개 전수 통과, build:only 및 크롤 그래프 100% 통과
+  - 4인 병렬 검증 전원 합격: QA(차은결, PASS), 디자인(한소율, PASS), 보안(남궁현, PASS), 아키텍트(도경민, PASS)
+- **담당**: 기획 서하은, 디자인 한소율, 아키텍트 도경민, 개발 오준호, QA 차은결, 보안 남궁현, 팀장 윤도한
 
 ### 2026-11-23 (TASK-003 크롤 그래프 검증 및 배관 무결성 확보 완료)
 - **작업 내용**:

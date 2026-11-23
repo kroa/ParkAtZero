@@ -100,29 +100,34 @@
    * backdrop-filter 미지원 브라우저에서는 불투명 배경으로 자연 폴백된다.
    * ---------------------------------------------------- */
   .glass {
-    background-color: rgb(var(--pz-glass-bg));
-    border: 1px solid rgb(var(--pz-glass-border));
+    background-color: rgb(var(--pz-surface) / 0.94);
+    border: 1px solid rgb(var(--pz-hairline) / 0.8);
     @apply shadow-glass dark:shadow-glass-dark;
   }
 
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
     .glass {
-      -webkit-backdrop-filter: saturate(180%) blur(24px);
-      backdrop-filter: saturate(180%) blur(24px);
+      -webkit-backdrop-filter: saturate(180%) blur(12px);
+      backdrop-filter: saturate(180%) blur(12px);
     }
   }
 
   .glass-strong {
-    background-color: rgb(var(--pz-surface) / 0.94);
-    border: 1px solid rgb(var(--pz-glass-border));
+    background-color: rgb(var(--pz-surface) / 0.98);
+    border: 1px solid rgb(var(--pz-hairline) / 0.8);
     @apply shadow-glass dark:shadow-glass-dark;
   }
 
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
     .glass-strong {
-      -webkit-backdrop-filter: saturate(180%) blur(32px);
-      backdrop-filter: saturate(180%) blur(32px);
+      -webkit-backdrop-filter: saturate(180%) blur(16px);
+      backdrop-filter: saturate(180%) blur(16px);
     }
+  }
+
+  /* 터치 타깃 최소 44px 규격화 */
+  .tap-target-44 {
+    @apply inline-flex min-h-[44px] min-w-[44px] items-center justify-center;
   }
 
   /* 유리 상단의 미세한 하이라이트 — 실제 유리판처럼 보이게 하는 핵심 디테일 */

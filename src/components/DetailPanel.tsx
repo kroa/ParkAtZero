@@ -75,7 +75,7 @@ export function DetailPanel({ item, isSample, onClose, className }: Props) {
           data-testid="detail-close"
           onClick={onClose}
           aria-label="상세 닫기"
-          className="tap flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] text-ink-soft transition-colors hover:bg-ink/[0.12] hover:text-ink"
+          className="tap tap-target-44 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink/[0.06] text-ink-soft transition-colors hover:bg-ink/[0.12] hover:text-ink"
         >
           <X className="h-4 w-4" strokeWidth={2.6} />
         </button>

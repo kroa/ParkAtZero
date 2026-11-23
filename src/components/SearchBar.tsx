@@ -138,7 +138,7 @@ export function SearchBar({ value, onChange, onPick, onLocate, geoStatus, parkin
               onChange('')
               inputRef.current?.focus()
             }}
-            className="tap flex h-8 w-8 items-center justify-center rounded-full text-ink-mute transition-colors hover:bg-ink/5 hover:text-ink"
+            className="tap tap-target-44 flex h-10 w-10 items-center justify-center rounded-full text-ink-mute transition-colors hover:bg-ink/5 hover:text-ink"
           >
             <X className="h-4 w-4" strokeWidth={2.4} />
           </button>
@@ -153,7 +153,7 @@ export function SearchBar({ value, onChange, onPick, onLocate, geoStatus, parkin
           disabled={locating}
           aria-label="내 위치로 이동"
           className={cn(
-            'tap flex h-9 items-center gap-1.5 rounded-xl px-2.5 text-[13px] font-semibold transition-all',
+            'tap tap-target-44 flex h-11 items-center gap-1.5 rounded-xl px-3 text-[13px] font-semibold transition-all',
             geoStatus === 'granted'
               ? 'bg-brand-500/12 text-brand-600 dark:text-brand-300'
               : 'text-ink-soft hover:bg-ink/5 hover:text-ink',

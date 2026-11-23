@@ -15,7 +15,7 @@ import { BrandMark } from '@/components/BrandMark'
 import { isMinorMarker, markerLabel, type MarkerModel } from '@/components/mapMarker'
 import { SearchHereButton } from '@/components/SearchHereButton'
 import { useTheme } from '@/hooks/useTheme'
-import { useIsDesktop } from '@/hooks/useMediaQuery'
+import { useIsDesktop, useIsTablet } from '@/hooks/useMediaQuery'
 import { useDebounced } from '@/hooks/useDebounced'
 import { useGeolocation } from '@/hooks/useGeolocation'
 import { useParkingData } from '@/hooks/useParkingData'
@@ -46,10 +46,13 @@ const MAX_DOT_MARKERS = 60
 /** 데스크톱 사이드바 / 상세 패널 폭 — 지도 여백 계산에 쓴다. */
 const SIDEBAR_WIDTH = 428
 const DETAIL_WIDTH = 392
+const TABLET_SIDEBAR_WIDTH = 360
 
 export default function App() {
   const { isDark, toggle } = useTheme()
   const isDesktop = useIsDesktop()
+  const isTablet = useIsTablet()
+  const hasSidebar = isDesktop || isTablet
   /*
    * 지역 랜딩 페이지에서 ?lat=&lng=&z= 로 넘어온다. 한 번만 읽는다 —
    * 렌더마다 다시 읽으면 사용자가 지도를 옮긴 뒤에도 주소창 좌표로 되돌아간다.
@@ -214,9 +217,12 @@ export default function App() {
     if (isDesktop) {
       return { left: selectedItem ? SIDEBAR_WIDTH + DETAIL_WIDTH : SIDEBAR_WIDTH, top: 24, bottom: 24 }
     }
+    if (isTablet) {
+      return { left: TABLET_SIDEBAR_WIDTH + 16, top: 24, bottom: 24 }
+    }
     const vh = typeof window === 'undefined' ? 800 : window.innerHeight
-    return { top: 150, bottom: snap === 'peek' ? 188 : Math.round(vh * 0.54) }
-  }, [isDesktop, selectedItem, snap])
+    return { top: 150, bottom: snap === 'peek' ? 152 : Math.round(vh * 0.54) }
+  }, [isDesktop, isTablet, selectedItem, snap])
 
   const moveMap = useCallback((center: LatLng, zoom?: number) => {
     setMapView((prev) => ({ center, zoom: zoom ?? prev.zoom, token: prev.token + 1 }))
@@ -229,7 +235,7 @@ export default function App() {
       const hit = parkings.find((p) => p.id === id)
       // 기준점(origin)은 그대로 두고 지도만 움직인다 → 거리·반경이 흔들리지 않는다.
       if (hit) moveMap({ lat: hit.lat, lng: hit.lng }, Math.max(mapView.zoom, 16))
-      if (!isDesktop) setSnap('half')
+      if (!hasSidebar) setSnap('half')
 
       // 지도 마커로 고른 경우에도 목록에서 해당 카드가 보이게 스크롤을 맞춘다.
       window.requestAnimationFrame(() => {
@@ -238,7 +244,7 @@ export default function App() {
           ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
       })
     },
-    [parkings, moveMap, mapView.zoom, isDesktop],
+    [parkings, moveMap, mapView.zoom, hasSidebar],
   )
 
   const handlePick = useCallback(
@@ -258,9 +264,9 @@ export default function App() {
          */
         setKeyword('')
       }
-      if (!isDesktop) setSnap('half')
+      if (!hasSidebar) setSnap('half')
     },
-    [moveMap, isDesktop],
+    [moveMap, hasSidebar],
   )
 
   const handleLocate = useCallback(async () => {
@@ -363,20 +369,23 @@ export default function App() {
       <div
         className="pointer-events-none absolute z-30 flex justify-center"
         style={{
-          left: isDesktop ? SIDEBAR_WIDTH + 16 : 12,
+          left: isDesktop ? SIDEBAR_WIDTH + 16 : isTablet ? TABLET_SIDEBAR_WIDTH + 16 : 12,
           right: 12,
-          top: isDesktop ? 24 : 150,
+          top: hasSidebar ? 24 : 150,
         }}
       >
         <SearchHereButton visible={canSearchHere} onClick={searchHere} />
       </div>
 
-      {/* ── 데스크톱: 좌측 글래스 사이드바 ───────────────── */}
-      {isDesktop ? (
+      {/* ── 데스크톱 / 태블릿: 좌측 글래스 사이드바 ────────── */}
+      {hasSidebar ? (
         <>
           <aside
             data-testid="sidebar"
-            className="glass glass-shine absolute inset-y-4 left-4 z-20 flex w-[404px] flex-col overflow-hidden rounded-3xl"
+            className={cn(
+              'glass glass-shine absolute inset-y-4 left-4 z-20 flex flex-col overflow-hidden rounded-3xl',
+              isDesktop ? 'w-[404px]' : 'w-[360px]',
+            )}
           >
             <header className="flex items-center justify-between gap-2 px-4 pt-4">
               <BrandMark />
@@ -415,11 +424,14 @@ export default function App() {
             {selectedItem && (
               <motion.div
                 key={selectedItem.parking.id}
-                initial={{ opacity: 0, x: -24 }}
+                initial={{ opacity: 0, x: isDesktop ? -24 : -12 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -24 }}
+                exit={{ opacity: 0, x: isDesktop ? -24 : -12 }}
                 transition={{ type: 'spring', stiffness: 340, damping: 34 }}
-                className="pz-scroll absolute inset-y-4 left-[428px] z-20 w-[380px] overflow-y-auto"
+                className={cn(
+                  'pz-scroll absolute inset-y-4 z-30 overflow-y-auto',
+                  isDesktop ? 'left-[428px] w-[380px]' : 'left-4 w-[360px] shadow-2xl',
+                )}
               >
                 <DetailPanel item={selectedItem} isSample={isSample} onClose={() => setSelectedId(null)} />
               </motion.div>
