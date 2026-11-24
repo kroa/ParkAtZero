@@ -85,3 +85,11 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           # functions/ 디렉터리는 wrangler 가 자동으로 인식해 Pages Functions 로 배포한다.
           command: pages deploy dist --project-name=parkatzero --branch=main
+
+      - name: 배포 검증 (SEO Check)
+        if: steps.cf.outputs.ready == 'true'
+        run: npm run seo:check
+
+      - name: IndexNow 검색엔진 알림 (네이버·Bing)
+        if: steps.cf.outputs.ready == 'true'
+        run: npm run seo:indexnow

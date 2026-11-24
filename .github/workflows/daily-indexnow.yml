@@ -1,0 +1,37 @@
+name: Daily IndexNow Ping (Naver & Bing)
+
+# ─────────────────────────────────────────────────────────────
+#  네이버와 Bing, Yandex 등에 매일 새벽 최신 사이트맵 URL(273개)을 알린다.
+#  - 월간 한도 제약 없음 (100% 무료 공식 표준)
+#  - 일일 한도: 10,000개 (현재 사용량 273개로 한도의 2.7% 수준)
+#  - 한국 시각 매일 04:00 (UTC 19:00 전날) 실행
+# ─────────────────────────────────────────────────────────────
+
+on:
+  schedule:
+    # 매일 한국 시각 04:00 KST (UTC 19:00 전날)
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: daily-indexnow
+  cancel-in-progress: false
+
+jobs:
+  indexnow:
+    name: IndexNow URL 자동 전송
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: IndexNow 제출 (네이버·Bing·Yandex)
+        run: node scripts/submit-indexnow.mjs
